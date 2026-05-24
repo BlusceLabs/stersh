@@ -1,0 +1,8 @@
+{
+  "name": "@watchfy/animations",
+  "version": "0.1.0",
+  "description": "Animation utilities for Watch!fy",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true
+}

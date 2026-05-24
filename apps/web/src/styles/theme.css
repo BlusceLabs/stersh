@@ -1,0 +1,38 @@
+:root {
+  /* Background */
+  --color-bg-primary: #070b14;
+  --color-bg-secondary: #0f1724;
+  --color-bg-surface: rgba(15, 23, 36, 0.95);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-heavy: rgba(255, 255, 255, 0.08);
+
+  /* Purple */
+  --purple-50: #f5f3ff;
+  --purple-100: #ede9fe;
+  --purple-200: #ddd6fe;
+  --purple-300: #c4b5fd;
+  --purple-400: #a78bfa;
+  --purple-500: #8b5cf6;
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+  --purple-800: #5b21b6;
+  --purple-900: #4c1d95;
+
+  /* Cyan */
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.45);
+
+  /* Shadows */
+  --shadow-glow-purple: 0 0 60px rgba(139, 92, 246, 0.35);
+  --shadow-glow-cyan: 0 0 60px rgba(34, 211, 238, 0.2);
+  --shadow-cinematic: 0 10px 40px rgba(0, 0, 0, 0.35),
+    0 20px 80px rgba(0, 0, 0, 0.5);
+}
