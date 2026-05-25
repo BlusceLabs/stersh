@@ -1,4 +1,8 @@
-"""111movies.net (White server) source extraction using Playwright.
+"""111movies.net (White server) source extraction.
+
+Supports both:
+  - Direct API: movie/tt6263850 or movie/533535
+  - Playwright extraction for pages requiring JS
 
 Enhanced over v1:
   - JS crypto hooks (CryptoJS.AES + SubtleCrypto) injected at page-init to
@@ -17,13 +21,18 @@ import base64
 import hashlib
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Literal
 
+import httpx
+from cachetools import TTLCache
+
 logger = logging.getLogger(__name__)
 
 WHITE_BASE = "https://www.111movies.net"
+API_BASE = "https://111movies.net"
 
 # Resource types to block — speeds up page load significantly
 _BLOCKED_RESOURCE_TYPES = {"image", "font", "media"}
@@ -204,6 +213,98 @@ def _looks_like_url_or_json(text: str) -> bool:
         or ".m3u8" in t
         or ".mp4" in t
     )
+
+
+# ── Direct API extraction (111movies API) ────────────────────────────────────────
+
+_CACHE_TTL = int(os.environ.get("WHITE_CACHE_TTL", 15 * 60))
+_api_cache: TTLCache[str, dict] = TTLCache(maxsize=500, ttl=_CACHE_TTL)
+
+
+def _api_cache_key(tmdb_id: int, media_type: str, season: int, episode: int) -> str:
+    return f"{tmdb_id}:{media_type}:{season}:{episode}"
+
+
+async def extract_via_direct_api(
+    tmdb_id: int,
+    media_type: str,
+    season: int = 1,
+    episode: int = 1,
+) -> ExtractionResult | None:
+    """Extract sources using 111movies.net direct API.
+
+    Endpoints:
+      - https://111movies.net/movie/{id} (id can be imdb with tt prefix or tmdb)
+      - https://111movies.net/tv/{id}/{season}/{episode}
+    """
+    ck = _api_cache_key(tmdb_id, media_type, season, episode)
+    cached = _api_cache.get(ck)
+    if cached:
+        return ExtractionResult(
+            sources=[StreamSource(**s) for s in cached.get("sources", [])],
+            downloads=[StreamSource(**s) for s in cached.get("downloads", [])],
+        )
+
+    url = (
+        f"{API_BASE}/movie/{tmdb_id}"
+        if media_type == "movie"
+        else f"{API_BASE}/tv/{tmdb_id}/{season}/{episode}"
+    )
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+    }
+
+    try:
+        async with httpx.AsyncClient(headers=headers, timeout=30.0, follow_redirects=True) as client:
+            resp = await client.get(url)
+            if not resp.is_success:
+                logger.warning('"white_api_failed":{"status":%d}', resp.status_code)
+                return None
+
+            data = resp.json()
+    except Exception as exc:
+        logger.warning('"white_api_error":{"err":"%s"}', exc)
+        return None
+
+    sources: list[StreamSource] = []
+    downloads: list[StreamSource] = []
+
+    # Handle both array and object responses
+    streams = data if isinstance(data, list) else data.get("sources") or data.get("stream") or []
+    if isinstance(streams, dict):
+        streams = [streams]
+
+    for stream in streams:
+        stream_url = stream.get("url") or stream.get("file")
+        if not stream_url:
+            continue
+        stype = stream.get("type", "hls")
+        quality = stream.get("quality", "Auto")
+        resolution = _quality_to_resolution(quality)
+
+        if stype == "mp4" or ".mp4" in stream_url.lower():
+            downloads.append(StreamSource(url=stream_url, quality=quality, resolution=resolution, source_type="mp4"))
+        else:
+            sources.append(StreamSource(url=stream_url, quality=quality, resolution=resolution, source_type="hls"))
+
+    if not sources and not downloads:
+        logger.warning('"white_api_no_sources"')
+        return None
+
+    result = ExtractionResult(sources=sources, downloads=downloads, method="direct_api")
+
+    # Cache the result
+    _api_cache[ck] = {
+        "sources": [s.to_dict() for s in result.sources],
+        "downloads": [s.to_dict() for s in result.downloads],
+    }
+
+    return result
 
 
 # ── JS injection payloads ──────────────────────────────────────────────────────
@@ -834,9 +935,19 @@ async def extract_sources_legacy(
 ) -> list[dict] | None:
     """Backward-compatible wrapper that returns list[dict] like the v1 API.
 
+    First tries direct API, falls back to Playwright extraction if that fails.
     HLS quality variants and MP4 downloads are merged into one list;
     MP4 entries carry ``"type": "mp4"`` for downstream differentiation.
     """
+    # Try direct API first
+    result = await extract_via_direct_api(tmdb_id, media_type, season, episode)
+    if result:
+        logger.info('"white_direct_api_success":{"hls":%d,"mp4":%d}', len(result.sources), len(result.downloads))
+        combined = [s.to_dict() for s in result.sources] + [s.to_dict() for s in result.downloads]
+        return combined or None
+
+    # Fall back to Playwright extraction
+    logger.info('"white_fallback_to_playwright"')
     result = await extract_hls_from_111movies(
         tmdb_id, media_type, season, episode, browser, cdn_headers
     )
