@@ -6,6 +6,8 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   controls?: boolean;
   title?: string;
+  onNextEpisode?: () => void;
+  hasNextEpisode?: boolean;
 }
 
 interface QualityLevel {
@@ -15,7 +17,7 @@ interface QualityLevel {
   label: string;
 }
 
-export default function VideoPlayer({ src, autoPlay = false, controls = true, title }: VideoPlayerProps) {
+export default function VideoPlayer({ src, autoPlay = false, controls = true, title, onNextEpisode, hasNextEpisode }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -289,7 +291,7 @@ export default function VideoPlayer({ src, autoPlay = false, controls = true, ti
               </select>
             )}
 
-            <select
+<select
               value={playbackRate}
               onChange={(e) => {
                 const rate = parseFloat(e.target.value);
@@ -308,6 +310,16 @@ export default function VideoPlayer({ src, autoPlay = false, controls = true, ti
             <button onClick={toggleFullscreen} className="text-white hover:text-yellow-500">
               {isFullscreen ? "⛷" : "⛶"}
             </button>
+
+            {hasNextEpisode && onNextEpisode && (
+              <button 
+                onClick={onNextEpisode}
+                className="text-white text-xs hover:text-yellow-500 bg-black/50 rounded px-2 py-1"
+                title="Next episode"
+              >
+                Next
+              </button>
+            )}
           </div>
         </div>
       </div>

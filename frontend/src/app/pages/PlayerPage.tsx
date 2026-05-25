@@ -106,6 +106,20 @@ export default function PlayerPage() {
     setShowEpisodes(false);
   };
 
+  const handleNextEpisode = () => {
+    if (mediaType !== "tv") return;
+    
+    const currentIndex = episodes.findIndex(e => e.episode_number === currentEpisode);
+    if (currentIndex >= 0 && currentIndex < episodes.length - 1) {
+      const nextEpisode = episodes[currentIndex + 1];
+      if (nextEpisode) {
+        playEpisode(currentSeason, nextEpisode.episode_number);
+      }
+    }
+  };
+
+  const hasNextEpisode = mediaType === "tv" && episodes.some(e => e.episode_number > currentEpisode);
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
@@ -164,7 +178,7 @@ export default function PlayerPage() {
 
       {/* Video Player */}
       <div className="w-full h-full">
-        <VideoPlayer src={streamUrl} autoPlay />
+        <VideoPlayer src={streamUrl} autoPlay onNextEpisode={handleNextEpisode} hasNextEpisode={hasNextEpisode} />
       </div>
 
       {/* Episode Sidebar for TV Shows */}
