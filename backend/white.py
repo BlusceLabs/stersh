@@ -501,8 +501,8 @@ async def extract_hls_from_111movies(
                 await own_playwright.stop()
             return None
 
-    # ── Phase 1: passive network capture (20 s) ───────────────────
-    for _ in range(20):
+    # ── Phase 1: passive network capture (10 s) ───────────────────
+    for _ in range(10):
         if captured_hls:
             break
         await asyncio.sleep(1)
@@ -537,10 +537,18 @@ async def extract_hls_from_111movies(
             except Exception:
                 pass
 
-        for _ in range(15):
-            if captured_hls:
-                break
+        # Extended wait after click with periodic checks for video sources
+        for _ in range(25):
             await asyncio.sleep(1)
+            # Check video element for HLS source
+            try:
+                video_src = await page.eval('document.querySelector("video")?.src')
+                if video_src and '.m3u8' in video_src.lower():
+                    captured_hls = video_src
+                    logger.info('"video_src_hls_found":{"src":"%s"}', video_src)
+                    break
+            except:
+                pass
 
         if captured_hls:
             logger.info('"phase2_success"')
@@ -663,21 +671,39 @@ async def extract_hls_from_111movies(
 
 def _try_decrypt_payload(encrypted: str, hook_keys: list[str], tmdb_id: int) -> str | None:
     """Try multiple decryption strategies on a __NEXT_DATA__ encrypted string."""
+    # Strip common prefixes like 'r_' from encrypted payloads
+    clean_encrypted = encrypted
+    if encrypted.startswith("r_"):
+        clean_encrypted = encrypted[2:]
+    
     # Strategy A: keys intercepted from the page's own CryptoJS calls
+    for key in hook_keys:
+        if not key:
+            continue
+        result = AESDecryptor.decrypt_cryptojs(clean_encrypted, key)
+        if result and _looks_like_url_or_json(result):
+            logger.info('"decrypt_success":{"strategy":"hooked_key"}')
+            return result
+
+    # Strategy B: try original encrypted format too
     for key in hook_keys:
         if not key:
             continue
         result = AESDecryptor.decrypt_cryptojs(encrypted, key)
         if result and _looks_like_url_or_json(result):
-            logger.info('"decrypt_success":{"strategy":"hooked_key"}')
+            logger.info('"decrypt_success":{"strategy":"hooked_key_original"}')
             return result
 
-    # Strategy B: known CDN passphrases
+    # Strategy C: known CDN passphrases
+    result = AESDecryptor.try_all_keys(clean_encrypted)
+    if result:
+        return result
+
     result = AESDecryptor.try_all_keys(encrypted)
     if result:
         return result
 
-    # Strategy C: TMDB-ID-derived keys (some sites hash the ID)
+    # Strategy D: TMDB-ID-derived keys
     tmdb_derived = [
         str(tmdb_id).encode(),
         hashlib.md5(str(tmdb_id).encode()).hexdigest().encode(),
@@ -685,21 +711,29 @@ def _try_decrypt_payload(encrypted: str, hook_keys: list[str], tmdb_id: int) -> 
         f"111movies{tmdb_id}".encode(),
     ]
     for key in tmdb_derived:
-        result = AESDecryptor.decrypt_cryptojs(encrypted, key)
+        result = AESDecryptor.decrypt_cryptojs(clean_encrypted, key)
         if result and _looks_like_url_or_json(result):
             logger.info('"decrypt_success":{"strategy":"tmdb_derived"}')
             return result
 
-    # Strategy D: maybe it's just Base64 without encryption
-    try:
-        raw = base64.b64decode(encrypted + "==").decode("utf-8", errors="replace")
-        if _looks_like_url_or_json(raw):
-            logger.info('"decrypt_success":{"strategy":"base64_plain"}')
-            return raw
-    except Exception:
-        pass
+    # Strategy E: try original format with TMDB keys
+    for key in tmdb_derived:
+        result = AESDecryptor.decrypt_cryptojs(encrypted, key)
+        if result and _looks_like_url_or_json(result):
+            logger.info('"decrypt_success":{"strategy":"tmdb_derived_original"}')
+            return result
 
-    logger.warning('"decrypt_failed":{"strategies_tried":4}')
+    # Strategy F: maybe it's just Base64 without encryption (try both)
+    for data in [clean_encrypted, encrypted]:
+        try:
+            raw = base64.b64decode(data + "==").decode("utf-8", errors="replace")
+            if _looks_like_url_or_json(raw):
+                logger.info('"decrypt_success":{"strategy":"base64_plain"}')
+                return raw
+        except Exception:
+            pass
+
+    logger.warning('"decrypt_failed":{"strategies_tried":6}')
     return None
 
 

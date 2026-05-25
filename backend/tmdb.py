@@ -28,7 +28,6 @@ async def _get_tmdb_client() -> httpx.AsyncClient:
     global _client
     if _client is None or _client.is_closed:
         _client = httpx.AsyncClient(
-            headers={"Authorization": f"Bearer {TMDB_API_KEY}"},
             timeout=15.0,
             follow_redirects=True,
         )
@@ -79,8 +78,13 @@ async def proxy_tmdb_endpoint(
     if not clean_path:
         raise HTTPException(status_code=400, detail="Invalid path")
     
-    # Build query parameters
+    # Build query parameters from request
     tmdb_params: Dict[str, Any] = {"api_key": TMDB_API_KEY}
+    for key, value in request.query_params.items():
+        if key not in ("api_key",):  # Don't let client override api_key
+            tmdb_params[key] = value
+    
+    # Merge with explicit query param if provided
     if query:
         tmdb_params.update(query)
     

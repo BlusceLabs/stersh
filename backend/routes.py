@@ -989,7 +989,7 @@ def _parse_year(date_str: str | None) -> str:
         return ""
 
 
-# ── Watch endpoint (convenience wrapper for vidking source) ───────────────────────
+# ── Watch endpoint (vidking.net source) ─────────────────────────────────────
 
 @router.get("/watch/{media_type}/{tmdb_id}", tags=["watch"])
 async def get_watch_url(
@@ -999,7 +999,7 @@ async def get_watch_url(
     season: int = Query(default=1),
     episode: int = Query(default=1),
 ) -> dict:
-    """Get stream URL for watching - wraps vidking source endpoint."""
+    """Get stream URL from vidking.net source."""
     if media_type not in ("movie", "tv"):
         raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
     
@@ -1008,25 +1008,12 @@ async def get_watch_url(
     
     ck = _cache_key(tmdb_id, media_type, season, episode)
     
-    # Check cache first
     cached = _hls_cache.get(ck)
     if cached is not None:
         return {
             "stream_url": cached[0]["url"] if cached else None,
             "sources": cached,
         }
-    
-    # Extract source
-    if not _vidking_cb.allow_request():
-        if cached:
-            return {
-                "stream_url": cached[0]["url"],
-                "sources": cached,
-            }
-        raise HTTPException(
-            status_code=503,
-            detail="Source extraction temporarily unavailable.",
-        )
     
     try:
         sources = await asyncio.wait_for(

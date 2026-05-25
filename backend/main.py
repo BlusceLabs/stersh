@@ -37,6 +37,8 @@ from black_routes  import router as black_router
 from black_routes  import shutdown_black_browser, shutdown_black_client
 from white_routes  import router as white_router
 from white_routes  import shutdown_white_browser, shutdown_white_client
+from pink_routes   import router as pink_router
+from pink_routes   import shutdown_pink_browser, shutdown_pink_client
 from proxy_routes import router as proxy_router
 from ffmpeg_routes import router as ffmpeg_router
 from tmdb import include_router as include_tmdb_router
@@ -62,6 +64,8 @@ async def lifespan(app: FastAPI):
         shutdown_black_client(),
         shutdown_white_browser(),
         shutdown_white_client(),
+        shutdown_pink_browser(),
+        shutdown_pink_client(),
         return_exceptions=True,
     )
 
@@ -98,6 +102,7 @@ app.middleware("http")(request_id_middleware)
 app.include_router(vidking_router)
 app.include_router(black_router)
 app.include_router(white_router)
+app.include_router(pink_router)
 app.include_router(proxy_router)
 app.include_router(ffmpeg_router)
 include_tmdb_router(app)

@@ -10,6 +10,11 @@
   --card: 23 23 23;
   --card-foreground: 255 255 255;
   --border: 39 39 42;
+  --surface: 23 23 23;
+  --surface-raised: 35 35 38;
+  --surface-sunken: 18 18 20;
+  --text: 255 255 255;
+  --text-muted: 156 163 175;
 }
 
 body {
@@ -76,4 +81,13 @@ select {
 :focus-visible {
   outline: 2px solid rgb(234 179 8);
   outline-offset: 2px;
+}
+
+/* Custom shadows for EpisodeSidebar */
+.shadow-subtle {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.shadow-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
