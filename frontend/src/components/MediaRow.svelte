@@ -25,7 +25,7 @@
 
   async function loadItems() {
     try {
-      const data = await api.get(`/tmdb/${endpoint}`);
+      const data = await api.get(`/api/tmdb/${endpoint}`);
       items = data?.results || [];
     } catch (e) {
       console.error(`row "${title}" error:`, e);

@@ -1,9 +1,7 @@
 // src/lib/api.ts
 
 // Dynamically fallback to standard server-side paths if the wrapper variable is unset
-const API_BASE = import.meta.env.BACKEND_URL 
-  ? `${import.meta.env.BACKEND_URL}/api` 
-  : '/api';
+const API_BASE = import.meta.env.BACKEND_URL || 'http://localhost:8000';
 
 /**
  * Core Network Interface Handler 
@@ -47,10 +45,10 @@ export const api = {
  */
 export const tmdbApi = {
   trending: (mediaType: 'movie' | 'tv', timeWindow: 'day' | 'week' = 'day'): Promise<any> => 
-    api.get(`/tmdb/trending/${mediaType}/${timeWindow}`),
+    api.get(`/api/tmdb/trending/${mediaType}/${timeWindow}`),
   
   popular: (mediaType: 'movie' | 'tv'): Promise<any> => 
-    api.get(`/tmdb/${mediaType}/popular`),
+    api.get(`/api/tmdb/${mediaType}/popular`),
   
   /**
    * Dynamically formats search endpoints based on media type mapping
@@ -58,11 +56,11 @@ export const tmdbApi = {
   search: (query: string, mediaType: 'multi' | 'movie' | 'tv' = 'multi'): Promise<any> => {
     const cleanQuery = encodeURIComponent(query.trim());
     // Directs routing traffic precisely to match standard API formats
-    return api.get(`/tmdb/search/${mediaType}?query=${cleanQuery}`);
+    return api.get(`/api/tmdb/search/${mediaType}?query=${cleanQuery}`);
   },
   
   details: (mediaType: 'movie' | 'tv', id: number | string): Promise<any> => 
-    api.get(`/tmdb/${mediaType}/${id}`),
+    api.get(`/api/tmdb/${mediaType}/${id}`),
 };
 
 /* Unified Structural Type Signatures */

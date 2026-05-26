@@ -25,8 +25,8 @@
   async function loadItems() {
     try {
       const [movies, tv] = await Promise.all([
-        api.get('/tmdb/trending/movie/week'),
-        api.get('/tmdb/trending/tv/week'),
+        api.get('/api/tmdb/trending/movie/week'),
+        api.get('/api/tmdb/trending/tv/week'),
       ]);
       const all = [
         ...((movies?.results || []).filter((m: Item) => m.backdrop_path)),

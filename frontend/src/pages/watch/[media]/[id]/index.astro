@@ -1,12 +1,13 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
 import HLSPlayer from '../../../../components/HLSPlayer.svelte';
+import { api } from '../../../../lib/api';
 
 const { media, id } = Astro.params;
 
 // Validate media type normalization patterns
 const normalizedMedia = media === 'tv' ? 'tv' : 'movie';
-const streamUrl = `/api/vidking/source?tmdbId=${id}&mediaType=${normalizedMedia}`;
+const streamUrl = api.getStreamSource(Number(id), normalizedMedia);
 ---
 
 <Layout title="Streaming Feature... | Watchfy">

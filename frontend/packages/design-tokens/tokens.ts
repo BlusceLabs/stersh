@@ -1,7 +1,3 @@
-/**
- * Watchfy Atomic Design Token Architecture
- * Cast with 'as const' to freeze structural values into literal types.
- */
 export const tokens = {
   colors: {
     purple: {
@@ -35,16 +31,28 @@ export const tokens = {
   },
 } as const;
 
-/* Extract compile-time type unions directly from token definitions */
+/**
+ * Utility compile engine to output your explicit root stylesheet strings
+ */
+export function compileTokensToCSSVariables(): string {
+  const lines: string[] = [];
+  lines.push(':root {');
 
-export type TokenColors = typeof tokens.colors;
-export type TokenSpacing = typeof tokens.spacing;
+  // Parse Purple Matrix Scales
+  Object.entries(tokens.colors.purple).forEach(([shade, hex]) => {
+    lines.push(`  --color-purple-${shade}: ${hex};`);
+  });
 
-// Generates an explicit type union: 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
-export type PurpleShades = keyof TokenColors['purple'];
+  // Parse Cyan Matrix Scales
+  Object.entries(tokens.colors.cyan).forEach(([shade, hex]) => {
+    lines.push(`  --color-cyan-${shade}: ${hex};`);
+  });
 
-// Generates an explicit type union: 400 | 500
-export type CyanShades = keyof TokenColors['cyan'];
+  // Parse Spacing Layout Intervals
+  Object.entries(tokens.spacing).forEach(([step, val]) => {
+    lines.push(`  --spacing-step-${step}: ${val};`);
+  });
 
-// Generates an explicit type union of spacing step keys: 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12 | 16
-export type SpacingSteps = keyof TokenSpacing;
+  lines.push('}');
+  return lines.join('\n');
+}
