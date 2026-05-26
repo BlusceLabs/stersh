@@ -2,6 +2,7 @@
 // src/pages/index.astro
 import { api } from '@lib/api';
 import type { Movie } from '@watchfy/shared-types';
+const BACKEND = import.meta.env.BACKEND_URL || 'http://localhost:8000';
 let trendingMovies: Movie[] = [];
 let initialBackdrop = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925';
 
@@ -254,7 +255,7 @@ try {
         }
 
         player = new YT.Player('youtube-player', {
-          videoId: ffirstKey = firstKey,
+          videoId: firstKey,
           playerVars: {
             autoplay: 1,
             mute: 1,
