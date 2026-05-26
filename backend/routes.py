@@ -31,7 +31,6 @@ from urllib.parse import urlparse
 import httpx
 from cachetools import TTLCache
 from fastapi import Depends, FastAPI, APIRouter, HTTPException, Query, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 
 from hls_parser import parse_master_manifest
 from white_routes import (
@@ -1037,25 +1036,3 @@ async def get_watch_url(
         "stream_url": sources[0]["url"] if sources else None,
         "sources": sources or [],
     }
-
-
-# ── FastAPI app ───────────────────────────────────────────────────────────────
-
-app = FastAPI(
-    title="watchfy Streaming Service",
-    version="2.0.0",
-    lifespan=lifespan,
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["X-Request-ID", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
-)
-app.middleware("http")(request_id_middleware)
-
-app.include_router(router)
-app.include_router(white_router)
-app.include_router(enhanced_proxy_router)
