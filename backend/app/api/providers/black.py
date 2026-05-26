@@ -347,6 +347,14 @@ async def black_proxy_hls(url: str = Query(...)) -> Response:
     lines: list[str] = []
     for line in resp.text.split("\n"):
         stripped = line.strip()
+
+        if stripped == "#EXT-X-ENDLIST":
+            continue
+
+        if stripped.startswith("#EXT-X-PLAYLIST-TYPE:VOD"):
+            lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
+            continue
+
         if stripped and not stripped.startswith("#"):
             if not stripped.startswith("http"):
                 stripped = base_url + stripped

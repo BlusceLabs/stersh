@@ -352,10 +352,23 @@ async def multi_source_health(
 # ── Manifest rewriter ──────────────────────────────────────────────────────────
 
 def _rewrite_manifest(text: str, base_url: str) -> str:
-    """Rewrite all segment URIs in an HLS manifest to go through our proxy."""
+    """Rewrite all segment URIs in an HLS manifest to go through our proxy.
+
+    Strips EXT-X-ENDLIST and converts VOD to EVENT so hls.js periodically
+    reloads the manifest — refreshing token TTLs and avoiding expired
+    CDN signed URLs mid-playback.
+    """
     lines: list[str] = []
     for line in text.split("\n"):
         stripped = line.strip()
+
+        if stripped == "#EXT-X-ENDLIST":
+            continue
+
+        if stripped.startswith("#EXT-X-PLAYLIST-TYPE:VOD"):
+            lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
+            continue
+
         if stripped and not stripped.startswith("#"):
             if not stripped.startswith("http"):
                 stripped = base_url + stripped
