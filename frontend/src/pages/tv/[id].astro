@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import EpisodeSidebar from '../../components/EpisodeSidebar.svelte';
 
 export function getStaticPaths() {
   return [
@@ -11,7 +12,11 @@ export function getStaticPaths() {
 
 const { id } = Astro.params;
 const seasons = [1, 2, 3];
-const episodes = Array.from({ length: 10 }, (_, i) => i + 1);
+const episodes = Array.from({ length: 10 }, (_, i) => ({ 
+  number: i + 1, 
+  title: `Episode ${i + 1}`, 
+  duration: '45 min' 
+}));
 ---
 
 <Layout title="TV Show Details">
@@ -44,22 +49,15 @@ const episodes = Array.from({ length: 10 }, (_, i) => i + 1);
     
     <section>
       <h2 class="text-2xl font-bold text-white mb-4">Episodes</h2>
+      <EpisodeSidebar client:load id={parseInt(id)} seasons={seasons} episodes={episodes} />
       
-      <div class="mb-6">
-        <select class="bg-zinc-800 text-white px-4 py-2 rounded-lg">
-          {seasons.map(s => (
-            <option value={s}>Season {s}</option>
-          ))}
-        </select>
-      </div>
-      
-      <div class="space-y-3">
+      <div class="space-y-3 mt-4">
         {episodes.map(ep => (
-          <a href={`/watch/tv/${id}/1/${ep}`} class="flex items-center gap-4 p-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-            <span class="text-yellow-500 font-bold">E{ep}</span>
+          <a href={`/watch/tv/${id}/1/${ep.number}`} class="flex items-center gap-4 p-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+            <span class="text-yellow-500 font-bold">E{ep.number}</span>
             <div>
-              <h4 class="text-white font-medium">Episode {ep} Title</h4>
-              <p class="text-gray-400 text-sm line-clamp-1">Episode description...</p>
+              <h4 class="text-white font-medium">{ep.title}</h4>
+              <p class="text-gray-400 text-sm">{ep.duration}</p>
             </div>
           </a>
         ))}
