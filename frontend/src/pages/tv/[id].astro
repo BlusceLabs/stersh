@@ -1,67 +1,69 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import EpisodeSidebar from '../../components/EpisodeSidebar.svelte';
-
-export function getStaticPaths() {
-  return [
-    { params: { id: '1' } },
-    { params: { id: '2' } },
-    { params: { id: '3' } },
-  ];
-}
 
 const { id } = Astro.params;
-const seasons = [1, 2, 3];
-const episodes = Array.from({ length: 10 }, (_, i) => ({ 
-  number: i + 1, 
-  title: `Episode ${i + 1}`, 
-  duration: '45 min' 
-}));
 ---
 
-<Layout title="TV Show Details">
-  <main class="container mx-auto px-4 py-8">
-    <div class="flex flex-col md:flex-row gap-6 mb-8">
-      <div class="w-64 flex-shrink-0">
-        <img 
-          src="/placeholder-show.jpg" 
-          alt="Show poster"
-          class="w-full rounded-lg"
-        />
-      </div>
-      
-      <div>
-        <h1 class="text-4xl font-bold text-white mb-2">TV Show {id}</h1>
-        <p class="text-gray-400 mb-4">2020 • 3 Seasons</p>
-        
-        <div class="flex gap-4 mb-4">
-          <a href={`/watch/tv/${id}/1/1`} class="px-8 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition">
-            Play S1E1
-          </a>
-          <button class="px-6 py-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-            + My List
-          </button>
-        </div>
-        
-        <p class="text-gray-300">TV show description goes here...</p>
-      </div>
+<Layout title={`TV Show ${id} - Watchfy`}>
+  <main class="container mx-auto px-4 py-8" id="tv-page" data-show-id={id}>
+    <div class="text-center py-12">
+      <p class="text-text-muted">Loading...</p>
     </div>
-    
-    <section>
-      <h2 class="text-2xl font-bold text-white mb-4">Episodes</h2>
-      <EpisodeSidebar client:load id={parseInt(id)} seasons={seasons} episodes={episodes} />
-      
-      <div class="space-y-3 mt-4">
-        {episodes.map(ep => (
-          <a href={`/watch/tv/${id}/1/${ep.number}`} class="flex items-center gap-4 p-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-            <span class="text-yellow-500 font-bold">E{ep.number}</span>
-            <div>
-              <h4 class="text-white font-medium">{ep.title}</h4>
-              <p class="text-gray-400 text-sm">{ep.duration}</p>
-            </div>
-          </a>
-        ))}
-      </div>
-    </section>
   </main>
 </Layout>
+
+<script>
+  import { tmdbApi } from '../../lib/api';
+
+  const id = Astro.params.id;
+  
+  const renderShowDetails = (show) => {
+    const container = document.getElementById('tv-page');
+    if (!container) return;
+    
+    const posterUrl = show.poster_path 
+      ? `https://image.tmdb.org/t/p/w500${show.poster_path}` 
+      : 'https://placehold.co/500x750/111111/FFFFFF?text=No+Image';
+    
+    const year = (show.first_air_date || '').split('-')[0] || '—';
+    const rating = show.vote_average || 0;
+    const seasons = show.number_of_seasons || 1;
+    
+    container.innerHTML = `
+      <div class="flex flex-col md:flex-row gap-6 mb-8">
+        <div class="w-64 flex-shrink-0">
+          <img src="${posterUrl}" alt="${show.name}" class="w-full rounded-lg" />
+        </div>
+        
+        <div>
+          <h1 class="text-4xl font-bold text-text mb-2">${show.name}</h1>
+          <p class="text-text-muted mb-4"><span class="text-secondary">${year}</span> • ${seasons} Season${seasons > 1 ? 's' : ''} • <span class="text-primary">★ ${rating.toFixed(1)}</span></p>
+          
+          <div class="flex gap-4 mb-4">
+            <a href="/watch/tv/${id}?season=1&episode=1" class="px-8 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover transition shadow-lg shadow-primary/25">
+              Play S1E1
+            </a>
+            <button class="px-6 py-3 bg-surface-raised border border-border/50 rounded-lg hover:bg-surface transition">
+              + My List
+            </button>
+          </div>
+          
+          <p class="text-text-secondary mb-4">${show.overview}</p>
+        </div>
+      </div>
+    `;
+  };
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const show = await tmdbApi.details('tv', parseInt(id));
+      renderShowDetails(show);
+    } catch (e) {
+      console.error('Failed to load show:', e);
+      const container = document.getElementById('tv-page');
+      if (container) {
+        container.innerHTML = '<p class="text-red-400">Failed to load show details.</p>';
+      }
+    }
+  });
+</script>

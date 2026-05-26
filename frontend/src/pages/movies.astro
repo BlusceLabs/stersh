@@ -1,22 +1,54 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import MovieCard from '../components/MovieCard.svelte';
-
-const movies = [
-  { id: 1, title: 'Inception', year: '2010', poster: '/placeholder-movie.jpg', rating: 8.8 },
-  { id: 2, title: 'The Matrix', year: '1999', poster: '/placeholder-movie.jpg', rating: 8.7 },
-  { id: 3, title: 'Interstellar', year: '2014', poster: '/placeholder-movie.jpg', rating: 8.6 },
-];
 ---
 
 <Layout title="Watchfy - Movies">
   <main class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-white mb-6">Movies</h1>
-    
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {movies.map(movie => (
-        <MovieCard client:load id={movie.id} title={movie.title} year={movie.year} poster={movie.poster} rating={movie.rating} />
-      ))}
-    </div>
+    <h1 class="text-3xl font-bold text-text mb-6">Movies</h1>
+    <div id="movies-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
   </main>
 </Layout>
+
+<script>
+  import { tmdbApi } from '../lib/api';
+
+  const renderMovieCard = (item, mediaType) => {
+    const id = item.id;
+    const title = item.title || item.name || 'Untitled';
+    const year = (item.release_date || item.first_air_date || '').split('-')[0] || '—';
+    const poster = item.poster_path 
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}` 
+      : '/placeholder-movie.jpg';
+    const rating = item.vote_average || 0;
+    
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <a href="/${mediaType}/${id}" class="group block">
+        <div class="relative bg-surface-raised rounded-lg overflow-hidden aspect-[2/3] transition-transform duration-300">
+          <img src="${poster}" alt="${title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+          ${rating > 0 ? `<div class="absolute top-2 right-2 bg-surface-sunken/70 text-primary text-xs px-2 py-1 rounded flex items-center gap-1"><span>★</span><span>${rating.toFixed(1)}</span></div>` : ''}
+        </div>
+        <div class="mt-2">
+          <h3 class="font-medium text-sm line-clamp-1 text-text">${title}</h3>
+          <p class="text-xs text-text-muted">${year}</p>
+        </div>
+      </a>
+    `;
+    return div;
+  };
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const grid = document.getElementById('movies-grid');
+    if (!grid) return;
+    
+    try {
+      const response = await tmdbApi.popular('movie');
+      const movies = response?.results || [];
+      movies.forEach(item => {
+        grid.appendChild(renderMovieCard(item, 'movie'));
+      });
+    } catch (e) {
+      grid.innerHTML = '<p class="text-red-400">Failed to load movies.</p>';
+    }
+  });
+</script>

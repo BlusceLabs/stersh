@@ -1,0 +1,27 @@
+# Updated requirements with Redis
+redis==5.0.1
+pydantic==1.10.2
+typing-extensions==4.9.0
+# ── Web framework ────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+
+# ── HTTP client ──────────────────────────────────────────────
+httpx[http2]==0.27.2
+
+# ── Browser automation ───────────────────────────────────────
+playwright==1.48.0
+# After install, run: playwright install chromium --with-deps
+
+# ── Cache ────────────────────────────────────────────────────
+cachetools==5.5.0
+
+# ── Crypto / decryption ──────────────────────────────────────
+cryptography==43.0.3
+
+# ── Env / config ─────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Optional: structured logging ─────────────────────────────
+# python-json-logger==2.0.7

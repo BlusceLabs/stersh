@@ -1,39 +1,118 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import MovieCard from '../components/MovieCard.svelte';
-
-const results = [
-  { id: 1, title: 'Inception', year: '2010', poster: '/placeholder-movie.jpg', rating: 8.8 },
-  { id: 2, title: 'The Matrix', year: '1999', poster: '/placeholder-movie.jpg', rating: 8.7 },
-];
 ---
 
 <Layout title="Watchfy - Search">
   <main class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-white mb-6">Search</h1>
+    <h1 class="text-3xl font-bold text-text mb-6">Search</h1>
     
-    <form class="max-w-2xl mb-8">
+    <form id="search-form" class="max-w-2xl mb-8">
       <div class="relative">
         <input
           type="text"
+          name="q"
           placeholder="Search movies, TV shows..."
-          class="w-full px-6 py-4 bg-zinc-800 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          class="w-full px-6 py-4 bg-surface-raised rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+          value=""
         />
-        <button type="submit" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+        <button type="submit" class="absolute right-4 top-1/2 -translate-y-1/2 px-4 py-1 bg-primary text-white rounded hover:bg-primary-hover transition">
           Search
         </button>
       </div>
     </form>
     
-    {results.length > 0 && (
-      <>
-        <h2 class="text-xl font-semibold text-white mb-4">Results</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {results.map(item => (
-            <MovieCard client:load id={item.id} title={item.title} year={item.year} poster={item.poster} rating={item.rating} />
-          ))}
-        </div>
-      </>
-    )}
+    <div id="search-results" class="hidden">
+      <h2 class="text-2xl font-bold text-text mb-4">Results</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="results-grid"></div>
+    </div>
+    
+    <p id="no-query" class="text-text-muted">Enter a search query above to find movies and TV shows.</p>
   </main>
 </Layout>
+
+<script>
+  import { tmdbApi } from '../lib/api';
+
+  const renderMovieCard = (item, mediaType) => {
+    const id = item.id;
+    const title = item.title || item.name || 'Untitled';
+    const year = (item.release_date || item.first_air_date || '').split('-')[0] || '—';
+    const poster = item.poster_path 
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}` 
+      : '/placeholder-movie.jpg';
+    const rating = item.vote_average || 0;
+    const type = item.media_type || mediaType;
+    
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <a href="/${type}/${id}" class="group block">
+        <div class="relative bg-surface-raised rounded-lg overflow-hidden aspect-[2/3] transition-transform duration-300">
+          <img src="${poster}" alt="${title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+          ${rating > 0 ? `<div class="absolute top-2 right-2 bg-surface-sunken/70 text-primary text-xs px-2 py-1 rounded flex items-center gap-1"><span>★</span><span>${rating.toFixed(1)}</span></div>` : ''}
+        </div>
+        <div class="mt-2">
+          <h3 class="font-medium text-sm line-clamp-1 text-text">${title}</h3>
+          <p class="text-xs text-text-muted">${year}</p>
+        </div>
+      </a>
+    `;
+    return div;
+  };
+
+  const performSearch = async (query: string) => {
+    const resultsEl = document.getElementById('search-results');
+    const noQueryEl = document.getElementById('no-query');
+    const grid = document.getElementById('results-grid');
+    
+    if (!query.trim()) {
+      resultsEl?.classList.add('hidden');
+      noQueryEl?.classList.remove('hidden');
+      return;
+    }
+    
+    noQueryEl?.classList.add('hidden');
+    resultsEl?.classList.remove('hidden');
+    
+    if (!grid) return;
+    grid.innerHTML = '<p class="text-text-muted">Loading...</p>';
+    
+    try {
+      const response = await tmdbApi.search(query);
+      const results = response?.results || [];
+      
+      grid.innerHTML = '';
+      if (results.length === 0) {
+        grid.innerHTML = '<p class="text-text-muted">No results found.</p>';
+        return;
+      }
+      
+      const mediaType = results[0].media_type;
+      results.forEach(item => {
+        grid.appendChild(renderMovieCard(item, mediaType));
+      });
+    } catch (e) {
+      grid.innerHTML = '<p class="text-red-400">Failed to fetch results.</p>';
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('search-form') as HTMLFormElement;
+    const input = form?.querySelector('input') as HTMLInputElement;
+    const urlParams = new URLSearchParams(window.location.search);
+    const query = urlParams.get('q');
+    
+    if (query) {
+      input.value = query;
+      performSearch(query);
+    }
+    
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = input.value.trim();
+      if (q) {
+        history.pushState(null, '', `/search?q=${encodeURIComponent(q)}`);
+        performSearch(q);
+      }
+    });
+  });
+</script>

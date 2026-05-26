@@ -4,12 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface: '#1a1a1a',
-        'surface-raised': '#262626',
-        'surface-sunken': '#111111',
-        border: '#333333',
+        surface: '#0f1724',
+        'surface-raised': '#1a2332',
+        'surface-sunken': '#070b14',
+        border: '#1e293b',
         text: '#ffffff',
-        'text-muted': '#a1a1aa',
+        'text-secondary': '#cbd5e1',
+        'text-muted': '#94a3b8',
+        primary: '#8b5cf6',
+        'primary-hover': '#7c3aed',
+        secondary: '#22d3ee',
+        'secondary-hover': '#06b6d4',
       },
     },
   },

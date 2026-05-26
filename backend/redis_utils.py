@@ -8,7 +8,7 @@ def tmdb_cache_get(key: str) -> Any | None:
     """Get cached TMDB response by key."""
     return None
 
-def tmdb_cache_set(key: str, value: Any) -> None:
+def tmdb_cache_set(key: str, value: Any, **kwargs: Any) -> None:
     """Cache TMDB response."""
     pass
 

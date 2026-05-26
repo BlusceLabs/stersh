@@ -2,37 +2,25 @@
 import Layout from '../../../../layouts/Layout.astro';
 import HLSPlayer from '../../../../components/HLSPlayer.svelte';
 
-export function getStaticPaths() {
-  return [
-    { params: { media: 'movie', id: '1' } },
-    { params: { media: 'movie', id: '2' } },
-    { params: { media: 'tv', id: '1', season: '1', episode: '1' } },
-  ];
-}
-
-const { media, id, season, episode } = Astro.params;
-const BACKEND_URL = import.meta.env.BACKEND_URL || 'http://localhost:8000';
-
-const streamParam = season && episode 
-  ? `${media}/${id}?season=${season}&episode=${episode}`
-  : `${media}/${id}`;
+const { media, id } = Astro.params;
+const streamUrl = `/api/vidking/source?tmdbId=${id}&mediaType=${media}`;
 ---
 
 <Layout title="Watch">
-  <div class="min-h-screen bg-black text-white pt-16">
+  <div class="min-h-screen bg-surface-sunken text-text pt-16">
     <div class="container mx-auto px-4 py-6">
-      <div class="aspect-video bg-zinc-900 rounded-lg overflow-hidden mb-6">
+      <div class="aspect-video bg-surface rounded-lg overflow-hidden mb-6">
         <HLSPlayer 
           client:load
-          src={`${BACKEND_URL}/stream/${streamParam}`}
-          title="Movie Title"
+          src={streamUrl}
+          title="Watch"
           autoPlay={true}
         />
       </div>
       
       <div>
-        <h1 class="text-2xl font-bold mb-2">Title</h1>
-        <p class="text-gray-400">Description loads from backend</p>
+        <h1 class="text-2xl font-bold mb-2">Now Playing</h1>
+        <p class="text-text-muted">Streaming from available sources</p>
       </div>
     </div>
   </div>

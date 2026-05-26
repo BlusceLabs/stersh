@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroCarousel from '../components/HeroCarousel.svelte';
+import MediaRow from '../components/MediaRow.svelte';
+---
+
+<Layout title="Watchfy - Home">
+  <main>
+    <HeroCarousel client:load />
+
+    <div class="container mx-auto px-4 py-10">
+      <MediaRow client:load title="Trending Movies" endpoint="trending/movie/week" />
+      <MediaRow client:load title="Trending TV Shows" endpoint="trending/tv/week" />
+      <MediaRow client:load title="Popular Movies" endpoint="movie/popular" />
+      <MediaRow client:load title="Popular TV Shows" endpoint="tv/popular" />
+    </div>
+  </main>
+</Layout>

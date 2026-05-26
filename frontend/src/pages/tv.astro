@@ -1,21 +1,54 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import MovieCard from '../components/MovieCard.svelte';
-
-const shows = [
-  { id: 1, title: 'Breaking Bad', year: '2008', poster: '/placeholder-show.jpg', rating: 9.5 },
-  { id: 2, title: 'Stranger Things', year: '2016', poster: '/placeholder-show.jpg', rating: 8.7 },
-];
 ---
 
 <Layout title="Watchfy - TV Shows">
   <main class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-white mb-6">TV Shows</h1>
-    
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {shows.map(show => (
-        <MovieCard client:load id={show.id} title={show.title} year={show.year} poster={show.poster} rating={show.rating} type="tv" />
-      ))}
-    </div>
+    <h1 class="text-3xl font-bold text-text mb-6">TV Shows</h1>
+    <div id="tv-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
   </main>
 </Layout>
+
+<script>
+  import { tmdbApi } from '../lib/api';
+
+  const renderShowCard = (item) => {
+    const id = item.id;
+    const title = item.name || 'Untitled';
+    const year = (item.first_air_date || '').split('-')[0] || '—';
+    const poster = item.poster_path 
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}` 
+      : '/placeholder-movie.jpg';
+    const rating = item.vote_average || 0;
+    
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <a href="/tv/${id}" class="group block">
+        <div class="relative bg-surface-raised rounded-lg overflow-hidden aspect-[2/3] transition-transform duration-300">
+          <img src="${poster}" alt="${title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+          ${rating > 0 ? `<div class="absolute top-2 right-2 bg-surface-sunken/70 text-primary text-xs px-2 py-1 rounded flex items-center gap-1"><span>★</span><span>${rating.toFixed(1)}</span></div>` : ''}
+        </div>
+        <div class="mt-2">
+          <h3 class="font-medium text-sm line-clamp-1 text-text">${title}</h3>
+          <p class="text-xs text-text-muted">${year}</p>
+        </div>
+      </a>
+    `;
+    return div;
+  };
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const grid = document.getElementById('tv-grid');
+    if (!grid) return;
+    
+    try {
+      const response = await tmdbApi.popular('tv');
+      const shows = response?.results || [];
+      shows.forEach(item => {
+        grid.appendChild(renderShowCard(item));
+      });
+    } catch (e) {
+      grid.innerHTML = '<p class="text-red-400">Failed to load TV shows.</p>';
+    }
+  });
+</script>

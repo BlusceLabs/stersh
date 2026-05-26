@@ -1,46 +1,114 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import MovieCard from '../components/MovieCard.svelte';
+const BACKEND = import.meta.env.BACKEND_URL || 'http://localhost:8000';
 
-const trending = [
-  { id: 1, title: 'Dune', year: '2021', poster: '/placeholder-movie.jpg', rating: 8.0 },
-  { id: 2, title: 'Everything Everywhere', year: '2022', poster: '/placeholder-movie.jpg', rating: 7.8 },
-  { id: 3, title: 'Top Gun', year: '2022', poster: '/placeholder-movie.jpg', rating: 7.9 },
-];
+let movie: any = null;
+let logoUrl: string | null = null;
+let backdropUrl = '';
 
-const popular = [
-  { id: 4, title: 'Avatar', year: '2009', poster: '/placeholder-movie.jpg', rating: 7.9 },
-  { id: 5, title: 'Avengers', year: '2012', poster: '/placeholder-movie.jpg', rating: 8.0 },
-];
+try {
+  const res = await fetch(`${BACKEND}/api/tmdb/trending/movie/week`);
+  const data = await res.json();
+  movie = data.results?.[0];
+
+  if (movie) {
+    backdropUrl = `https://image.tmdb.org/t/p/original${movie.backdrop_path}`;
+    const imgRes = await fetch(
+      `${BACKEND}/api/tmdb/movie/${movie.id}/images?include_image_language=en,null`
+    );
+    const imgData = await imgRes.json();
+    const logo = imgData.logos?.[0];
+    if (logo) {
+      logoUrl = `https://image.tmdb.org/t/p/original${logo.file_path}`;
+    }
+  }
+} catch (e) {
+  console.error('index fetch error:', e);
+}
 ---
 
-<Layout title="Watchfy - Home">
-  <main class="container mx-auto px-4 py-8">
-    <section class="mb-12">
-      <h1 class="text-4xl font-bold text-white mb-2">Welcome to Watchfy</h1>
-      <p class="text-gray-400 text-lg mb-6">Streaming platform built with Astro, Svelte, and Qwik.</p>
-      
-      <a href="/movies" class="inline-block px-6 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition">
-        Browse Movies
-      </a>
-    </section>
-    
-    <section class="mb-8">
-      <h2 class="text-2xl font-bold text-white mb-4">Trending Now</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {trending.map(item => (
-          <MovieCard client:load id={item.id} title={item.title} year={item.year} poster={item.poster} rating={item.rating} />
-        ))}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchfy - Stream Trending Now</title>
+  </head>
+  <body class="bg-black text-white font-sans antialiased overflow-hidden h-screen w-screen relative">
+    <div class="absolute inset-0 z-0">
+      <img
+        src={backdropUrl || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925'}
+        alt=""
+        class="w-full h-full object-cover brightness-[0.45] scale-105 animate-fade-in"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+      <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent" />
+    </div>
+
+    <main class="relative z-10 flex flex-col h-full p-8 md:p-16 lg:p-24 select-none">
+      <div class="flex-1" />
+
+      <div class="flex items-end justify-between w-full gap-8">
+        <div class="max-w-2xl space-y-10">
+          <div class="animate-slide-up">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={movie?.title || ''}
+                class="max-w-xs md:max-w-md lg:max-w-lg h-auto object-contain drop-shadow-[0_12px_12px_rgba(0,0,0,0.85)]"
+              />
+            ) : (
+              <h1 class="text-5xl md:text-7xl font-black tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
+                {movie?.title || 'Watchfy'}
+              </h1>
+            )}
+          </div>
+
+          <div class="flex flex-wrap gap-4 items-center animate-slide-up" style="animation-delay: 200ms">
+            <a
+              href="/home"
+              class="px-8 py-3.5 bg-white text-black font-bold rounded-md hover:bg-neutral-200 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl inline-flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+              </svg>
+              Start Watching
+            </a>
+            <a
+              href="/search"
+              class="px-8 py-3.5 bg-neutral-900/40 text-white font-semibold rounded-md hover:bg-white/20 backdrop-blur-md border border-white/15 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl inline-flex items-center"
+            >
+              Browse
+            </a>
+          </div>
+        </div>
+
+        <div class="animate-fade-in flex-shrink-0" style="animation-delay: 400ms">
+          <div class="text-right tracking-wider pointer-events-none">
+            <span class="text-[10px] uppercase font-black tracking-[0.4em] text-neutral-500 block mb-0.5">STREAM WITH</span>
+            <h2 class="text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-red-500 via-pink-500 to-indigo-500 bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]">
+              Watchfy<span class="text-white text-2xl font-normal">.</span>
+            </h2>
+          </div>
+        </div>
       </div>
-    </section>
-    
-    <section>
-      <h2 class="text-2xl font-bold text-white mb-4">Popular</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {popular.map(item => (
-          <MovieCard client:load id={item.id} title={item.title} year={item.year} poster={item.poster} rating={item.rating} />
-        ))}
-      </div>
-    </section>
-  </main>
-</Layout>
+    </main>
+
+    <style is:global>
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in {
+        animation: fadeIn 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      }
+      .animate-slide-up {
+        opacity: 0;
+        animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+    </style>
+  </body>
+</html>

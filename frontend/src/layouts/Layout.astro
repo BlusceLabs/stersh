@@ -13,15 +13,17 @@ const { title } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
   </head>
-  <body class="bg-black text-white min-h-screen antialiased">
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-zinc-800">
+  <body class="bg-surface-sunken text-text min-h-screen antialiased">
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-surface-sunken/80 backdrop-blur-sm border-b border-border">
       <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-        <a href="/" class="text-2xl font-bold text-yellow-500">Watchfy</a>
-        
-        <div class="flex items-center gap-4">
-          <a href="/movies" class="text-gray-300 hover:text-white transition">Movies</a>
-          <a href="/tv" class="text-gray-300 hover:text-white transition">TV Shows</a>
-          <a href="/search" class="text-gray-300 hover:text-white transition">Search</a>
+        <div class="flex items-center gap-6">
+          <a href="/" class="text-2xl font-bold text-primary">Watchfy</a>
+          <div class="hidden md:flex items-center gap-4">
+            <a href="/home" class="text-text-muted hover:text-text transition">Home</a>
+            <a href="/movies" class="text-text-muted hover:text-text transition">Movies</a>
+            <a href="/tv" class="text-text-muted hover:text-text transition">TV Shows</a>
+            <a href="/search" class="text-text-muted hover:text-text transition">Search</a>
+          </div>
         </div>
       </div>
     </nav>
@@ -32,8 +34,3 @@ const { title } = Astro.props;
   </body>
 </html>
 
-<style is:global>
-  @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
-</style>
