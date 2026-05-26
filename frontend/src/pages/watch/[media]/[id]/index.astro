@@ -1,0 +1,33 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { media: 'movie', id: '1' } },
+    { params: { media: 'movie', id: '2' } },
+    { params: { media: 'tv', id: '1', season: '1', episode: '1' } },
+  ];
+}
+
+const { media, id, season, episode } = Astro.params;
+---
+
+<Layout title="Watch">
+  <div class="flex flex-col h-screen bg-black text-white">
+    <div class="flex-1 p-4">
+      <div class="w-full aspect-video bg-zinc-900 rounded-lg flex items-center justify-center">
+        <p class="text-gray-400">
+          {season && episode 
+            ? `Watching ${media}/${id} S${season}E${episode}`
+            : `Watching ${media}/${id}`
+          }
+        </p>
+      </div>
+    </div>
+    
+    <div class="p-4 border-t border-zinc-800">
+      <h1 class="text-2xl font-bold mb-2">Title</h1>
+      <p class="text-gray-400">Description goes here...</p>
+    </div>
+  </div>
+</Layout>
