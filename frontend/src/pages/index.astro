@@ -1,95 +1,61 @@
 ---
-// src/pages/index.astro
 import { api } from '@lib/api';
-import type { Movie } from '@watchfy/shared-types';
-const BACKEND = import.meta.env.BACKEND_URL || 'http://localhost:8000';
-let trendingMovies: Movie[] = [];
-let initialBackdrop = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925';
+
+let movie: any = null;
+let backdropUrl = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925';
 
 try {
   const data = await api.get('/tmdb/trending/movie/week');
-  if (data?.results && data.results.length > 0) {
-    trendingMovies = data.results.slice(0, 20);
-    initialBackdrop = `https://image.tmdb.org/t/p/original${trendingMovies[0].backdrop_path}`;
+  if (data?.results?.[0]) {
+    movie = data.results[0];
+    backdropUrl = `https://image.tmdb.org/t/p/original${movie.backdrop_path || movie.poster_path}`;
   }
 } catch (e) {
-  console.error('Watchfy spotlight pool compilation handshake failure:', e);
+  console.error('failed to fetch trending:', e);
 }
 ---
 
 <!DOCTYPE html>
-<html lang="en" class="h-screen w-screen overflow-hidden select-none">
+<html lang="en" class="h-screen w-screen select-none">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Watchfy - Stream Trending Now</title>
-    <script src="https://www.youtube.com/iframe_api" async></script>
   </head>
-  
+
   <body class="bg-[#09090b] text-zinc-100 font-sans antialiased h-full w-full relative overflow-hidden">
-    
+
     <div class="absolute inset-0 z-0 overflow-hidden bg-black">
-      
-      <div id="video-wrapper" class="w-full h-full scale-[1.35] brightness-[0.25] contrast-[1.05] opacity-0 transition-opacity duration-1000 ease-out relative hidden">
-        <div id="youtube-player" class="w-full h-full absolute top-0 left-0"></div>
-      </div>
-
       <img
-        id="fallback-backdrop"
-        src={initialBackdrop}
+        src={backdropUrl}
         alt=""
-        class="w-full h-full object-cover brightness-[0.22] scale-105 transition-all duration-1000 ease-out"
+        class="w-full h-full object-cover brightness-[0.22] scale-105"
       />
-
-      <div id="poster-fallback-container" class="absolute inset-0 z-20 flex items-center justify-center opacity-0 pointer-events-none transition-all duration-700 ease-out transform scale-95 hidden">
-        <div class="relative group max-w-[280px] sm:max-w-[340px] rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.9)] border border-zinc-800/80">
-          <img 
-            id="fallback-poster" 
-            src="" 
-            alt="Presentation Poster" 
-            class="w-full h-auto object-cover"
-          />
-          <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
-        </div>
-      </div>
-
       <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-black/50 z-10 pointer-events-none" />
       <div class="absolute inset-0 bg-gradient-to-r from-[#09090b]/90 via-[#09090b]/20 to-transparent z-10 pointer-events-none" />
       <div class="absolute inset-0 bg-radial-vignette z-10 pointer-events-none" />
     </div>
 
     <main class="relative z-30 flex flex-col h-full p-8 md:p-16 lg:p-24 justify-between pointer-events-none">
-      
-      <header class="w-full flex items-center justify-between">
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950/40 border border-zinc-800/40 backdrop-blur-md animate-slide-up">
-          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-          <span class="text-[10px] font-black tracking-wider uppercase text-zinc-300">Live Spotlight</span>
-        </div>
-      </header>
 
-      <div class="flex flex-col md:flex-row md:items-end justify-between w-full gap-8 mt-auto pointer-events-auto">
-        
-        <div class="max-w-2xl space-y-6 md:space-y-8">
-          <div class="animate-slide-up min-h-[60px] md:min-h-[120px] flex items-end">
-            <img
-              id="display-logo"
-              src=""
-              alt="Loading Title..."
-              class="max-w-xs md:max-w-md lg:max-w-xl h-auto max-h-[150px] object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.95)] hidden"
-            />
-            <h1 id="display-title" class="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase text-white drop-shadow-[0_8px_16px_rgba(0,0,0,0.9)]">
-              {trendingMovies[0]?.title || 'Watchfy'}
-            </h1>
-          </div>
+      <div />
 
-          <p id="display-overview" class="text-zinc-300 text-sm sm:text-base max-w-xl font-medium leading-relaxed line-clamp-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] animate-slide-up" style="animation-delay: 100ms">
-            {trendingMovies[0]?.overview || ''}
-          </p>
+      <div class="flex flex-col md:flex-row md:items-end justify-between w-full gap-8 pointer-events-auto">
+
+        <div class="max-w-2xl space-y-6 md:space-y-8 animate-slide-up">
+          <h1 class="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase text-white drop-shadow-[0_8px_16px_rgba(0,0,0,0.9)]">
+            {movie?.title || 'Watchfy'}
+          </h1>
+
+          {movie?.overview ? (
+            <p class="text-zinc-300 text-sm sm:text-base max-w-xl font-medium leading-relaxed line-clamp-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+              {movie.overview}
+            </p>
+          ) : null}
 
           <div class="flex flex-wrap gap-4 items-center animate-slide-up" style="animation-delay: 200ms">
             <a
-              id="watch-now-anchor"
-              href={`/movie/${trendingMovies[0]?.id || ''}`}
+              href={`/movie/${movie?.id || ''}`}
               class="px-8 py-4 bg-white text-black font-extrabold rounded-xl hover:bg-zinc-200 transition-all duration-300 transform hover:scale-[1.03] active:scale-95 shadow-2xl shadow-black/80 inline-flex items-center gap-2.5 text-sm uppercase tracking-wider"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-black">
@@ -97,7 +63,7 @@ try {
               </svg>
               Start Watching
             </a>
-            
+
             <a
               href="/search"
               class="px-8 py-4 bg-zinc-950/40 text-white font-bold rounded-xl hover:bg-zinc-800/80 backdrop-blur-md border border-zinc-700/60 transition-all duration-300 transform hover:scale-[1.03] active:scale-95 shadow-xl inline-flex items-center text-sm uppercase tracking-wider"
@@ -107,7 +73,7 @@ try {
           </div>
         </div>
 
-        <div class="animate-fade-in flex-shrink-0 md:text-right" style="animation-delay: 400ms">
+        <div class="flex-shrink-0 md:text-right animate-fade-in" style="animation-delay: 400ms">
           <div class="tracking-wider pointer-events-none">
             <span class="text-[10px] uppercase font-black tracking-[0.4em] text-zinc-500 block mb-0.5">POWERED BY</span>
             <h2 class="text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-red-500 via-pink-500 to-indigo-500 bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(239,68,68,0.2)]">
@@ -119,180 +85,6 @@ try {
       </div>
     </main>
 
-    <script is:inline define:vars={{ trendingMovies, BACKEND }}>
-      let currentPoolIndex = 0;
-      let player = null;
-      let fallbackTimerId = null;
-      
-      const elWrapper = document.getElementById('video-wrapper');
-      const elBackdrop = document.getElementById('fallback-backdrop');
-      const elPosterContainer = document.getElementById('poster-fallback-container');
-      const elPosterImg = document.getElementById('fallback-poster');
-      const elLogo = document.getElementById('display-logo');
-      const elTitle = document.getElementById('display-title');
-      const elOverview = document.getElementById('display-overview');
-      const elWatchLink = document.getElementById('watch-now-anchor');
-
-      /**
-       * 1. Updates layout textual summaries and logo elements
-       */
-      async function transitionMetadataContext(movie) {
-        if (!movie) return;
-
-        elOverview.textContent = movie.overview || '';
-        elWatchLink.href = `/movie/${movie.id}`;
-        
-        if (movie.backdrop_path) {
-          elBackdrop.src = `https://image.tmdb.org/t/p/original${movie.backdrop_path}`;
-        }
-        if (movie.poster_path) {
-          elPosterImg.src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-        }
-
-        try {
-          const res = await fetch(`${BACKEND}/api/tmdb/movie/${movie.id}/images?include_image_language=en,null`);
-          const data = await res.json();
-          const logo = data?.logos?.[0];
-
-          if (logo) {
-            elLogo.src = `https://image.tmdb.org/t/p/original${logo.file_path}`;
-            elLogo.classList.remove('hidden');
-            elTitle.classList.add('hidden');
-          } else {
-            elTitle.textContent = movie.title || '';
-            elTitle.classList.remove('hidden');
-            elLogo.classList.add('hidden');
-          }
-        } catch (err) {
-          elTitle.textContent = movie.title || '';
-          elTitle.classList.remove('hidden');
-          elLogo.classList.add('hidden');
-        }
-      }
-
-      /**
-       * 2. Resolves TMDB stream keys from downstream proxies
-       */
-      async function resolveVideoSourceKey(movieId) {
-        try {
-          const res = await fetch(`${BACKEND}/api/tmdb/movie/${movieId}/videos?language=en-US`);
-          const data = await res.json();
-          const source = data.results?.find(
-            v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
-          );
-          return source ? source.key : null;
-        } catch (e) {
-          return null;
-        }
-      }
-
-      /**
-       * 3. Loops forward through the 20 asset matrices
-       */
-      async function advanceToNextSpotlight() {
-        if (fallbackTimerId) {
-          clearTimeout(fallbackTimerId);
-          fallbackTimerId = null;
-        }
-
-        currentPoolIndex = (currentPoolIndex + 1) % Math.min(trendingMovies.length, 20);
-        const nextMovie = trendingMovies[currentPoolIndex];
-
-        // Fade out all potential visual states cleanly
-        elWrapper.classList.add('opacity-0');
-        elPosterContainer.classList.add('opacity-0', 'scale-95');
-
-        // Fetch assets for the next movie
-        const videoKey = await resolveVideoSourceKey(nextMovie.id);
-        await transitionMetadataContext(nextMovie);
-
-        if (videoKey && player && typeof player.loadVideoById === 'function') {
-          // Hide poster container if a trailer is found
-          elPosterContainer.classList.add('hidden');
-          
-          player.loadVideoById({
-            videoId: videoKey,
-            startSeconds: 0,
-            suggestedQuality: 'hd1080'
-          });
-        } else {
-          // If no trailer exists, stop the player and show the poster overlay
-          if (player && typeof player.stopVideo === 'function') {
-            player.stopVideo();
-          }
-          elWrapper.classList.add('hidden');
-          
-          // Smoothly animate the vertical poster layout into view
-          elPosterContainer.classList.remove('hidden');
-          // Force reflow to ensure the transition fires perfectly
-          void elPosterContainer.offsetHeight; 
-          elPosterContainer.classList.remove('opacity-0', 'scale-95');
-          elPosterContainer.classList.add('opacity-100', 'scale-100');
-
-          // Enforce your exact 7-second display lock before skipping
-          fallbackTimerId = setTimeout(advanceToNextSpotlight, 7000);
-        }
-      }
-
-      /**
-       * 4. Global SDK initialization mount point
-       */
-      window.onYouTubeIframeAPIReady = async function() {
-        if (!trendingMovies || trendingMovies.length === 0) return;
-        
-        const initialMovie = trendingMovies[0];
-        await transitionMetadataContext(initialMovie);
-        const firstKey = await resolveVideoSourceKey(initialMovie.id);
-
-        if (!firstKey) {
-          elPosterContainer.classList.remove('hidden');
-          void elPosterContainer.offsetHeight;
-          elPosterContainer.classList.remove('opacity-0', 'scale-95');
-          elPosterContainer.classList.add('opacity-100', 'scale-100');
-          
-          fallbackTimerId = setTimeout(advanceToNextSpotlight, 7000);
-          return;
-        }
-
-        player = new YT.Player('youtube-player', {
-          videoId: firstKey,
-          playerVars: {
-            autoplay: 1,
-            mute: 1,
-            controls: 0,
-            showinfo: 0,
-            rel: 0,
-            iv_load_policy: 3,
-            playsinline: 1,
-            enablejsapi: 1,
-            disablekb: 1
-          },
-          events: {
-            onReady: (event) => {
-              event.target.mute();
-              event.target.playVideo();
-            },
-            onStateChange: (event) => {
-              // Status 1 = Playing. Reveal player canvas frame smoothly.
-              if (event.data === 1) {
-                elWrapper.classList.remove('hidden');
-                void elWrapper.offsetHeight;
-                elWrapper.classList.remove('opacity-0');
-                elPosterContainer.classList.add('hidden');
-              }
-              // Status 0 = Ended natively. Advance immediately to keep natural duration intact.
-              if (event.data === 0) {
-                advanceToNextSpotlight();
-              }
-            },
-            onError: () => {
-              advanceToNextSpotlight();
-            }
-          }
-        });
-      };
-    </script>
-
     <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="midknightmantra" data-color="#FFDD00" data-emoji="" data-font="Bree" data-text="" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
 
     <style is:global>
@@ -300,9 +92,16 @@ try {
         from { opacity: 0; transform: translateY(24px); }
         to { opacity: 1; transform: translateY(0); }
       }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
       .animate-slide-up {
         opacity: 0;
         animation: slideUp 1200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .animate-fade-in {
+        animation: fadeIn 1000ms cubic-bezier(0.25, 1, 0.5, 1) forwards;
       }
       .bg-radial-vignette {
         background: radial-gradient(circle at center, transparent 15%, #09090b 98%);
