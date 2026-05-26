@@ -10,24 +10,23 @@ export function getStaticPaths() {
 }
 
 const { media, id, season, episode } = Astro.params;
+const BACKEND_URL = import.meta.env.BACKEND_URL || 'http://localhost:8000';
 ---
 
 <Layout title="Watch">
   <div class="flex flex-col h-screen bg-black text-white">
     <div class="flex-1 p-4">
       <div class="w-full aspect-video bg-zinc-900 rounded-lg flex items-center justify-center">
-        <p class="text-gray-400 text-lg">
-          {season && episode 
-            ? `Playing ${media} ${id} - S${season}E${episode}`
-            : `Playing ${media} ${id}`
-          }
-        </p>
+        <div class="text-center">
+          <p class="text-gray-300 mb-2">Stream URL: {BACKEND_URL}/watch/{media}/{id}{season && episode ? `?season=${season}&episode=${episode}` : ''}</p>
+          <p class="text-gray-500 text-sm">Connect this to your video player component</p>
+        </div>
       </div>
     </div>
     
     <div class="p-4 border-t border-zinc-800">
       <h1 class="text-2xl font-bold mb-2">Title</h1>
-      <p class="text-gray-400">Description goes here...</p>
+      <p class="text-gray-400">Description loads from backend</p>
     </div>
   </div>
 </Layout>

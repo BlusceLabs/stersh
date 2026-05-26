@@ -5,4 +5,13 @@ import qwik from '@qwikdev/astro';
 
 export default defineConfig({
   integrations: [react(), svelte(), qwik()],
+  vite: {
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: undefined
+        }
+      }
+    }
+  }
 });
