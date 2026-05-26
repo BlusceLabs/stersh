@@ -1,11 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Button from '../components/Button.svelte';
+import MovieCard from '../components/MovieCard.svelte';
 
 const movies = [
-  { id: 1, title: 'Inception', year: '2010', poster: '/placeholder-movie.jpg' },
-  { id: 2, title: 'The Matrix', year: '1999', poster: '/placeholder-movie.jpg' },
-  { id: 3, title: 'Interstellar', year: '2014', poster: '/placeholder-movie.jpg' },
+  { id: 1, title: 'Inception', year: '2010', poster: '/placeholder-movie.jpg', rating: 8.8 },
+  { id: 2, title: 'The Matrix', year: '1999', poster: '/placeholder-movie.jpg', rating: 8.7 },
+  { id: 3, title: 'Interstellar', year: '2014', poster: '/placeholder-movie.jpg', rating: 8.6 },
 ];
 ---
 
@@ -15,19 +15,7 @@ const movies = [
     
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {movies.map(movie => (
-        <a href={`/movie/${movie.id}`} class="group">
-          <div class="bg-zinc-800 rounded-lg overflow-hidden aspect-[2/3]">
-            <img 
-              src={movie.poster} 
-              alt={movie.title}
-              class="w-full h-full object-cover transition-transform group-hover:scale-105"
-            />
-          </div>
-          <div class="mt-2">
-            <h3 class="font-medium text-sm line-clamp-1">{movie.title}</h3>
-            <p class="text-xs text-gray-400">{movie.year}</p>
-          </div>
-        </a>
+        <MovieCard client:load id={movie.id} title={movie.title} year={movie.year} poster={movie.poster} rating={movie.rating} />
       ))}
     </div>
   </main>

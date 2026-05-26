@@ -1,5 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import MovieCard from '../components/MovieCard.svelte';
+
+const results = [
+  { id: 1, title: 'Inception', year: '2010', poster: '/placeholder-movie.jpg', rating: 8.8 },
+  { id: 2, title: 'The Matrix', year: '1999', poster: '/placeholder-movie.jpg', rating: 8.7 },
+];
 ---
 
 <Layout title="Watchfy - Search">
@@ -18,5 +24,16 @@ import Layout from '../layouts/Layout.astro';
         </button>
       </div>
     </form>
+    
+    {results.length > 0 && (
+      <>
+        <h2 class="text-xl font-semibold text-white mb-4">Results</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {results.map(item => (
+            <MovieCard client:load id={item.id} title={item.title} year={item.year} poster={item.poster} rating={item.rating} />
+          ))}
+        </div>
+      </>
+    )}
   </main>
 </Layout>
