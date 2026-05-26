@@ -1,9 +1,5 @@
 """FastAPI router for watchfy's Black server (vidking.net).
 
-Mirrors white_routes.py exactly in API shape so the frontend can
-treat both servers identically — same endpoint names, same response
-schema, same cache + singleflight + stale-while-revalidate logic.
-
 Mounts at /api/black/*:
   GET /api/black/source       — extract HLS + MP4 via black.py Playwright extractor
   GET /api/black/proxy/hls    — proxy + rewrite HLS manifests

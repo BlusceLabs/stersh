@@ -33,11 +33,6 @@ from cachetools import TTLCache
 from fastapi import Depends, FastAPI, APIRouter, HTTPException, Query, Request, Response
 
 from hls_parser import parse_master_manifest
-from white_routes import (
-    router as white_router,
-    shutdown_white_browser,
-    shutdown_white_client,
-)
 from proxy_routes import router as enhanced_proxy_router
 
 # ── Logging ─────────────────────────────────────────────────────────────────
@@ -311,8 +306,6 @@ async def lifespan(app: FastAPI):
     await asyncio.gather(
         _close_browser(),
         _close_client(),
-        shutdown_white_browser(),
-        shutdown_white_client(),
         return_exceptions=True,
     )
 

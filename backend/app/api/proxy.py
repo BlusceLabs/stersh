@@ -22,7 +22,7 @@ from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
 
-# ── Allowed CDN hosts (union of vidking + white + additional mirrors) ──────────
+# ── Allowed CDN hosts ─────────────────────────────────────────────────────────
 
 ENHANCED_ALLOWED_HOSTS = frozenset(
     {
