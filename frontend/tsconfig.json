@@ -1,7 +1,24 @@
 {
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    
+    /* Agnostic JSX Federation configuration */
     "jsx": "react-jsx",
-    "jsxImportSource": "react"
+    "jsxImportSource": "astro",
+    
+    /* Absolute Path Mapping Framework Alignment */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@layouts/*": ["src/layouts/*"],
+      "@lib/*": ["src/lib/*"]
+    }
   }
 }

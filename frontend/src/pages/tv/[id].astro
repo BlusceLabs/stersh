@@ -1,69 +1,142 @@
 ---
+// src/pages/tv/[id].astro
 import Layout from '../../layouts/Layout.astro';
 
 const { id } = Astro.params;
 ---
 
-<Layout title={`TV Show ${id} - Watchfy`}>
-  <main class="container mx-auto px-4 py-8" id="tv-page" data-show-id={id}>
-    <div class="text-center py-12">
-      <p class="text-text-muted">Loading...</p>
+<Layout title="Loading Series... | Watchfy">
+  <main 
+    id="tv-page" 
+    data-show-id={id} 
+    class="min-h-screen bg-[#09090b] text-zinc-100 relative overflow-hidden"
+  >
+    <div id="loading-state" class="w-full h-[60vh] min-h-[400px] flex items-end p-8 md:p-16 lg:px-24 bg-gradient-to-t from-[#09090b] to-zinc-900/20 animate-pulse">
+      <div class="max-w-4xl w-full flex flex-col md:flex-row gap-8 items-start">
+        <div class="w-44 md:w-64 aspect-[2/3] bg-zinc-800 rounded-xl flex-shrink-0"></div>
+        <div class="flex-1 space-y-4 w-full mt-4">
+          <div class="h-4 bg-zinc-800 rounded w-1/4"></div>
+          <div class="h-12 bg-zinc-800 rounded w-3/4"></div>
+          <div class="h-20 bg-zinc-800 rounded w-full"></div>
+        </div>
+      </div>
     </div>
+
+    <div id="details-target" class="opacity-0 transition-opacity duration-700 ease-out"></div>
   </main>
 </Layout>
 
 <script>
   import { tmdbApi } from '../../lib/api';
 
-  const id = Astro.params.id;
-  
-  const renderShowDetails = (show) => {
+  const initTvPage = async () => {
     const container = document.getElementById('tv-page');
-    if (!container) return;
+    const target = document.getElementById('details-target');
+    const loadingState = document.getElementById('loading-state');
     
-    const posterUrl = show.poster_path 
-      ? `https://image.tmdb.org/t/p/w500${show.poster_path}` 
-      : 'https://placehold.co/500x750/111111/FFFFFF?text=No+Image';
+    if (!container || !target) return;
     
-    const year = (show.first_air_date || '').split('-')[0] || '—';
-    const rating = show.vote_average || 0;
-    const seasons = show.number_of_seasons || 1;
-    
-    container.innerHTML = `
-      <div class="flex flex-col md:flex-row gap-6 mb-8">
-        <div class="w-64 flex-shrink-0">
-          <img src="${posterUrl}" alt="${show.name}" class="w-full rounded-lg" />
-        </div>
+    // Safely pull the ID context from the structural node layer
+    const showId = container.getAttribute('data-show-id');
+    if (!showId) return;
+
+    try {
+      const show = await tmdbApi.details('tv', parseInt(showId));
+      
+      const backdropUrl = show.backdrop_path 
+        ? `https://image.tmdb.org/t/p/original${show.backdrop_path}` 
+        : '';
         
-        <div>
-          <h1 class="text-4xl font-bold text-text mb-2">${show.name}</h1>
-          <p class="text-text-muted mb-4"><span class="text-secondary">${year}</span> • ${seasons} Season${seasons > 1 ? 's' : ''} • <span class="text-primary">★ ${rating.toFixed(1)}</span></p>
-          
-          <div class="flex gap-4 mb-4">
-            <a href="/watch/tv/${id}?season=1&episode=1" class="px-8 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary-hover transition shadow-lg shadow-primary/25">
-              Play S1E1
-            </a>
-            <button class="px-6 py-3 bg-surface-raised border border-border/50 rounded-lg hover:bg-surface transition">
-              + My List
-            </button>
+      const posterUrl = show.poster_path 
+        ? `https://image.tmdb.org/t/p/w500${show.poster_path}` 
+        : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1470';
+        
+      const year = (show.first_air_date || '').split('-')[0] || '—';
+      const rating = show.vote_average || 0;
+      const seasons = show.number_of_seasons || 1;
+      
+      // Update dynamic page head context document title
+      document.title = `${show.name || 'Series'} - Watchfy`;
+
+      // Build and Inject Premium Interactive Layout Card
+      target.innerHTML = `
+        ${backdropUrl ? `
+          <div class="absolute top-0 left-0 right-0 h-[70vh] min-h-[500px] z-0 select-none pointer-events-none">
+            <img src="${backdropUrl}" alt="" class="w-full h-full object-cover brightness-[0.32]" />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/50 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-[#09090b] via-transparent to-transparent"></div>
           </div>
-          
-          <p class="text-text-secondary mb-4">${show.overview}</p>
+        ` : ''}
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[25vh] md:pt-[35vh] pb-24">
+          <div class="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
+            
+            <div class="w-48 sm:w-64 mx-auto md:mx-0 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl shadow-black border border-zinc-800/60 transform transition-transform duration-500 hover:scale-[1.02]">
+              <img src="${posterUrl}" alt="${show.name}" class="w-full h-auto object-cover" />
+            </div>
+            
+            <div class="flex-1 text-center md:text-left mt-4 md:mt-0">
+              
+              <div class="flex flex-wrap items-center justify-center md:justify-start gap-2.5 text-xs font-bold text-zinc-300 mb-4">
+                <span class="bg-red-500/10 border border-red-500/30 text-red-400 px-2.5 py-1 rounded-md uppercase tracking-wide">TV Series</span>
+                <span class="bg-zinc-900/80 backdrop-blur-md px-2.5 py-1 rounded-md border border-zinc-800/60">${year}</span>
+                <span class="bg-zinc-900/80 backdrop-blur-md px-2.5 py-1 rounded-md border border-zinc-800/60">${seasons} ${seasons > 1 ? 'Seasons' : 'Season'}</span>
+                ${rating > 0 ? `
+                  <span class="bg-zinc-900/80 backdrop-blur-md px-2.5 py-1 rounded-md text-amber-400 border border-zinc-800/60 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                    ${rating.toFixed(1)}
+                  </span>
+                ` : ''}
+              </div>
+
+              <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter mb-4 leading-[1.1] drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+                ${show.name}
+              </h1>
+              
+              <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-8">
+                <a 
+                  href="/watch/tv/${showId}?season=1&episode=1" 
+                  class="inline-flex items-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-red-600 to-pink-600 text-white font-bold rounded-xl hover:brightness-110 shadow-xl shadow-red-600/20 transition-all active:scale-95 group/btn"
+                >
+                  <svg class="w-5 h-5 fill-white transition-transform group-hover/btn:scale-110" viewBox="0 0 20 20"><path d="M6.423 4.167A1 1 0 005 5.035v9.93a1 1 0 001.423.868l8.5-4.965a1 1 0 000-1.736l-8.5-4.965z"/></svg>
+                  Play S1:E1
+                </a>
+                <button 
+                  class="inline-flex items-center gap-2 px-6 py-3.5 bg-zinc-900/60 text-zinc-200 hover:text-white font-semibold rounded-xl border border-zinc-800/80 hover:bg-zinc-800 hover:border-zinc-700 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  My List
+                </button>
+              </div>
+
+              <div class="space-y-3 max-w-3xl">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400">Overview</h3>
+                <p class="text-zinc-300 text-sm sm:text-base leading-relaxed font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
+                  ${show.overview || 'No dynamic editorial log summary has been registered for this tracking serial feature node.'}
+                </p>
+              </div>
+
+            </div>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+      
+      // Execute UI layout state transition
+      loadingState?.classList.add('hidden');
+      target.classList.remove('opacity-0');
+    } catch (e) {
+      console.error('Failed to load show page details runtime execution context:', e);
+      if (loadingState) loadingState.innerHTML = `
+        <div class="max-w-md mx-auto text-center py-24 px-4">
+          <div class="text-red-500 font-bold mb-2">Show Stream Pipeline Error</div>
+          <p class="text-zinc-500 text-sm">Failed to resolve catalog elements matching data-identity: ${showId}</p>
+        </div>
+      `;
+    }
   };
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    try {
-      const show = await tmdbApi.details('tv', parseInt(id));
-      renderShowDetails(show);
-    } catch (e) {
-      console.error('Failed to load show:', e);
-      const container = document.getElementById('tv-page');
-      if (container) {
-        container.innerHTML = '<p class="text-red-400">Failed to load show details.</p>';
-      }
-    }
-  });
+  // Safe global DOM initial target setup hook
+  document.addEventListener('DOMContentLoaded', initTvPage);
 </script>

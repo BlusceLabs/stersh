@@ -1,0 +1,26 @@
+{
+  "name": "@watchfy/ui-primitives",
+  "version": "0.1.0",
+  "description": "Premium React 19 interactive layout components and primitives for Watchfy",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "dependencies": {
+    "@floating-ui/react": "^0.26.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.0.0",
+    "tailwind-merge": "^2.3.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}

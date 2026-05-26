@@ -1,36 +1,71 @@
-const API_BASE = import.meta.env.BACKEND_URL || '/api';
+// src/lib/api.ts
 
+// Dynamically fallback to standard server-side paths if the wrapper variable is unset
+const API_BASE = import.meta.env.BACKEND_URL 
+  ? `${import.meta.env.BACKEND_URL}/api` 
+  : '/api';
+
+/**
+ * Core Network Interface Handler 
+ */
 export const api = {
   get: async (path: string, token?: string) => {
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(`${API_BASE}${path}`, { headers });
-    if (!res.ok) throw new Error(`API error: ${res.statusText}`);
-    return res.json();
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(`${API_BASE}${path}`, { headers });
+    
+    if (!response.ok) {
+      // Prevent pipeline crashes during server-side compilation
+      console.error(`[Watchfy API Network Fault] Path: ${path} | Status: ${response.status} ${response.statusText}`);
+      throw new Error(`Watchfy Handshake Exception: ${response.statusText}`);
+    }
+    
+    return response.json();
   },
   
-  getStreamSource: (tmdbId: number, mediaType: string, season?: number, episode?: number) => {
+  /**
+   * Generates production paths targeting internal streaming instances
+   */
+  getStreamSource: (tmdbId: number, mediaType: 'movie' | 'tv', season?: number, episode?: number): string => {
     let url = `/vidking/source?tmdbId=${tmdbId}&mediaType=${mediaType}`;
-    if (season && episode) {
+    if (mediaType === 'tv' && season !== undefined && episode !== undefined) {
       url += `&season=${season}&episode=${episode}`;
     }
     return `${API_BASE}${url}`;
   },
 };
 
+/**
+ * Organized TMDB Endpoint Gateway
+ */
 export const tmdbApi = {
-  trending: (mediaType: 'movie' | 'tv', timeWindow: 'day' | 'week' = 'day') => 
+  trending: (mediaType: 'movie' | 'tv', timeWindow: 'day' | 'week' = 'day'): Promise<any> => 
     api.get(`/tmdb/trending/${mediaType}/${timeWindow}`),
   
-  popular: (mediaType: 'movie' | 'tv') => 
+  popular: (mediaType: 'movie' | 'tv'): Promise<any> => 
     api.get(`/tmdb/${mediaType}/popular`),
   
-  search: (query: string, mediaType: string = 'multi') => 
-    api.get(`/tmdb/search?query=${encodeURIComponent(query)}${mediaType ? `&media_type=${mediaType}` : ''}`),
+  /**
+   * Dynamically formats search endpoints based on media type mapping
+   */
+  search: (query: string, mediaType: 'multi' | 'movie' | 'tv' = 'multi'): Promise<any> => {
+    const cleanQuery = encodeURIComponent(query.trim());
+    // Directs routing traffic precisely to match standard API formats
+    return api.get(`/tmdb/search/${mediaType}?query=${cleanQuery}`);
+  },
   
-  details: (mediaType: 'movie' | 'tv', id: number) => 
+  details: (mediaType: 'movie' | 'tv', id: number | string): Promise<any> => 
     api.get(`/tmdb/${mediaType}/${id}`),
 };
+
+/* Unified Structural Type Signatures */
 
 export type Movie = {
   id: number;
@@ -41,7 +76,7 @@ export type Movie = {
   release_date: string;
   vote_average: number;
   genre_ids: number[];
-  media_type?: string;
+  media_type?: 'movie';
 };
 
 export type TVShow = {
@@ -53,5 +88,8 @@ export type TVShow = {
   first_air_date: string;
   vote_average: number;
   genre_ids: number[];
-  media_type?: string;
+  media_type?: 'tv';
 };
+
+// General helper interface to simplify handling mixed lists
+export type MediaItem = (Movie & { name?: string; first_air_date?: string }) | (TVShow & { title?: string; release_date?: string });

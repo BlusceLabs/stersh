@@ -4,51 +4,54 @@ interface Props {
 }
 
 const { title } = Astro.props;
+
+// Read current path to apply premium active link highlights automatically
+const currentPath = Astro.url.pathname;
 ---
 
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en" class="scroll-smooth bg-[#09090b]">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | Watchfy</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      // Quick Tailwind configuration extension for premium colors if needed inline
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            }
-          }
-        }
-      }
-    </script>
   </head>
   
-  <body class="bg-[#09090b] text-zinc-100 min-h-screen antialiased selection:bg-red-500/30 selection:text-white overflow-x-hidden">
+  <body class="bg-[#09090b] text-zinc-100 min-h-screen antialiased selection:bg-red-500/30 selection:text-white overflow-x-hidden premium-scrollbar">
     
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-[#09090b]/60 backdrop-blur-md border-b border-zinc-800/50 transition-all duration-300" id="main-nav">
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-[#09090b]/60 backdrop-blur-md border-b border-zinc-800/40 transition-all duration-300 ease-out" id="main-nav">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        <div class="flex items-center gap-10">
+        <div class="flex items-center gap-8">
           <a href="/" class="group flex items-center gap-1.5 focus:outline-none">
-            <span class="text-2xl font-black tracking-tighter bg-gradient-to-r from-red-500 via-pink-500 to-indigo-500 bg-clip-text text-transparent group-hover:opacity-90 transition">
+            <span class="text-2xl font-black tracking-tighter bg-gradient-to-r from-red-500 via-pink-500 to-indigo-500 bg-clip-text text-transparent group-hover:brightness-110 transition duration-300">
               Watchfy<span class="text-white text-lg font-normal">.</span>
             </span>
           </a>
           
-          <div class="hidden md:flex items-center gap-1.5 font-medium text-sm">
-            <a href="/home" class="px-3 py-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800/40 transition-all duration-200">Home</a>
-            <a href="/movies" class="px-3 py-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800/40 transition-all duration-200">Movies</a>
-            <a href="/tv" class="px-3 py-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800/40 transition-all duration-200">TV Shows</a>
-            <a href="/search" class="px-3 py-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800/40 transition-all duration-200 flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+          <div class="hidden md:flex items-center gap-1 font-semibold text-xs uppercase tracking-wider">
+            <a 
+              href="/home" 
+              class={`px-4 py-2 rounded-xl transition-all duration-200 ${currentPath === '/home' ? 'text-white bg-zinc-900 border border-zinc-800/60' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'}`}
+            >Home</a>
+            <a 
+              href="/movies" 
+              class={`px-4 py-2 rounded-xl transition-all duration-200 ${currentPath === '/movies' ? 'text-white bg-zinc-900 border border-zinc-800/60' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'}`}
+            >Movies</a>
+            <a 
+              href="/tv" 
+              class={`px-4 py-2 rounded-xl transition-all duration-200 ${currentPath === '/tv' ? 'text-white bg-zinc-900 border border-zinc-800/60' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'}`}
+            >TV Shows</a>
+            <a 
+              href="/search" 
+              class={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 ${currentPath.startsWith('/search') ? 'text-white bg-zinc-900 border border-zinc-800/60' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" />
               </svg>
               Search
@@ -57,38 +60,33 @@ const { title } = Astro.props;
         </div>
 
         <div class="flex items-center gap-4">
-          <button class="md:hidden p-2 text-zinc-400 hover:text-white transition" aria-label="Toggle Menu">
+          <button class="md:hidden p-2 text-zinc-400 hover:text-white transition cursor-pointer" aria-label="Toggle Mobile Interface Menu">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
           
-          <div class="hidden sm:block w-8 h-8 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-800 border border-zinc-700/60 shadow-inner cursor-pointer hover:scale-105 active:scale-95 transition"></div>
+          <div class="hidden sm:block w-8 h-8 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-zinc-700/50 shadow-inner cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200"></div>
         </div>
         
       </div>
     </nav>
     
-    <div class="pt-16 min-h-screen relative w-full">
-      <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      
-      <div class="relative z-10">
-        <slot />
-      </div>
+    <div class="min-h-screen relative w-full z-10">
+      <slot />
     </div>
 
     <script>
-      // Dynamic blur thickening upon page scroll
-      const nav = document.getElementById('main-nav');
+      const navigationBar = document.getElementById('main-nav');
       window.addEventListener('scroll', () => {
-        if (window.scrollY > 20) {
-          nav?.classList.add('bg-[#09090b]/90', 'border-zinc-800/80', 'shadow-2xl');
-          nav?.classList.remove('bg-[#09090b]/60', 'border-zinc-800/50');
+        if (window.scrollY > 12) {
+          navigationBar?.classList.add('bg-[#09090b]/90', 'border-zinc-800/80', 'shadow-xl', 'shadow-black/20');
+          navigationBar?.classList.remove('bg-[#09090b]/60', 'border-zinc-800/40');
         } else {
-          nav?.classList.remove('bg-[#09090b]/90', 'border-zinc-800/80', 'shadow-2xl');
-          nav?.classList.add('bg-[#09090b]/60', 'border-zinc-800/50');
+          navigationBar?.classList.remove('bg-[#09090b]/90', 'border-zinc-800/80', 'shadow-xl', 'shadow-black/20');
+          navigationBar?.classList.add('bg-[#09090b]/60', 'border-zinc-800/40');
         }
-      });
+      }, { passive: true }); // Passive listener flag cuts scroll jitter entirely
     </script>
   </body>
 </html>

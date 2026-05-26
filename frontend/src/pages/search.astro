@@ -1,118 +1,229 @@
 ---
+// src/pages/search.astro
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Watchfy - Search">
-  <main class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-text mb-6">Search</h1>
+<Layout title="Search Catalog | Watchfy">
+  <main class="min-h-screen bg-[#09090b] text-zinc-100 pt-24 pb-20 select-none relative overflow-hidden">
     
-    <form id="search-form" class="max-w-2xl mb-8">
-      <div class="relative">
-        <input
-          type="text"
-          name="q"
-          placeholder="Search movies, TV shows..."
-          class="w-full px-6 py-4 bg-surface-raised rounded-lg text-text placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-          value=""
-        />
-        <button type="submit" class="absolute right-4 top-1/2 -translate-y-1/2 px-4 py-1 bg-primary text-white rounded hover:bg-primary-hover transition">
-          Search
-        </button>
+    <div class="absolute top-0 right-1/4 w-[600px] h-[300px] bg-indigo-900/5 rounded-full blur-[140px] pointer-events-none z-0"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <header class="mb-10">
+        <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tighter mb-2">Search Library</h1>
+        <p class="text-xs sm:text-sm text-zinc-500 font-medium">Discover instant metadata profiles for thousands of movies and television titles.</p>
+      </header>
+      
+      <form id="search-form" class="max-w-3xl mb-12 group">
+        <div class="relative">
+          <input
+            type="text"
+            name="q"
+            autofocus
+            autocomplete="off"
+            placeholder="Search titles, actors, genres..."
+            class="w-full pl-14 pr-32 py-4 sm:py-5 bg-zinc-900/40 text-white font-medium placeholder-zinc-500 rounded-2xl border border-zinc-800/80 focus:border-zinc-700 focus:outline-none focus:ring-4 focus:ring-red-500/10 backdrop-blur-md transition-all duration-300 shadow-xl shadow-black/30"
+          />
+          
+          <div class="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-red-400 transition-colors duration-300 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" />
+            </svg>
+          </div>
+          
+          <button 
+            type="submit" 
+            class="absolute right-3 top-1/2 -translate-y-1/2 px-5 py-2 sm:py-2.5 bg-gradient-to-r from-red-600 to-pink-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:brightness-110 active:scale-95 shadow-md shadow-red-600/10 transition-all cursor-pointer"
+          >
+            Search
+          </button>
+        </div>
+      </form>
+      
+      <div id="search-skeleton" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 animate-pulse">
+        {Array.from({ length: 6 }).map(() => (
+          <div class="space-y-3">
+            <div class="aspect-[2/3] bg-zinc-900 border border-zinc-800/40 rounded-xl relative overflow-hidden">
+              <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent shimmer-wave"></div>
+            </div>
+            <div class="space-y-2 px-1">
+              <div class="h-3.5 bg-zinc-800 rounded w-5/6"></div>
+              <div class="h-2.5 bg-zinc-900 rounded w-1/2"></div>
+            </div>
+          </div>
+        ))}
       </div>
-    </form>
-    
-    <div id="search-results" class="hidden">
-      <h2 class="text-2xl font-bold text-text mb-4">Results</h2>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="results-grid"></div>
+      
+      <section id="search-results" class="hidden opacity-0 transition-opacity duration-400">
+        <h2 id="results-headline" class="text-xs font-black uppercase tracking-widest text-zinc-400 mb-6 border-b border-zinc-900 pb-3">
+          Search Results
+        </h2>
+        <div id="results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
+          </div>
+      </section>
+      
+      <div id="status-card" class="py-20 text-center bg-zinc-900/10 border border-zinc-800/20 rounded-2xl p-8 backdrop-blur-sm max-w-md mx-auto">
+        <div class="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-4 border border-zinc-800 text-zinc-400">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 21l8.954-8.955M21 12c0-1.668-.404-3.24-1.118-4.634V12a4 4 0 0 1-4 4h-1.118L18 21l-.813-5.096A7.5 7.5 0 1 1 21 12Z" />
+          </svg>
+        </div>
+        <p id="status-text" class="text-zinc-400 text-sm font-medium">
+          Enter a search query above to discover movies and television features.
+        </p>
+      </div>
+
     </div>
-    
-    <p id="no-query" class="text-text-muted">Enter a search query above to find movies and TV shows.</p>
   </main>
 </Layout>
 
 <script>
   import { tmdbApi } from '../lib/api';
 
-  const renderMovieCard = (item, mediaType) => {
+  /**
+   * Generates dynamic media cards aligned with Watchfy's visual layout tokens.
+   * Leverages the multi-search payload context signature directly.
+   */
+  const constructResultCard = (item) => {
     const id = item.id;
-    const title = item.title || item.name || 'Untitled';
+    // Explicit Fallback safe routing parameters
+    const explicitType = item.media_type === 'tv' ? 'tv' : 'movie';
+    const title = item.title || item.name || 'Untitled Feature';
     const year = (item.release_date || item.first_air_date || '').split('-')[0] || '—';
+    const rating = item.vote_average || 0;
+    
     const poster = item.poster_path 
       ? `https://image.tmdb.org/t/p/w500${item.poster_path}` 
-      : '/placeholder-movie.jpg';
-    const rating = item.vote_average || 0;
-    const type = item.media_type || mediaType;
+      : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1470';
+
+    const anchorNode = document.createElement('a');
+    anchorNode.href = `/${explicitType}/${id}`;
+    anchorNode.className = "group block focus:outline-none";
+    anchorNode.setAttribute('aria-label', `View details for ${title}`);
     
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <a href="/${type}/${id}" class="group block">
-        <div class="relative bg-surface-raised rounded-lg overflow-hidden aspect-[2/3] transition-transform duration-300">
-          <img src="${poster}" alt="${title}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
-          ${rating > 0 ? `<div class="absolute top-2 right-2 bg-surface-sunken/70 text-primary text-xs px-2 py-1 rounded flex items-center gap-1"><span>★</span><span>${rating.toFixed(1)}</span></div>` : ''}
+    anchorNode.innerHTML = `
+      <div class="relative bg-zinc-900 rounded-xl overflow-hidden aspect-[2/3] border border-zinc-800/40 shadow-md shadow-black/40 transition-all duration-500 ease-out transform group-hover:-translate-y-1.5 group-hover:border-zinc-700/60 group-hover:shadow-xl group-hover:shadow-black/70 focus-within:ring-2 focus-within:ring-red-500/50">
+        <img 
+          src="${poster}" 
+          alt="" 
+          class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 brightness-[0.96] group-hover:brightness-110" 
+          loading="lazy" 
+        />
+        
+        ${rating > 0 ? `
+          <div class="absolute top-2 right-2 bg-zinc-950/75 backdrop-blur-md text-amber-400 font-bold text-[11px] px-2 py-1 rounded-lg flex items-center gap-1 border border-zinc-800/50 shadow-md">
+            <svg class="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <span>${rating.toFixed(1)}</span>
+          </div>
+        ` : ''}
+        <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"></div>
+      </div>
+      
+      <div class="mt-2.5 px-0.5">
+        <h3 class="font-semibold text-zinc-200 group-hover:text-white text-sm tracking-tight line-clamp-1 transition-colors duration-200">
+          ${title}
+        </h3>
+        <div class="flex items-center gap-2 mt-0.5 text-[11px] font-medium text-zinc-500">
+          <span>${year}</span>
+          <span class="w-1 h-1 rounded-full bg-zinc-800"></span>
+          <span class="uppercase font-bold tracking-wider text-[9px] text-zinc-600">${explicitType === 'tv' ? 'TV' : 'Movie'}</span>
         </div>
-        <div class="mt-2">
-          <h3 class="font-medium text-sm line-clamp-1 text-text">${title}</h3>
-          <p class="text-xs text-text-muted">${year}</p>
-        </div>
-      </a>
+      </div>
     `;
-    return div;
+    return anchorNode;
   };
 
-  const performSearch = async (query: string) => {
-    const resultsEl = document.getElementById('search-results');
-    const noQueryEl = document.getElementById('no-query');
-    const grid = document.getElementById('results-grid');
+  /**
+   * Search Execution Query Handler Stage
+   */
+  const executeLibrarySearch = async (query: string) => {
+    const resultsBlock = document.getElementById('search-results');
+    const skeletonGrid = document.getElementById('search-skeleton');
+    const statusCard = document.getElementById('status-card');
+    const statusText = document.getElementById('status-text');
+    const resultsGrid = document.getElementById('results-grid');
+    const headline = document.getElementById('results-headline');
     
     if (!query.trim()) {
-      resultsEl?.classList.add('hidden');
-      noQueryEl?.classList.remove('hidden');
+      resultsBlock?.classList.add('hidden');
+      skeletonGrid?.classList.add('hidden');
+      statusCard?.classList.remove('hidden');
+      if (statusText) statusText.innerText = "Enter a search query above to discover movies and television features.";
       return;
     }
     
-    noQueryEl?.classList.add('hidden');
-    resultsEl?.classList.remove('hidden');
+    // Set Visual Loading State Environments
+    statusCard?.classList.add('hidden');
+    resultsBlock?.classList.add('hidden');
+    skeletonGrid?.classList.remove('hidden');
     
-    if (!grid) return;
-    grid.innerHTML = '<p class="text-text-muted">Loading...</p>';
+    if (!resultsGrid) return;
+    resultsGrid.innerHTML = '';
     
     try {
       const response = await tmdbApi.search(query);
-      const results = response?.results || [];
+      // Filter out raw person cards or empty assets from results array
+      const hits = (response?.results || []).filter((item: any) => item.media_type !== 'person' && (item.poster_path || item.backdrop_path));
       
-      grid.innerHTML = '';
-      if (results.length === 0) {
-        grid.innerHTML = '<p class="text-text-muted">No results found.</p>';
+      skeletonGrid.classList.add('hidden');
+      
+      if (hits.length === 0) {
+        statusCard?.classList.remove('hidden');
+        if (statusText) statusText.innerText = `No digital streaming titles found matching the phrase: "${query}"`;
         return;
       }
+
+      if (headline) headline.innerText = `Results for "${query}"`;
       
-      const mediaType = results[0].media_type;
-      results.forEach(item => {
-        grid.appendChild(renderMovieCard(item, mediaType));
+      // Batch element builds into virtual layout tree structures to streamline painting speed
+      const docFragment = document.createDocumentFragment();
+      hits.forEach(item => {
+        docFragment.appendChild(constructResultCard(item));
       });
-    } catch (e) {
-      grid.innerHTML = '<p class="text-red-400">Failed to fetch results.</p>';
+      resultsGrid.appendChild(docFragment);
+      
+      // Reveal final results cleanly
+      resultsBlock.classList.remove('hidden');
+      setTimeout(() => resultsBlock.classList.remove('opacity-0'), 50);
+      
+    } catch (err) {
+      console.error('Watchfy Search Core pipeline parsing execution fault:', err);
+      skeletonGrid.classList.add('hidden');
+      statusCard?.classList.remove('hidden');
+      if (statusText) statusText.innerHTML = '<span class="text-red-500 font-bold">Network Connection Interrupted</span><br><span class="text-xs text-zinc-500">Failed to pull real-time database queries.</span>';
     }
   };
 
+  // Setup Global Navigation Listeners
   document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('search-form') as HTMLFormElement;
     const input = form?.querySelector('input') as HTMLInputElement;
-    const urlParams = new URLSearchParams(window.location.search);
-    const query = urlParams.get('q');
     
-    if (query) {
-      input.value = query;
-      performSearch(query);
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = params.get('q');
+    
+    if (initialQuery && input) {
+      input.value = initialQuery;
+      executeLibrarySearch(initialQuery);
     }
     
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
-      const q = input.value.trim();
-      if (q) {
-        history.pushState(null, '', `/search?q=${encodeURIComponent(q)}`);
-        performSearch(q);
+      const currentQuery = input.value.trim();
+      if (currentQuery) {
+        history.pushState(null, '', `/search?q=${encodeURIComponent(currentQuery)}`);
+        executeLibrarySearch(currentQuery);
       }
     });
   });
 </script>
+
+<style is:global>
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+  .shimmer-wave {
+    animation: shimmer 2s infinite linear;
+  }
+</style>

@@ -33,52 +33,75 @@
     loaded = true;
   }
 
-  function scrollBy(amount: number) {
-    scrollEl?.scrollBy({ left: amount, behavior: 'smooth' });
+  function scrollSide(direction: 'left' | 'right') {
+    if (!scrollEl) return;
+    const scrollAmount = scrollEl.clientWidth * 0.75;
+    scrollEl.scrollBy({ 
+      left: direction === 'left' ? -scrollAmount : scrollAmount, 
+      behavior: 'smooth' 
+    });
   }
 </script>
 
-<div class="mb-8">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-xl md:text-2xl font-bold text-text">{title}</h2>
+<div class="mb-10 relative select-none">
+  <div class="flex items-end justify-between mb-4 px-4 md:px-12">
+    <h2 class="text-lg md:text-2xl font-black text-white tracking-tight drop-shadow-sm">
+      {title}
+    </h2>
     {#if items.length > 0}
-      <a href="/search" class="text-sm text-primary hover:text-primary-hover transition">View All</a>
+      <a 
+        href="/search" 
+        class="text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-red-400 transition-colors duration-200 flex items-center gap-1 group/link"
+      >
+        View All 
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3 h-3 transform group-hover/link:translate-x-1 transition-transform">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+        </svg>
+      </a>
     {/if}
   </div>
 
-  <div class="relative group">
+  <div class="relative group/track px-4 md:px-12">
     {#if items.length > 0}
       <button
-        onclick={() => scrollBy(-800)}
-        class="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-gradient-to-r from-surface-sunken/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-        aria-label="Scroll left"
+        onclick={() => scrollSide('left')}
+        class="absolute left-6 md:left-14 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-zinc-950/70 border border-zinc-800 text-white hover:bg-zinc-900 flex items-center justify-center backdrop-blur-md opacity-0 group-hover/track:opacity-100 transition-all duration-300 transform -translate-x-2 group-hover/track:translate-x-0 shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+        aria-label="Scroll Carousel Left"
       >
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
       </button>
+
       <button
-        onclick={() => scrollBy(800)}
-        class="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-gradient-to-l from-surface-sunken/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-        aria-label="Scroll right"
+        onclick={() => scrollSide('right')}
+        class="absolute right-6 md:right-14 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-zinc-950/70 border border-zinc-800 text-white hover:bg-zinc-900 flex items-center justify-center backdrop-blur-md opacity-0 group-hover/track:opacity-100 transition-all duration-300 transform translate-x-2 group-hover/track:translate-x-0 shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+        aria-label="Scroll Carousel Right"
       >
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
       </button>
     {/if}
 
+    <div class="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#09090b] to-transparent z-20 pointer-events-none hidden md:block"></div>
+    <div class="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#09090b] to-transparent z-20 pointer-events-none hidden md:block"></div>
+
     <div
       bind:this={scrollEl}
-      class="flex gap-3 overflow-x-auto scroll-smooth pb-2"
+      class="flex gap-4 overflow-x-auto scroll-smooth pb-4 pt-1 snap-x snap-mandatory mask-scrollbar"
     >
       {#if !loaded}
-        {#each { length: 8 } as _}
-          <div class="flex-shrink-0 w-[160px]">
-            <div class="aspect-[2/3] bg-surface-raised rounded-lg animate-pulse" />
-            <div class="mt-2 h-4 bg-surface-raised rounded animate-pulse" />
-            <div class="mt-1 h-3 bg-surface-raised rounded w-2/3 animate-pulse" />
+        {#each { length: 7 } as _}
+          <div class="flex-shrink-0 w-[140px] sm:w-[170px] space-y-3">
+            <div class="aspect-[2/3] bg-gradient-to-br from-zinc-900 via-zinc-800/50 to-zinc-900 rounded-xl animate-pulse border border-zinc-800/40 relative overflow-hidden">
+              <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent shimmer-line"></div>
+            </div>
+            <div class="space-y-1.5 px-1">
+              <div class="h-3.5 bg-zinc-800 rounded w-5/6 animate-pulse" />
+              <div class="h-2.5 bg-zinc-900 rounded w-1/2 animate-pulse" />
+            </div>
           </div>
         {/each}
       {:else}
         {#each items as item}
-          <div class="flex-shrink-0 w-[160px] sm:w-[180px]">
+          <div class="flex-shrink-0 w-[140px] sm:w-[170px] snap-start transition-transform duration-300 transform hover:scale-[1.02] hover:z-10">
             <MovieCard movie={item} type={item.media_type === 'tv' ? 'tv' : 'movie'} />
           </div>
         {/each}
@@ -88,6 +111,20 @@
 </div>
 
 <style>
-  div::-webkit-scrollbar { display: none; }
-  div { scrollbar-width: none; }
+  /* Strip default native desktop navigation controls safely */
+  .mask-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .mask-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  /* Shimmer gradient animation wave style configuration */
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+  .shimmer-line {
+    animation: shimmer 1.8s infinite linear;
+  }
 </style>

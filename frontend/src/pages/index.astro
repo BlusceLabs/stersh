@@ -4,14 +4,18 @@ const BACKEND = import.meta.env.BACKEND_URL || 'http://localhost:8000';
 let movie: any = null;
 let logoUrl: string | null = null;
 let backdropUrl = '';
+let trailerKey: string | null = null;
 
 try {
+  // 1. Fetch the absolute top trending movie of the week
   const res = await fetch(`${BACKEND}/api/tmdb/trending/movie/week`);
   const data = await res.json();
   movie = data.results?.[0];
 
   if (movie) {
     backdropUrl = `https://image.tmdb.org/t/p/original${movie.backdrop_path}`;
+    
+    // 2. Fetch official logos
     const imgRes = await fetch(
       `${BACKEND}/api/tmdb/movie/${movie.id}/images?include_image_language=en,null`
     );
@@ -20,9 +24,21 @@ try {
     if (logo) {
       logoUrl = `https://image.tmdb.org/t/p/original${logo.file_path}`;
     }
+
+    // 3. Fetch trailers/videos matching this trending ID
+    const videoRes = await fetch(`${BACKEND}/api/tmdb/movie/${movie.id}/videos?language=en-US`);
+    const videoData = await videoRes.json();
+    
+    // Filter specifically for an official YouTube Trailer or Teaser
+    const trailer = videoData.results?.find(
+      (v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
+    );
+    if (trailer) {
+      trailerKey = trailer.key;
+    }
   }
 } catch (e) {
-  console.error('index fetch error:', e);
+  console.error('Watchfy splash video engine initialization failure:', e);
 }
 ---
 
@@ -33,63 +49,94 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Watchfy - Stream Trending Now</title>
   </head>
-  <body class="bg-black text-white font-sans antialiased overflow-hidden h-screen w-screen relative">
-    <div class="absolute inset-0 z-0">
-      <img
-        src={backdropUrl || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925'}
-        alt=""
-        class="w-full h-full object-cover brightness-[0.45] scale-105 animate-fade-in"
-      />
-      <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
-      <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent" />
+  <body class="bg-[#09090b] text-zinc-100 font-sans antialiased overflow-hidden h-screen w-screen relative select-none">
+    
+    <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none bg-black">
+      
+      {trailerKey ? (
+        <div class="w-full h-full scale-[1.35] brightness-[0.38] contrast-[1.05] animate-fade-in relative">
+          <iframe
+            class="w-full h-full absolute top-0 left-0"
+            src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${trailerKey}&iv_load_policy=3&enablejsapi=1&playsinline=1`}
+            title="Trending Trailer Background Player"
+            allow="autoplay; encrypted-media"
+            frameborder="0"
+          ></iframe>
+        </div>
+      ) : (
+        <img
+          src={backdropUrl || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925'}
+          alt=""
+          class="w-full h-full object-cover brightness-[0.35] scale-105 animate-fade-in"
+        />
+      )}
+
+      <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-black/40 z-10" />
+      <div class="absolute inset-0 bg-gradient-to-r from-[#09090b]/90 via-[#09090b]/30 to-transparent z-10" />
+      <div class="absolute inset-0 bg-radial-vignette z-10" />
     </div>
 
-    <main class="relative z-10 flex flex-col h-full p-8 md:p-16 lg:p-24 select-none">
-      <div class="flex-1" />
+    <main class="relative z-20 flex flex-col h-full p-8 md:p-16 lg:p-24 justify-between">
+      
+      <header class="w-full flex items-center justify-between">
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950/40 border border-zinc-800/40 backdrop-blur-md animate-slide-up">
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+          <span class="text-[10px] font-black tracking-wider uppercase text-zinc-300">Live Spotlight</span>
+        </div>
+      </header>
 
-      <div class="flex items-end justify-between w-full gap-8">
-        <div class="max-w-2xl space-y-10">
+      <div class="flex flex-col md:flex-row md:items-end justify-between w-full gap-8 mt-auto">
+        
+        <div class="max-w-2xl space-y-8">
           <div class="animate-slide-up">
             {logoUrl ? (
               <img
                 src={logoUrl}
-                alt={movie?.title || ''}
-                class="max-w-xs md:max-w-md lg:max-w-lg h-auto object-contain drop-shadow-[0_12px_12px_rgba(0,0,0,0.85)]"
+                alt={movie?.title || 'Trending Presentation'}
+                class="max-w-xs md:max-w-md lg:max-w-xl h-auto object-contain drop-shadow-[0_16px_24px_rgba(0,0,0,0.95)]"
               />
             ) : (
-              <h1 class="text-5xl md:text-7xl font-black tracking-tighter uppercase bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
+              <h1 class="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter uppercase text-white drop-shadow-[0_8px_16px_rgba(0,0,0,0.9)]">
                 {movie?.title || 'Watchfy'}
               </h1>
             )}
           </div>
 
+          {movie?.overview && (
+            <p class="text-zinc-300 text-sm sm:text-base max-w-xl font-medium leading-relaxed line-clamp-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] animate-slide-up" style="animation-delay: 100ms">
+              {movie.overview}
+            </p>
+          )}
+
           <div class="flex flex-wrap gap-4 items-center animate-slide-up" style="animation-delay: 200ms">
             <a
               href="/home"
-              class="px-8 py-3.5 bg-white text-black font-bold rounded-md hover:bg-neutral-200 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl inline-flex items-center gap-2"
+              class="px-8 py-4 bg-white text-black font-extrabold rounded-xl hover:bg-zinc-200 transition-all duration-300 transform hover:scale-[1.03] active:scale-95 shadow-2xl shadow-black/80 inline-flex items-center gap-2.5 text-sm uppercase tracking-wider"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-black">
                 <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
               </svg>
               Start Watching
             </a>
+            
             <a
               href="/search"
-              class="px-8 py-3.5 bg-neutral-900/40 text-white font-semibold rounded-md hover:bg-white/20 backdrop-blur-md border border-white/15 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl inline-flex items-center"
+              class="px-8 py-4 bg-zinc-950/40 text-white font-bold rounded-xl hover:bg-zinc-800/80 backdrop-blur-md border border-zinc-700/60 transition-all duration-300 transform hover:scale-[1.03] active:scale-95 shadow-xl inline-flex items-center text-sm uppercase tracking-wider"
             >
-              Browse
+              Browse Library
             </a>
           </div>
         </div>
 
-        <div class="animate-fade-in flex-shrink-0" style="animation-delay: 400ms">
-          <div class="text-right tracking-wider pointer-events-none">
-            <span class="text-[10px] uppercase font-black tracking-[0.4em] text-neutral-500 block mb-0.5">STREAM WITH</span>
-            <h2 class="text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-red-500 via-pink-500 to-indigo-500 bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]">
+        <div class="animate-fade-in flex-shrink-0 md:text-right" style="animation-delay: 400ms">
+          <div class="tracking-wider pointer-events-none">
+            <span class="text-[10px] uppercase font-black tracking-[0.4em] text-zinc-500 block mb-0.5">POWERED BY</span>
+            <h2 class="text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-r from-red-500 via-pink-500 to-indigo-500 bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(239,68,68,0.2)]">
               Watchfy<span class="text-white text-2xl font-normal">.</span>
             </h2>
           </div>
         </div>
+
       </div>
     </main>
 
@@ -99,15 +146,18 @@ try {
         to { opacity: 1; }
       }
       @keyframes slideUp {
-        from { opacity: 0; transform: translateY(30px); }
+        from { opacity: 0; transform: translateY(24px); }
         to { opacity: 1; transform: translateY(0); }
       }
       .animate-fade-in {
-        animation: fadeIn 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        animation: fadeIn 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
       }
       .animate-slide-up {
         opacity: 0;
-        animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .bg-radial-vignette {
+        background: radial-gradient(circle at center, transparent 20%, #09090b 95%);
       }
     </style>
   </body>
