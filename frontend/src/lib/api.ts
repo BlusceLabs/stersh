@@ -32,11 +32,11 @@ export const api = {
    * Generates production paths targeting internal streaming instances
    */
   getStreamSource: (tmdbId: number, mediaType: 'movie' | 'tv', season?: number, episode?: number): string => {
-    let url = `/vidking/source?tmdbId=${tmdbId}&mediaType=${mediaType}`;
+    let url = `/api/black/source?tmdbId=${tmdbId}&mediaType=${mediaType}`;
     if (mediaType === 'tv' && season !== undefined && episode !== undefined) {
       url += `&season=${season}&episode=${episode}`;
     }
-    return `${API_BASE}${url}`;
+    return url;
   },
 };
 

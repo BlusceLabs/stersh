@@ -1,127 +1,16 @@
 ---
 import Layout from '../../../../layouts/Layout.astro';
-import HLSPlayer from '../../../../components/HLSPlayer.svelte';
-import { api } from '../../../../lib/api';
+import WatchUI from '../../../../components/WatchUI.svelte';
 
 const { media, id } = Astro.params;
 
-// Validate media type normalization patterns
 const normalizedMedia = media === 'tv' ? 'tv' : 'movie';
-const streamUrl = api.getStreamSource(Number(id), normalizedMedia);
 ---
 
 <Layout title="Streaming Feature... | Watchfy">
-  <main 
-    id="watch-stage"
-    data-media-type={normalizedMedia}
-    data-media-id={id}
-    class="min-h-screen bg-[#09090b] text-zinc-100 pt-20 pb-16 relative overflow-hidden select-none"
-  >
+  <main class="min-h-screen bg-[#09090b] text-zinc-100 pt-20 pb-16 relative overflow-hidden select-none">
     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[50vh] bg-gradient-to-b from-red-600/5 via-purple-900/5 to-transparent rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      <div class="w-full rounded-2xl overflow-hidden mb-8 border border-zinc-900/80 shadow-2xl shadow-black/90 bg-black">
-        <HLSPlayer 
-          client:load
-          src={streamUrl}
-          title="Watchfy Premium Stream Source"
-          autoPlay={true}
-        />
-      </div>
-      
-      <div class="bg-zinc-900/20 backdrop-blur-md border border-zinc-800/40 rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 shadow-xl">
-        <div class="space-y-2 flex-1">
-          <div class="flex items-center gap-2">
-            <span id="meta-type-badge" class="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/50">
-              {normalizedMedia === 'tv' ? 'TV Show' : 'Movie'}
-            </span>
-            <span id="meta-extra-badge" class="text-xs font-bold text-red-400 hidden"></span>
-          </div>
-
-          <h1 id="stream-title" class="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">
-            Now Playing
-          </h1>
-          <p id="stream-subtext" class="text-sm text-zinc-400 font-medium max-w-2xl">
-            Establishing server connection handshakes to look up localized playback records...
-          </p>
-        </div>
-
-        <div class="flex-shrink-0">
-          <a 
-            href={`/${normalizedMedia}/${id}`}
-            class="inline-flex items-center gap-2 px-5 py-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 text-zinc-200 hover:text-white text-sm font-semibold rounded-xl transition-all active:scale-95 shadow-lg shadow-black/40"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-            </svg>
-            Exit Player
-          </a>
-        </div>
-      </div>
-
-    </div>
+    <WatchUI client:load media={normalizedMedia} id={id} />
   </main>
 </Layout>
-
-<script>
-  import { tmdbApi } from '../../../../lib/api';
-
-  const buildWatchContext = async () => {
-    const stage = document.getElementById('watch-stage');
-    if (!stage) return;
-
-    const mediaType = stage.getAttribute('data-media-type');
-    const mediaId = stage.getAttribute('data-media-id');
-    if (!mediaType || !mediaId) return;
-
-    // DOM Target Handles
-    const titleEl = document.getElementById('stream-title');
-    const subtextEl = document.getElementById('stream-subtext');
-    const extraBadgeEl = document.getElementById('meta-extra-badge');
-
-    try {
-      // Query specific details matching the asset type signature context records
-      const details = await tmdbApi.details(mediaType, parseInt(mediaId));
-      const titleText = details.title || details.name || 'Untitled Stream';
-      
-      // Update Title & Global Tab Title Metadata Layer
-      if (titleEl) titleEl.innerText = titleText;
-      document.title = `Watching: ${titleText} - Watchfy`;
-
-      if (mediaType === 'tv') {
-        // Look for parameters if handling targeted TV instances mapping arrays
-        const params = new URLSearchParams(window.location.search);
-        const season = params.get('season') || '1';
-        const episode = params.get('episode') || '1';
-        
-        if (extraBadgeEl) {
-          extraBadgeEl.innerText = `S${season}:E${episode}`;
-          extraBadgeEl.classList.remove('hidden');
-        }
-        if (subtextEl) {
-          subtextEl.innerText = `You are watching Season ${season} Episode ${episode} of "${titleText}". Continuous metadata checks are monitoring streaming performance.`;
-        }
-      } else {
-        // Fallback for standard theatrical movie layout string
-        const year = (details.release_date || '').split('-')[0];
-        if (extraBadgeEl && year) {
-          extraBadgeEl.innerText = year;
-          extraBadgeEl.classList.remove('hidden');
-        }
-        if (subtextEl) {
-          subtextEl.innerText = details.overview 
-            ? details.overview 
-            : 'Streaming video file assets from localized provider arrays.';
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fill watch interface context profiles:', err);
-      if (titleEl) titleEl.innerText = "Active Feature Stream";
-      if (subtextEl) subtextEl.innerText = "Streaming online assets from verified content networks.";
-    }
-  };
-
-  // Safe client-side initiation regardless of build pipeline pre-rendering state
-  document.addEventListener('DOMContentLoaded', buildWatchContext);
-</script>

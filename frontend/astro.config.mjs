@@ -37,20 +37,21 @@ export default defineConfig({
   
   // Development Infrastructure Reverse Proxy Filters
   server: {
-    host: true, // Exposes the server to local network interfaces
+    host: true,
     port: 4321,
-    proxy: {
-      '/api': {
-        target: BACKEND_URL,
-        changeOrigin: true,
-        secure: false,
-        ws: true, // Enables internal WebSocket piping protocols for real-time updates
-      },
-    },
   },
   
   // High-End Vite Bundle Compilation Pipes
   vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: BACKEND_URL,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
     build: {
       cssCodeSplit: true, // Generates atomic CSS layers on demand
       minify: 'esbuild',
