@@ -341,6 +341,8 @@ async def black_proxy_hls(url: str = Query(...)) -> Response:
 
     base_url = url.rsplit("/", 1)[0] + "/"
     lines: list[str] = []
+    next_is_variant = False
+
     for line in resp.text.split("\n"):
         stripped = line.strip()
 
@@ -351,11 +353,20 @@ async def black_proxy_hls(url: str = Query(...)) -> Response:
             lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
             continue
 
+        if stripped.startswith("#EXT-X-STREAM-INF:"):
+            next_is_variant = True
+            lines.append(line)
+            continue
+
         if stripped and not stripped.startswith("#"):
             if not stripped.startswith("http"):
                 stripped = base_url + stripped
             token = _store_token(stripped)
-            lines.append(f"/api/black/proxy/seg/{token}")
+            if next_is_variant:
+                lines.append(f"/api/black/proxy/hls?url={token}")
+                next_is_variant = False
+            else:
+                lines.append(f"/api/black/proxy/seg/{token}")
         else:
             lines.append(line)
 

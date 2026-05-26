@@ -30,7 +30,7 @@ ENHANCED_ALLOWED_HOSTS = frozenset(
         "easy.speedsterwave.app",
         "cdn.vidking.net",
         "vidking.net",
-        # White / 111movies CDN
+        # White CDN (111movies.net)
         "cloudnestra.com",
         "whisperingauroras.com",
         "111movies.net",
@@ -352,13 +352,26 @@ async def multi_source_health(
 # ── Manifest rewriter ──────────────────────────────────────────────────────────
 
 def _rewrite_manifest(text: str, base_url: str) -> str:
-    """Rewrite all segment URIs in an HLS manifest to go through our proxy.
+    """Rewrite an HLS manifest so all fetchable URIs route through our proxy.
 
-    Strips EXT-X-ENDLIST and converts VOD to EVENT so hls.js periodically
-    reloads the manifest — refreshing token TTLs and avoiding expired
-    CDN signed URLs mid-playback.
+    Behaviour by playlist type:
+
+    *Master playlist* (contains ``#EXT-X-STREAM-INF``)
+      Variant URIs are rewritten to ``/api/proxy/hls?url=<token>`` so hls.js
+      fetches each variant's media playlist *through the proxy* — keeping all
+      subsequent segment tokens inside the same trust domain.
+
+    *Media playlist* (no ``#EXT-X-STREAM-INF``)
+      Segment URIs are rewritten to ``/api/proxy/seg/<token>``.
+
+    In both cases:
+      - ``#EXT-X-ENDLIST`` is stripped so the player periodically reloads the
+        manifest, refreshing token TTLs and avoiding mid-stream expiry.
+      - ``#EXT-X-PLAYLIST-TYPE:VOD`` → ``EVENT`` to trigger those reloads.
     """
     lines: list[str] = []
+    next_is_variant = False
+
     for line in text.split("\n"):
         stripped = line.strip()
 
@@ -369,13 +382,23 @@ def _rewrite_manifest(text: str, base_url: str) -> str:
             lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
             continue
 
+        if stripped.startswith("#EXT-X-STREAM-INF:"):
+            next_is_variant = True
+            lines.append(line)
+            continue
+
         if stripped and not stripped.startswith("#"):
             if not stripped.startswith("http"):
                 stripped = base_url + stripped
             token = _store(stripped)
-            lines.append(f"/api/proxy/seg/{token}")
+            if next_is_variant:
+                lines.append(f"/api/proxy/hls?url={token}")
+                next_is_variant = False
+            else:
+                lines.append(f"/api/proxy/seg/{token}")
         else:
             lines.append(line)
+
     return "\n".join(lines)
 
 

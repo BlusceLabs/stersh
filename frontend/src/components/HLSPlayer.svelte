@@ -1,7 +1,7 @@
 <script lang="ts">
   import Hls from 'hls.js';
 
-  let { src = '', title = 'Video Player', autoPlay = false } = $props();
+  let { src = '', title = 'Video Player', autoPlay = false, server = 'white' } = $props();
 
   let videoEl: HTMLVideoElement;
   let hlsInstance: Hls | null = null;
@@ -30,7 +30,7 @@
         if (cancelled) return;
         if (data.sources?.length) {
           const rawUrl = data.sources[0].url;
-          hlsUrl = `/api/black/proxy/hls?url=${encodeURIComponent(rawUrl)}`;
+          hlsUrl = `/api/${server}/proxy/hls?url=${encodeURIComponent(rawUrl)}`;
         } else {
           error = 'No stream sources available for this title';
         }

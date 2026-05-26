@@ -3,6 +3,7 @@ import Layout from '../../../../layouts/Layout.astro';
 import WatchUI from '../../../../components/WatchUI.svelte';
 
 const { media, id } = Astro.params;
+const { server = 'white' } = Astro.url.searchParams;
 
 const normalizedMedia = media === 'tv' ? 'tv' : 'movie';
 ---
@@ -11,6 +12,6 @@ const normalizedMedia = media === 'tv' ? 'tv' : 'movie';
   <main class="min-h-screen bg-[#09090b] text-zinc-100 pt-20 pb-16 relative overflow-hidden select-none">
     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[50vh] bg-gradient-to-b from-red-600/5 via-purple-900/5 to-transparent rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-    <WatchUI client:load media={normalizedMedia} id={id} />
+    <WatchUI client:load media={normalizedMedia} id={id} server={server} />
   </main>
 </Layout>

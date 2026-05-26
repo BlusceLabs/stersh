@@ -59,6 +59,7 @@ ALLOWED_PROXY_HOSTS: frozenset[str] = frozenset(
         "whisperingauroras.com",
         "111movies.net",
         "www.111movies.net",
+        "cdn.111movies.net",
     }
 )
 

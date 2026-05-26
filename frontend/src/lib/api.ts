@@ -31,8 +31,8 @@ export const api = {
   /**
    * Generates production paths targeting internal streaming instances
    */
-  getStreamSource: (tmdbId: number, mediaType: 'movie' | 'tv', season?: number, episode?: number): string => {
-    let url = `/api/black/source?tmdbId=${tmdbId}&mediaType=${mediaType}`;
+  getStreamSource: (tmdbId: number, mediaType: 'movie' | 'tv', season?: number, episode?: number, server: string = 'white'): string => {
+    let url = `/api/${server}/source?tmdbId=${tmdbId}&mediaType=${mediaType}`;
     if (mediaType === 'tv' && season !== undefined && episode !== undefined) {
       url += `&season=${season}&episode=${episode}`;
     }

@@ -3,7 +3,7 @@
   import HLSPlayer from './HLSPlayer.svelte';
   import { tmdbApi, api } from '../lib/api';
 
-  let { media = 'movie', id = '0' } = $props();
+  let { media = 'movie', id = '0', server = 'white' } = $props();
 
   let season = $state(1);
   let episode = $state(1);
@@ -15,7 +15,7 @@
   );
   let totalEpisodes = $derived(currentSeason?.episode_count ?? 0);
   let hasNextEpisode = $derived(mediaType === 'tv' && showDetails && episode < totalEpisodes);
-  let streamUrl = $derived(api.getStreamSource(Number(id), mediaType, season, episode));
+  let streamUrl = $derived(api.getStreamSource(Number(id), mediaType, season, episode, server));
   let title = $derived(showDetails?.name || showDetails?.title || 'Now Playing');
   let year = $derived((showDetails?.release_date || '').split('-')[0]);
   let epBadge = $derived(mediaType === 'tv' ? `S${season}:E${episode}` : year);
@@ -77,7 +77,7 @@
   function prewarmNext() {
     const next = getNextEpisode();
     if (!next) return;
-    const url = `/api/black/prewarm?tmdbId=${id}&mediaType=tv&season=${next.season}&episode=${next.episode}`;
+    const url = `/api/${server}/prewarm?tmdbId=${id}&mediaType=tv&season=${next.season}&episode=${next.episode}`;
     fetch(url).catch(() => {});
   }
 
@@ -95,6 +95,7 @@
       src={streamUrl}
       title={title}
       autoPlay={true}
+      {server}
     />
   </div>
 

@@ -23,6 +23,11 @@ from app.api.providers.black import (
     shutdown_black_browser,
     shutdown_black_client,
 )
+from app.api.providers.white import (
+    router as white_router,
+    shutdown_white_browser,
+    shutdown_white_client,
+)
 from app.api.proxy import router as proxy_router
 from app.api.ffmpeg_remux import router as ffmpeg_router
 from app.api.tmdb import include_router as include_tmdb_router
@@ -61,6 +66,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     results = await asyncio.gather(
         shutdown_black_browser(),
         shutdown_black_client(),
+        shutdown_white_browser(),
+        shutdown_white_client(),
 
         return_exceptions=True,
     )
@@ -126,6 +133,7 @@ async def latency_middleware(request: Request, call_next) -> Response:
 # ── Routers ────────────────────────────────────────────────────────────────────
 
 app.include_router(black_router)
+app.include_router(white_router)
 
 app.include_router(proxy_router)
 app.include_router(ffmpeg_router)
