@@ -1,73 +1,7 @@
 {
+  "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
-    // --- Target & Output ---
-    "target": "ES2020",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "noEmit": true,
     "jsx": "react-jsx",
-
-    // --- Module Handling ---
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "allowImportingTsExtensions": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-
-    // --- Strict Type Checking ---
-    "strict": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noPropertyAccessFromIndexSignature": true,
-
-    // --- Code Quality ---
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
-    "exactOptionalPropertyTypes": true,
-    "useUnknownInCatchVariables": true,
-
-    // --- Path Aliases (mirrors vite.config.ts) ---
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/app/*": ["./src/app/*"],
-      "@/store/*": ["./src/store/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/assets/*": ["./src/assets/*"],
-      "@/types/*": ["./src/types/*"]
-    }
-  },
-
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.d.ts",
-    "vite.config.ts",        // type-check the vite config itself
-    "vitest.config.ts",      // if using vitest
-    "*.config.ts"            // any root-level config files
-  ],
-
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx"
-  ]
+    "jsxImportSource": "react"
+  }
 }
