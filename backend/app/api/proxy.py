@@ -367,7 +367,8 @@ def _rewrite_manifest(text: str, base_url: str) -> str:
     In both cases:
       - ``#EXT-X-ENDLIST`` is stripped so the player periodically reloads the
         manifest, refreshing token TTLs and avoiding mid-stream expiry.
-      - ``#EXT-X-PLAYLIST-TYPE:VOD`` → ``EVENT`` to trigger those reloads.
+      - ``#EXT-X-PLAYLIST-TYPE`` tags are preserved as-is (no VOD→EVENT conversion,
+        which would cause hls.js to seek to the live edge near the end).
     """
     lines: list[str] = []
     next_is_variant = False
@@ -378,8 +379,8 @@ def _rewrite_manifest(text: str, base_url: str) -> str:
         if stripped == "#EXT-X-ENDLIST":
             continue
 
-        if stripped.startswith("#EXT-X-PLAYLIST-TYPE:VOD"):
-            lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
+        if stripped.startswith("#EXT-X-PLAYLIST-TYPE:"):
+            lines.append(line)
             continue
 
         if stripped.startswith("#EXT-X-STREAM-INF:"):

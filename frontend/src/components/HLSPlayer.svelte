@@ -54,7 +54,9 @@
     }
 
     if (Hls.isSupported()) {
-      const hls = new Hls();
+      const hls = new Hls({
+        startPosition: 0,
+      });
       hls.loadSource(hlsUrl);
       hls.attachMedia(videoEl);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {

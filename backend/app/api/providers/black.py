@@ -349,8 +349,8 @@ async def black_proxy_hls(url: str = Query(...)) -> Response:
         if stripped == "#EXT-X-ENDLIST":
             continue
 
-        if stripped.startswith("#EXT-X-PLAYLIST-TYPE:VOD"):
-            lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
+        if stripped.startswith("#EXT-X-PLAYLIST-TYPE:"):
+            lines.append(line)
             continue
 
         if stripped.startswith("#EXT-X-STREAM-INF:"):
