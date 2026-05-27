@@ -363,17 +363,12 @@
     if (!src) { hlsUrl = ''; return; }
     loading = true; error = ''; hlsUrl = '';
     let cancelled = false;
-    let timeout = setTimeout(() => {
-      if (!cancelled && loading) {
-        error = 'Stream source timed out. Please try again.';
-        loading = false;
-      }
-    }, 30000);
 
     fetch(src)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(data => {
         if (cancelled) return;
+        error = '';
         const master = data.master_url || (data.sources?.[0]?.url);
         if (master) {
           hlsUrl = `/api/${server}/proxy/hls?url=${encodeURIComponent(master)}`;
@@ -382,9 +377,9 @@
         }
       })
       .catch(() => { if (!cancelled) error = 'Failed to establish stable streaming pipeline.'; })
-      .finally(() => { if (!cancelled) { loading = false; clearTimeout(timeout); } });
+      .finally(() => { if (!cancelled) loading = false; });
 
-    return () => { cancelled = true; clearTimeout(timeout); };
+    return () => { cancelled = true; };
   });
 
   let progressPct = $derived(duration > 0 ? (currentTime / duration) * 100 : 0);
