@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.watchfy.app.data.repository.LocalRepository
 import com.watchfy.app.data.repository.TmdbRepository
 import com.watchfy.app.domain.model.*
+import com.watchfy.app.domain.model.Movie
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -42,14 +43,21 @@ class DetailsViewModel @Inject constructor(
                     _state.update {
                         it.copy(movie = movie, trailerKey = trailer, recommendations = recs, isInMyList = inList, loading = false)
                     }
-                } else {
-                    val tv = tmdbRepository.getTvDetails(id)
-                    val trailer = tmdbRepository.getTrailerKey("tv", id)
-                    val inList = localRepository.isInMyList("tv", id)
-                    _state.update {
-                        it.copy(tvShow = tv, seasons = tv.seasons, trailerKey = trailer, isInMyList = inList, loading = false)
-                    }
-                }
+} else {
+                     val tv = tmdbRepository.getTvDetails(id)
+                     val trailer = tmdbRepository.getTrailerKey("tv", id)
+                     val tvRecs = tmdbRepository.getTvRecommendations(id)
+                     val inList = localRepository.isInMyList("tv", id)
+                     val recs = tvRecs.map { Movie(
+                         id = it.id, title = it.name, overview = it.overview,
+                         posterPath = it.posterPath, backdropPath = it.backdropPath,
+                         voteAverage = it.voteAverage, releaseDate = it.firstAirDate,
+                         genreIds = it.genreIds
+                     ) }
+                     _state.update {
+                         it.copy(tvShow = tv, seasons = tv.seasons, trailerKey = trailer, recommendations = recs, isInMyList = inList, loading = false)
+                     }
+                 }
             } catch (e: Exception) {
                 _state.update { it.copy(loading = false, error = e.message) }
             }
