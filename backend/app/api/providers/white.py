@@ -209,41 +209,61 @@ async def onetoone_proxy_hls(url: str = Query(...)) -> Response:
     if not resp.is_success:
         raise HTTPException(status_code=resp.status_code, detail="HLS upstream error")
 
-    base_url = url.rsplit("/", 1)[0] + "/"
-    lines: list[str] = []
-    next_is_variant = False
+    body = resp.content
+    text = body.decode("utf-8", errors="replace")
 
-    for line in resp.text.split("\n"):
-        stripped = line.strip()
+    if text.startswith("#EXTM3U"):
+        from urllib.parse import urlparse as up
+        parsed = up(url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        base_dir = url.rsplit("/", 1)[0] + "/"
 
-        if stripped == "#EXT-X-ENDLIST":
-            continue
+        def resolve(href: str) -> str:
+            if href.startswith("http"):
+                return href
+            if href.startswith("//"):
+                return f"{parsed.scheme}:{href}"
+            if href.startswith("/"):
+                return f"{origin}{href}"
+            return f"{base_dir}{href}"
 
-        if stripped.startswith("#EXT-X-PLAYLIST-TYPE:VOD"):
-            lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
-            continue
+        lines: list[str] = []
 
-        if stripped.startswith("#EXT-X-STREAM-INF:"):
-            next_is_variant = True
-            lines.append(line)
-            continue
+        for line in text.split("\n"):
+            stripped = line.strip()
 
-        if stripped and not stripped.startswith("#"):
-            if not stripped.startswith("http"):
-                stripped = base_url + stripped
-            if next_is_variant:
-                token = _store_token(stripped)
+            if stripped == "#EXT-X-ENDLIST":
+                continue
+
+            if stripped.startswith("#EXT-X-PLAYLIST-TYPE:VOD"):
+                lines.append("#EXT-X-PLAYLIST-TYPE:EVENT")
+                continue
+
+            if stripped.startswith("#"):
+                lines.append(line)
+                continue
+
+            if stripped:
+                abs_url = resolve(stripped)
+                token = _store_token(abs_url)
                 lines.append(f"/api/white/proxy/hls?url={token}")
             else:
-                lines.append(stripped)
-        else:
-            lines.append(line)
+                lines.append(line)
+
+        return Response(
+            content="\n".join(lines),
+            media_type="application/vnd.apple.mpegurl",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
 
     return Response(
-        content="\n".join(lines),
-        media_type="application/vnd.apple.mpegurl",
+        content=body,
+        media_type=resp.headers.get("content-type", "video/MP2T"),
         headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Cache-Control": "public, max-age=3600",
             "Access-Control-Allow-Origin": "*",
         },
     )
