@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
@@ -193,6 +192,7 @@ async def extract_hls_from_white(
 
     captured_hls: str | None = None
     captured_mp4s: list[str] = []
+    probe_result: dict | None = None
 
     async def _setup_page(page):
         async def _on_response(response):
@@ -209,27 +209,43 @@ async def extract_hls_from_white(
 
         page.on("response", _on_response)
 
+    async def _run_action(page):
+        nonlocal captured_hls, captured_mp4s, probe_result
+        if not captured_hls:
+            try:
+                probe_result = await page.evaluate(_DOM_PROBE_SCRIPT) or {}
+                for url in probe_result.get("urls", []):
+                    if ".m3u8" in url.lower() and not captured_hls:
+                        captured_hls = url
+                        logger.info('"white_hls_dom_found":{"url":"%s"}', url[:120])
+                    elif ".mp4" in url.lower() and url not in captured_mp4s:
+                        captured_mp4s.append(url)
+            except Exception as exc:
+                logger.warning('"white_dom_probe_error":{"err":"%s"}', exc)
+
     logger.info('"white_loading":{"url":"%s"}', page_url)
     try:
         if own_session:
             async with session as s:
-                page = await s.fetch(
+                resp = await s.fetch(
                     page_url,
                     page_setup=_setup_page,
+                    page_action=_run_action,
                     wait=5000,
                 )
                 result = await _post_process(
-                    page, captured_hls, captured_mp4s, page_url, cdn_headers
+                    resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
                 )
             return result
         else:
-            page = await session.fetch(
+            resp = await session.fetch(
                 page_url,
                 page_setup=_setup_page,
+                page_action=_run_action,
                 wait=5000,
             )
             return await _post_process(
-                page, captured_hls, captured_mp4s, page_url, cdn_headers
+                resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
             )
 
     except Exception as exc:
@@ -240,22 +256,17 @@ async def extract_hls_from_white(
 async def _post_process(
     page, captured_hls: str | None, captured_mp4s: list[str],
     page_url: str, cdn_headers: dict | None,
+    probe_result: dict | None = None,
 ) -> ExtractionResult | None:
     if not captured_hls:
         logger.info('"white_phase3_dom_probe"')
-        try:
-            probe = await page.evaluate(_DOM_PROBE_SCRIPT) or {}
-        except Exception as exc:
-            logger.warning('"white_probe_error":{"err":"%s"}', exc)
-            probe = {}
-
+        probe = probe_result or {}
         for url in probe.get("urls", []):
             if ".m3u8" in url.lower() and not captured_hls:
                 captured_hls = url
                 logger.info('"white_phase3_hls_found":{"url":"%s"}', url[:120])
-            elif ".mp4" in url.lower():
+            elif ".mp4" in url.lower() and url not in captured_mp4s:
                 captured_mp4s.append(url)
-
         probe_downloads: list[str] = probe.get("downloads", [])
     else:
         probe = {}
