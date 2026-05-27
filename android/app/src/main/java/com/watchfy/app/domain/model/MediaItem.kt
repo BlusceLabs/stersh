@@ -37,12 +37,12 @@ data class Season(
 
 data class Episode(
     val id: Int,
-    name: String,
-    overview: String,
-    stillPath: String?,
-    episodeNumber: Int,
-    seasonNumber: Int,
-    voteAverage: Double,
+    val name: String,
+    val overview: String,
+    val stillPath: String?,
+    val episodeNumber: Int,
+    val seasonNumber: Int,
+    val voteAverage: Double,
 )
 
 data class Genre(

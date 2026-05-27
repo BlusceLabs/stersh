@@ -43,7 +43,7 @@ fun MovieCard(
             AsyncImage(
                 model = "https://image.tmdb.org/t/p/w342${movie.posterPath}",
                 contentDescription = movie.title,
-                contentScale = ContentScale.Cover,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
 

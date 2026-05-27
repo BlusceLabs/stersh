@@ -15,17 +15,25 @@ interface WatchfyApi {
         @Query("page") page: Int = 1
     ): TmdbResponse<MovieDto>
 
-    @GET("/api/tmdb/{type}/popular")
-    suspend fun getPopular(
-        @Path("type") type: String,
+    @GET("/api/tmdb/movie/popular")
+    suspend fun getMoviePopular(
         @Query("page") page: Int = 1
     ): TmdbResponse<MovieDto>
 
-    @GET("/api/tmdb/{type}/top_rated")
-    suspend fun getTopRated(
-        @Path("type") type: String,
+    @GET("/api/tmdb/movie/top_rated")
+    suspend fun getMovieTopRated(
         @Query("page") page: Int = 1
     ): TmdbResponse<MovieDto>
+
+    @GET("/api/tmdb/tv/popular")
+    suspend fun getTvPopular(
+        @Query("page") page: Int = 1
+    ): TmdbResponse<TvDto>
+
+    @GET("/api/tmdb/tv/top_rated")
+    suspend fun getTvTopRated(
+        @Query("page") page: Int = 1
+    ): TmdbResponse<TvDto>
 
     @GET("/api/tmdb/movie/now_playing")
     suspend fun getNowPlaying(@Query("page") page: Int = 1): TmdbResponse<MovieDto>

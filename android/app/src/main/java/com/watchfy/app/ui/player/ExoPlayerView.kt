@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -24,13 +25,14 @@ fun ExoPlayerView(
     onPrev: (() -> Unit)? = null,
 ) {
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         player?.seekTo(startTime)
     }
 
     DisposableEffect(hlsUrl) {
-        val exoPlayer = ExoPlayer.Builder(androidx.compose.ui.platform.LocalContext.current)
+        val exoPlayer = ExoPlayer.Builder(context)
             .build()
             .apply {
                 val uri = Uri.parse(hlsUrl)
@@ -54,7 +56,6 @@ fun ExoPlayerView(
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
-                        // Could surface error to UI
                     }
                 })
             }
@@ -67,7 +68,6 @@ fun ExoPlayerView(
         }
     }
 
-    // Progress reporting every 15s
     LaunchedEffect(player) {
         if (player == null) return@LaunchedEffect
         while (true) {
@@ -81,9 +81,9 @@ fun ExoPlayerView(
 
     AndroidView(
         modifier = modifier.aspectRatio(16f / 9f),
-        factory = { context ->
+        factory = {
             PlayerView(context).apply {
-                player = this@ExoPlayerView.player
+                player = player
                 useController = true
                 setShowNextButton(onNext != null)
                 setShowPreviousButton(onPrev != null)

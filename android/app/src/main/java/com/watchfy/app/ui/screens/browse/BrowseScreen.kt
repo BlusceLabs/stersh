@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -73,7 +74,7 @@ fun BrowseScreen(
                                         coil.compose.AsyncImage(
                                             model = "https://image.tmdb.org/t/p/w342${item.posterPath}",
                                             contentDescription = null,
-                                            contentScale = androidx.compose.ui.layout.ContentScale.Cover,
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
                                         )
                                     }

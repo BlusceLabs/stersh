@@ -13,11 +13,11 @@ class TmdbRepository @Inject constructor(
     suspend fun getTrending(time: String = "week", page: Int = 1): List<Movie> =
         api.getTrending("movie", time, page).results.map { it.toMovie() }
 
-    suspend fun getPopularMovies(page: Int = 1): List<Movie> =
-        api.getPopular("movie", page).results.map { it.toMovie() }
+suspend fun getPopularMovies(page: Int = 1): List<Movie> =
+         api.getMoviePopular(page).results.map { it.toMovie() }
 
     suspend fun getTopRatedMovies(page: Int = 1): List<Movie> =
-        api.getTopRated("movie", page).results.map { it.toMovie() }
+         api.getMovieTopRated(page).results.map { it.toMovie() }
 
     suspend fun getNowPlaying(page: Int = 1): List<Movie> =
         api.getNowPlaying(page).results.map { it.toMovie() }
@@ -25,11 +25,11 @@ class TmdbRepository @Inject constructor(
     suspend fun getUpcoming(page: Int = 1): List<Movie> =
         api.getUpcoming(page).results.map { it.toMovie() }
 
-    suspend fun getPopularTv(page: Int = 1): List<TvShow> =
-        api.getPopular("tv", page).results.map { it.toTvShow() }
+suspend fun getPopularTv(page: Int = 1): List<TvShow> =
+         api.getTvPopular(page).results.map { it.toTvShow() }
 
     suspend fun getTopRatedTv(page: Int = 1): List<TvShow> =
-        api.getTopRated("tv", page).results.map { it.toTvShow() }
+         api.getTvTopRated(page).results.map { it.toTvShow() }
 
     suspend fun getAiringToday(page: Int = 1): List<TvShow> =
         api.getAiringToday(page).results.map { it.toTvShow() }

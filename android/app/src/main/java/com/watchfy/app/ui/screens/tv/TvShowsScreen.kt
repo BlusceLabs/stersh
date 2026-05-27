@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.watchfy.app.ui.components.MovieCard
+import com.watchfy.app.domain.model.TvShow
 
 @Composable
 fun TvShowsScreen(
