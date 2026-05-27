@@ -28,6 +28,10 @@ ALLOWED_ONETOONE_HOSTS = frozenset({
     "whisperingauroras.com",
     "111movies.net",
     "www.111movies.net",
+    "tylerfisher55.workers.dev",
+    "old.tylerfisher55.workers.dev",
+    "broad.tylerfisher55.workers.dev",
+    "black.tylerfisher55.workers.dev",
 })
 
 _CDN_HEADERS: dict[str, str] = {
@@ -96,8 +100,12 @@ def _validate_host(url: str) -> None:
         raise HTTPException(status_code=400, detail="Malformed URL")
     if parsed.scheme not in ("http", "https"):
         raise HTTPException(status_code=400, detail="Invalid URL scheme")
-    if parsed.hostname not in ALLOWED_ONETOONE_HOSTS:
-        raise HTTPException(status_code=403, detail=f"Host not allowed: {parsed.hostname}")
+    hostname = parsed.hostname or ""
+    if hostname in ALLOWED_ONETOONE_HOSTS:
+        return
+    if hostname.endswith(".tylerfisher55.workers.dev") or hostname.endswith(".vidking.net"):
+        return
+    raise HTTPException(status_code=403, detail=f"Host not allowed: {hostname}")
 
 
 def _is_stale(ck: str) -> bool:
@@ -309,6 +317,19 @@ async def onetoone_download(
         headers["Content-Length"] = content_length
 
     return StreamingResponse(_stream(), media_type="video/mp4", headers=headers)
+
+
+@router.get("/prewarm")
+async def white_prewarm(
+    tmdbId: int = Query(...),
+    mediaType: str = Query(...),
+    season: int = Query(default=1),
+    episode: int = Query(default=1),
+) -> dict:
+    asyncio.get_event_loop().create_task(
+        _warm_and_cache(tmdbId, mediaType, season, episode)
+    )
+    return {"status": "warming", "server": "white"}
 
 
 async def _warm_and_cache(tmdb_id: int, media_type: str, season: int, episode: int) -> None:
