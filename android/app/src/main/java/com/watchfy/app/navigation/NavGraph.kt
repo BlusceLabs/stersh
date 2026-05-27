@@ -102,6 +102,9 @@ fun NavGraph() {
                     onPlay = { season, episode ->
                         navController.navigate(Screen.Watch.createRoute(type, id, season, episode))
                     },
+                    onNavigateToDetails = { recId ->
+                        navController.navigate(Screen.Details.createRoute(type, recId))
+                    },
                     onBack = { navController.popBackStack() }
                 )
             }

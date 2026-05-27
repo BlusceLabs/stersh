@@ -14,16 +14,26 @@ android {
         applicationId = "com.watchfy.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         buildConfigField("String", "BACKEND_URL", "\"https://api.jabez.co.ke\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("../watchfy-release.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "key0"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

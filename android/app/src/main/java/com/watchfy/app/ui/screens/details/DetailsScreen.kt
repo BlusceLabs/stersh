@@ -31,6 +31,7 @@ fun DetailsScreen(
     mediaType: String,
     tmdbId: Int,
     onPlay: (Int, Int) -> Unit,
+    onNavigateToDetails: (Int) -> Unit,
     onBack: () -> Unit,
     viewModel: DetailsViewModel = hiltViewModel()
 ) {
@@ -94,17 +95,30 @@ fun DetailsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Play button
-                    Button(
-                        onClick = { onPlay(1, 1) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Play", fontWeight = FontWeight.Bold)
-                    }
+// Play button
+                     Button(
+                         onClick = { onPlay(1, 1) },
+                         colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                         modifier = Modifier.fillMaxWidth().height(48.dp),
+                         shape = RoundedCornerShape(12.dp)
+                     ) {
+                         Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
+                         Spacer(modifier = Modifier.width(8.dp))
+                         Text("Play", fontWeight = FontWeight.Bold)
+                     }
+
+                     // Trailer button
+                     if (state.trailerKey != null) {
+                         Spacer(modifier = Modifier.height(8.dp))
+                         OutlinedButton(
+                             onClick = { /* open YouTube */ },
+                             modifier = Modifier.fillMaxWidth().height(44.dp),
+                             shape = RoundedCornerShape(12.dp),
+                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                         ) {
+                             Text("▶ Trailer", fontWeight = FontWeight.SemiBold)
+                         }
+                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -158,10 +172,10 @@ fun DetailsScreen(
                         Text("Recommendations", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         Spacer(modifier = Modifier.height(8.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(state.recommendations) { rec ->
-                                Column(
-                                    modifier = Modifier.width(120.dp).clickable { /* navigate */ }
-                                ) {
+items(state.recommendations) { rec ->
+                             Column(
+                                 modifier = Modifier.width(120.dp).clickable { onNavigateToDetails(rec.id) }
+                             ) {
                                     AsyncImage(
                                         model = "https://image.tmdb.org/t/p/w342${rec.posterPath}",
                                         contentDescription = null,
