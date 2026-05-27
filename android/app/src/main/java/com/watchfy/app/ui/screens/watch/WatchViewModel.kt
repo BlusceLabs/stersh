@@ -45,7 +45,7 @@ class WatchViewModel @Inject constructor(
             try {
                 val result = sourceRepository.getSource(tmdbId, mediaType, season, episode)
                 result.onSuccess { source ->
-                    _state.update { it.copy(hlsUrl = source.masterUrl, loading = false) }
+                    _state.update { it.copy(hlsUrl = source.url, loading = false) }
                 }.onFailure { e ->
                     _state.update { it.copy(loading = false, error = e.message ?: "Stream unavailable") }
                 }

@@ -14,9 +14,11 @@ class SourceRepository @Inject constructor(
         val response = api.getSource(tmdbId, mediaType, season, episode)
         val masterUrl = response.masterUrl ?: response.sources?.firstOrNull()?.url
             ?: throw IllegalStateException("No stream source available")
+        val proxyUrl = "/api/white/proxy/hls?url=${java.net.URLEncoder.encode(masterUrl, "UTF-8")}"
         SourceResult(
             masterUrl = masterUrl,
-            proxyUrl = "/api/white/proxy/hls?url=${java.net.URLEncoder.encode(masterUrl, "UTF-8")}"
+            proxyUrl = proxyUrl,
+            url = proxyUrl
         )
     }
 
@@ -28,4 +30,5 @@ class SourceRepository @Inject constructor(
 data class SourceResult(
     val masterUrl: String,
     val proxyUrl: String,
+    val url: String,
 )
