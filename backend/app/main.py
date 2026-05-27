@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import platform
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -153,24 +154,34 @@ async def ready() -> JSONResponse:
     return JSONResponse({"status": "ready"}, status_code=200)
 
 
-# ── Static frontend (SPA catch-all) ───────────────────────────────────────────
-
-if _FRONTEND.exists() and (_FRONTEND / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(_FRONTEND / "assets")), name="assets")
-
+# ── Root health dashboard ─────────────────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)
+async def root_health(request: Request) -> JSONResponse:
+    return JSONResponse({
+        "service": "Watchfy Streaming Service",
+        "version": "2.1.0",
+        "status": "ok",
+        "uptime_s": round(time.time() - _STARTUP_TIME, 1),
+        "server_time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "hostname": platform.node(),
+        "python": platform.python_version(),
+        "endpoints": {
+            "health": "/api/health",
+            "docs": "/api/docs",
+            "redoc": "/api/redoc",
+            "tmdb": "/api/tmdb/...",
+            "proxy": "/api/proxy/...",
+            "extract": "/api/white/...",
+        },
+    })
+
+
 @app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa(full_path: str = "") -> FileResponse:
+async def catch_all(full_path: str = "") -> JSONResponse:
     if full_path.startswith("api/"):
         raise HTTPException(status_code=404, detail="API route not found")
-
-    target = _INDEX if _INDEX.exists() else Path(__file__).parent.parent / "index.html"
-
-    if not target.exists():
-        raise HTTPException(status_code=503, detail="Frontend not built")
-
-    return FileResponse(
-        str(target),
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    return JSONResponse(
+        {"error": "not_found", "detail": f"Unknown path: /{full_path}"},
+        status_code=404,
     )
