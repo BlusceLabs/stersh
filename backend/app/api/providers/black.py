@@ -81,7 +81,7 @@ async def _get_black_browser():
     global _black_browser, _black_playwright
     async with _black_browser_lock:
         if _black_browser is None or not _black_browser.is_connected():
-            from playwright.async_api import async_playwright
+            from patchright.async_api import async_playwright
             _black_playwright = await async_playwright().start()
             _black_browser = await _black_playwright.chromium.launch(
                 headless=True,

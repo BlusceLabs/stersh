@@ -59,14 +59,16 @@ if [[ -f "backend/requirements.txt" ]]; then
 else
     pip install --quiet -r requirements.txt
 fi
+# Install curl_cffi (needed by scrapling, not always pulled automatically)
+pip install --quiet curl_cffi 2>/dev/null || true
 ok "Python dependencies installed"
 
-# ── Install Playwright browser ────────────────────────────────────────────────
-log "Installing Playwright Chromium browser…"
-if ! playwright install chromium 2>&1 | tail -5; then
-    warn "Playwright install may need manual intervention - run manually if needed"
+# ── Install Patchright (Playwright fork) browser ────────────────────────────
+log "Installing Chromium browser for patchright/scrapling…"
+if ! python3 -m patchright install chromium 2>&1 | tail -5; then
+    warn "Patchright install may need manual intervention - run manually if needed"
 fi
-ok "Playwright Chromium ready (if no errors above)"
+ok "Chromium ready for scrapling Cloudflare bypass"
 
 # ── Check ffmpeg ──────────────────────────────────────────────────────────────
 if command -v ffmpeg &>/dev/null; then

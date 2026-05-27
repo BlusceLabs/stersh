@@ -241,7 +241,7 @@ async def extract_hls_from_vidking(
     Returns:
         ExtractionResult with sorted quality variants, or None on failure.
     """
-    from playwright.async_api import async_playwright
+    from patchright.async_api import async_playwright
 
     embed_url = _build_embed_url(tmdb_id, media_type, season, episode)
 

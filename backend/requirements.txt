@@ -11,8 +11,10 @@ python-multipart==0.0.12
 httpx[http2]==0.27.2
 
 # ── Browser automation ───────────────────────────────────────
-playwright==1.48.0
-# After install, run: playwright install chromium --with-deps
+patchright>=1.60.0
+# After install, run: python3 -m patchright install chromium
+# scrapling uses patchright under the hood for Cloudflare bypass
+scrapling>=0.4.8
 
 # ── Cache ────────────────────────────────────────────────────
 cachetools==5.5.0

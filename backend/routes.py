@@ -268,7 +268,7 @@ async def _get_browser():
     global _playwright_instance, _playwright_browser
     async with _playwright_lock:
         if _playwright_browser is None or not _playwright_browser.is_connected():
-            from playwright.async_api import async_playwright
+            from patchright.async_api import async_playwright
             _playwright_instance = await async_playwright().start()
             _playwright_browser = await _playwright_instance.chromium.launch(
                 headless=True,
