@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Search Catalog | Watchfy">
-  <main class="min-h-screen bg-[#09090b] text-zinc-100 pt-24 pb-20 select-none relative overflow-hidden">
+  <main class="min-h-screen bg-[#09090b] text-zinc-100 pt-24 pb-24 select-none relative overflow-hidden">
     
     <div class="absolute top-0 right-1/4 w-[600px] h-[300px] bg-indigo-900/5 rounded-full blur-[140px] pointer-events-none z-0"></div>
 
@@ -262,6 +262,7 @@ import Layout from '../layouts/Layout.astro';
     const genreFilter = document.getElementById('genre-filter') as HTMLSelectElement;
     const prevBtn = document.getElementById('prev-page');
     const nextBtn = document.getElementById('next-page');
+    const resultsGrid = document.getElementById('results-grid');
     
     Promise.all([
       tmdbApi.genres('movie'),
@@ -286,8 +287,22 @@ import Layout from '../layouts/Layout.astro';
       executeLibrarySearch(initialQuery);
     }
     
+    // Debounced live search
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    input?.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const val = input.value.trim();
+      debounceTimer = setTimeout(() => {
+        if (val) {
+          history.replaceState(null, '', `/search?q=${encodeURIComponent(val)}`);
+          executeLibrarySearch(val);
+        }
+      }, 350);
+    });
+
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
+      clearTimeout(debounceTimer);
       const currentQuery = input.value.trim();
       if (currentQuery) {
         history.pushState(null, '', `/search?q=${encodeURIComponent(currentQuery)}`);
@@ -314,6 +329,37 @@ import Layout from '../layouts/Layout.astro';
     nextBtn?.addEventListener('click', () => {
       if (currentPage < totalPages) executeLibrarySearch(currentQuery, currentPage + 1);
     });
+
+    // Keyboard navigation in results
+    let focusedIndex = -1;
+    input?.addEventListener('keydown', (e) => {
+      if (!resultsGrid) return;
+      const cards = resultsGrid.querySelectorAll<HTMLAnchorElement>('a');
+      if (cards.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        focusedIndex = Math.min(focusedIndex + 1, cards.length - 1);
+        cards[focusedIndex]?.focus();
+        cards[focusedIndex]?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        focusedIndex = Math.max(focusedIndex - 1, 0);
+        cards[focusedIndex]?.focus();
+        cards[focusedIndex]?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        focusedIndex = -1;
+        input?.focus();
+      }
+    });
+
+    // Reset focus index when results change
+    const origExecute = executeLibrarySearch;
+    executeLibrarySearch = function(...args) {
+      focusedIndex = -1;
+      return origExecute.apply(this, args);
+    };
   });
 </script>
 

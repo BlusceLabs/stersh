@@ -16,6 +16,7 @@
     server?: string;
     onNext?: () => void;
     onPrev?: () => void;
+    onProgress?: (data: { currentTime: number; duration: number }) => void;
   } = $props();
 
   // Elements & Instances
@@ -60,6 +61,29 @@
   let seekPos = $state(0);
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Auto-advance countdown state
+  let countdown = $state(0);
+  let countdownTimer: ReturnType<typeof setInterval> | null = null;
+
+  function startCountdown(seconds: number = 10) {
+    countdown = seconds;
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      countdown -= 1;
+      if (countdown <= 0) {
+        if (countdownTimer) clearInterval(countdownTimer);
+        countdownTimer = null;
+        if (onNext) onNext();
+      }
+    }, 1000);
+  }
+
+  function cancelCountdown() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = null;
+    countdown = 0;
+  }
+
   // Playback Rate Options
   const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -76,6 +100,7 @@
   // Core Playback Controls
   function togglePlay() {
     if (!videoEl) return;
+    if (countdown > 0) { cancelCountdown(); }
     if (videoEl.paused) {
       videoEl.play().catch(() => {});
     } else {
@@ -220,7 +245,10 @@
     const onPlay = () => { playing = true; ended = false; showControlsTemp(); };
     const onPause = () => { playing = false; showControls = true; };
     const onVol = () => { volume = v.volume; muted = v.muted; };
-    const onEnd = () => { ended = true; playing = false; showControls = true; };
+    const onEnd = () => {
+      ended = true; playing = false; showControls = true;
+      if (onNext) startCountdown(10);
+    };
     const onFullscreenChange = () => { isFullscreen = !!document.fullscreenElement; };
     const onEnterPiP = () => isPiP = true;
     const onLeavePiP = () => isPiP = false;
@@ -261,7 +289,17 @@
     document.addEventListener('keydown', handleKeydown);
     window.addEventListener('mouseup', handleGlobalMouseUp);
 
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
+    if (onProgress) {
+      progressInterval = setInterval(() => {
+        if (v.duration > 0) {
+          onProgress({ currentTime: v.currentTime, duration: v.duration });
+        }
+      }, 15000);
+    }
+
     return () => {
+      if (progressInterval) clearInterval(progressInterval);
       v.removeEventListener('timeupdate', onTime);
       v.removeEventListener('loadedmetadata', onMeta);
       v.removeEventListener('play', onPlay);
@@ -397,17 +435,38 @@
 
     {#if !playing && !loading && !error}
       <div class="absolute inset-0 flex items-center justify-center z-10 bg-black/10 backdrop-blur-[1px] cursor-pointer" onclick={togglePlay}>
-        <button class="w-16 h-16 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center backdrop-blur-xl shadow-2xl text-white transition-all scale-100 hover:scale-105 active:scale-95 duration-300">
-          {#if ended}
+        {#if ended && onNext && countdown > 0}
+          <div class="flex flex-col items-center gap-4" onclick={(e) => e.stopPropagation()}>
+            <div class="flex flex-col items-center gap-2">
+              <p class="text-sm text-zinc-300 font-medium tracking-wide">Up Next</p>
+              <p class="text-[56px] font-bold text-white tabular-nums leading-none">{countdown}</p>
+              <p class="text-xs text-zinc-500">starting in...</p>
+            </div>
+            <div class="flex gap-3">
+              <button onclick={togglePlay} class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-semibold text-white transition-colors active:scale-95">
+                <svg class="inline-block -mt-0.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" color="currentColor" fill="none">
+                  <path d="M6.5 5.5L18.5 12L6.5 18.5V5.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
+                </svg>
+                Replay
+              </button>
+              <button onclick={cancelCountdown} class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-semibold text-white transition-colors active:scale-95">
+                Cancel
+              </button>
+            </div>
+          </div>
+        {:else if ended}
+          <button class="w-16 h-16 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center backdrop-blur-xl shadow-2xl text-white transition-all scale-100 hover:scale-105 active:scale-95 duration-300">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none">
               <path d="M19 12H5M5 12L10 7M5 12L10 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          {:else}
+          </button>
+        {:else}
+          <button class="w-16 h-16 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center backdrop-blur-xl shadow-2xl text-white transition-all scale-100 hover:scale-105 active:scale-95 duration-300">
             <svg class="translate-x-[1px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none">
               <path d="M6.5 5.5L18.5 12L6.5 18.5V5.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
             </svg>
-          {/if}
-        </button>
+          </button>
+        {/if}
       </div>
     {/if}
 

@@ -342,6 +342,49 @@ async def onetoone_download(
     return StreamingResponse(_stream(), media_type="video/mp4", headers=headers)
 
 
+@router.get("/prewarm/popular")
+async def white_prewarm_popular(
+    limit: int = Query(default=10, ge=1, le=50),
+) -> dict:
+    """Prewarm extraction cache for popular movies and TV shows from TMDB."""
+    api_key = os.environ.get("TMDB_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="TMDB_API_KEY not configured")
+
+    client = await _get_client()
+
+    async def fetch_popular(media_type: str) -> list[dict]:
+        url = f"https://api.themoviedb.org/3/{media_type}/popular"
+        resp = await client.get(url, params={"api_key": api_key, "language": "en-US", "page": 1})
+        if resp.is_success:
+            return (resp.json().get("results") or [])[:limit]
+        return []
+
+    movies, tv_shows = await asyncio.gather(
+        fetch_popular("movie"),
+        fetch_popular("tv"),
+    )
+
+    count = 0
+    for item in movies:
+        tmdb_id = item["id"]
+        asyncio.get_event_loop().create_task(_warm_and_cache(tmdb_id, "movie", 1, 1))
+        count += 1
+
+    for item in tv_shows:
+        tmdb_id = item["id"]
+        asyncio.get_event_loop().create_task(_warm_and_cache(tmdb_id, "tv", 1, 1))
+        count += 1
+
+    return {
+        "status": "warming",
+        "server": "white",
+        "movies": len(movies),
+        "tv_shows": len(tv_shows),
+        "total": count,
+    }
+
+
 @router.get("/prewarm")
 async def white_prewarm(
     tmdbId: int = Query(...),

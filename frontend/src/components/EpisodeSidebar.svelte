@@ -9,6 +9,8 @@
     onEpisodeClick = (_ep: number) => {},
   } = $props();
 
+  let scrollContainer: HTMLDivElement;
+
   function tmdbImg(path: string, size: string = 'w185'): string {
     if (!path) return '';
     return `https://image.tmdb.org/t/p/${size}${path}`;
@@ -27,6 +29,14 @@
   $effect(() => {
     if (selected !== selectedSeason) {
       onSeasonChange(selected);
+    }
+  });
+
+  $effect(() => {
+    if (!scrollContainer || episodes.length === 0) return;
+    const currentEl = scrollContainer.querySelector<HTMLButtonElement>('[data-current="true"]');
+    if (currentEl) {
+      currentEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   });
 </script>
@@ -64,13 +74,14 @@
     </div>
   </div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar divide-y divide-white/[0.04] p-1.5 space-y-0.5">
+  <div bind:this={scrollContainer} class="flex-1 overflow-y-auto no-scrollbar divide-y divide-white/[0.04] p-1.5 space-y-0.5">
     {#if episodes.length > 0}
       {#each episodes as ep, index (ep.episode_number)}
         {@const isCurrent = ep.episode_number === currentEpisode.episode && selectedSeason === currentEpisode.season}
         
         <button
           onclick={() => onEpisodeClick(ep.episode_number)}
+          data-current={isCurrent ? 'true' : undefined}
           class="w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left relative group
             {isCurrent ? 'bg-white/10' : 'hover:bg-white/5'}"
         >

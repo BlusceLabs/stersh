@@ -17,6 +17,7 @@
   );
   let totalEpisodes = $derived(currentSeasonData?.episode_count ?? 0);
   let hasNextEpisode = $derived(mediaType === 'tv' && showDetails && episode < totalEpisodes);
+  let hasPrevEpisode = $derived(mediaType === 'tv' && showDetails && (episode > 1 || findPrevSeason() !== null));
   let streamUrl = $derived(api.getStreamSource(Number(id), mediaType, season, episode, server));
   let title = $derived(showDetails?.name || showDetails?.title || 'Now Playing');
   let year = $derived((showDetails?.release_date || '').split('-')[0]);
@@ -38,7 +39,7 @@
     tmdbApi.details(mediaType, Number(id))
       .then((data: any) => {
         showDetails = data;
-        document.title = `${data.name || data.title || 'Stream'} - YouTube`;
+        document.title = `${data.name || data.title || 'Stream'} - Watchfy`;
       })
       .catch(() => {});
 
@@ -67,6 +68,33 @@
     );
   }
 
+  function findPrevSeason() {
+    if (!showDetails?.seasons) return null;
+    const sorted = [...showDetails.seasons]
+      .filter((s: any) => s.season_number > 0 && s.episode_count > 0)
+      .sort((a: any, b: any) => b.season_number - a.season_number);
+    return sorted.find((s: any) => s.season_number < season);
+  }
+
+  function getPrevEpisode() {
+    if (episode > 1) return { season, episode: episode - 1 };
+    const ps = findPrevSeason();
+    if (ps) return { season: ps.season_number, episode: ps.episode_count };
+    return null;
+  }
+
+  function goToPrevEpisode() {
+    const prev = getPrevEpisode();
+    if (!prev) return;
+    season = prev.season;
+    episode = prev.episode;
+    const url = new URL(window.location.href);
+    url.searchParams.set('season', String(season));
+    url.searchParams.set('episode', String(episode));
+    window.history.pushState({}, '', url.toString());
+    document.title = `${title} - Watchfy`;
+  }
+
   function getNextEpisode() {
     if (episode < totalEpisodes) return { season, episode: episode + 1 };
     const ns = findNextSeason();
@@ -85,7 +113,7 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
     window.history.pushState({}, '', url.toString());
-    document.title = `${title} - YouTube`;
+    document.title = `${title} - Watchfy`;
   }
 
   function navigateToEpisode(ep: number) {
@@ -94,7 +122,7 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(ep));
     window.history.pushState({}, '', url.toString());
-    document.title = `${title} - YouTube`;
+    document.title = `${title} - Watchfy`;
   }
 
   function navigateToSeason(s: number) {
@@ -104,8 +132,17 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
     window.history.pushState({}, '', url.toString());
-    document.title = `${title} - YouTube`;
+    document.title = `${title} - Watchfy`;
   }
+
+  let upnextItems: any[] = $state([]);
+
+  $effect(() => {
+    if (mediaType !== 'movie' || !showDetails) return;
+    tmdbApi.recommendations('movie', id)
+      .then((data: any) => { upnextItems = (data.results || []).slice(0, 6); })
+      .catch(() => {});
+  });
 
   // State mimicking YouTube interactive actions
   let likes = $state(4205);
@@ -134,7 +171,30 @@
       
       <div class="lg:col-span-2 space-y-3">
         <div class="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg relative group">
-          <HLSPlayer src={streamUrl} title={title} autoPlay={true} {server} />
+          <HLSPlayer
+            src={streamUrl}
+            title={title}
+            autoPlay={true}
+            {server}
+            onPrev={hasPrevEpisode ? goToPrevEpisode : undefined}
+            onNext={hasNextEpisode ? goToNextEpisode : undefined}
+            onProgress={(data) => {
+              const watchKey = `watchfy:${mediaType}:${id}:${season}:${episode}`;
+              try {
+                localStorage.setItem(watchKey, JSON.stringify({
+                  currentTime: data.currentTime,
+                  duration: data.duration,
+                  timestamp: Date.now(),
+                  title: showDetails?.title || showDetails?.name || title,
+                  poster: showDetails?.poster_path,
+                  mediaType,
+                  tmdbId: id,
+                  season,
+                  episode,
+                }));
+              } catch {}
+            }}
+          />
         </div>
 
         <div>
@@ -227,15 +287,30 @@
         {:else}
           <div class="space-y-3">
             <p class="text-sm font-bold text-white tracking-wide">Up Next</p>
-            <div class="flex gap-2 group cursor-pointer">
-              <div class="w-40 h-24 bg-zinc-800 rounded-lg flex-shrink-0 relative overflow-hidden">
-                <div class="absolute bottom-1 right-1 bg-black/80 px-1 text-[10px] font-bold rounded text-white tracking-widest">1:42:10</div>
-              </div>
-              <div class="flex flex-col min-w-0">
-                <h4 class="text-sm font-bold text-white line-clamp-2 leading-tight">Recommended Related Film Feature</h4>
-                <p class="text-xs text-zinc-400 mt-1 truncate">Watchfy Movies</p>
-                <p class="text-xs text-zinc-500 mt-0.5">1.2M views • 3 days ago</p>
-              </div>
+            <div class="flex flex-col gap-2">
+              {#each upnextItems as item}
+                <a href={`/movie/${item.id}`} class="flex gap-2 group cursor-pointer rounded-lg hover:bg-white/5 p-1 -mx-1 transition-colors">
+                  <div class="w-40 h-24 rounded-lg flex-shrink-0 relative overflow-hidden bg-zinc-800">
+                    {#if item.poster_path}
+                      <img src={tmdbImg(item.poster_path, 'w185')} alt={item.title} class="w-full h-full object-cover" loading="lazy" />
+                    {/if}
+                    <div class="absolute bottom-1 right-1 bg-black/80 px-1 text-[10px] font-bold rounded text-white tracking-widest">
+                      {item.vote_average ? (item.vote_average * 10).toFixed(0) + '%' : '--'}
+                    </div>
+                  </div>
+                  <div class="flex flex-col min-w-0 flex-1">
+                    <h4 class="text-sm font-bold text-white line-clamp-2 leading-tight group-hover:text-zinc-200 transition-colors">
+                      {item.title || item.name}
+                    </h4>
+                    <p class="text-xs text-zinc-400 mt-1 truncate">
+                      {(item.release_date || item.first_air_date || '').split('-')[0] || 'Watchfy'}
+                    </p>
+                    <p class="text-xs text-zinc-500 mt-0.5">
+                      {(item.vote_average * 10).toFixed(0)}% match
+                    </p>
+                  </div>
+                </a>
+              {/each}
             </div>
           </div>
         {/if}
