@@ -8,7 +8,7 @@ import os
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, FastAPI, HTTPException, Query, Request, Response
+from fastapi import APIRouter, FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
 
 from redis_utils import tmdb_cache_get, tmdb_cache_set
@@ -203,24 +203,23 @@ async def get_trending(
     return await _tmdb_get(f"trending/{media_type}/{time_window}", {"language": language})
 
 
-@router.get("/search")
+@router.get("/search/{media_type}")
 async def search(
-    q: str = Query(..., description="Search query"),
-    media_type: str = Query("multi", pattern="^(movie|tv|person|multi)$"),
+    media_type: str = Path(pattern="^(movie|tv|person|multi)$"),
+    query: str = Query(..., description="Search query", alias="query"),
     page: int = Query(1, ge=1, le=500),
     year: int | None = Query(None),
     language: str = Query("en-US"),
 ) -> Any:
     """Search for movies, TV shows, or people."""
     params: dict[str, Any] = {
-        "query":         q,
+        "query":         query,
         "page":          page,
         "language":      language,
         "include_adult": False,
     }
     if year:
         params["year"] = year
-    # TMDB endpoint mirrors media_type: search/movie, search/tv, search/multi …
     return await _tmdb_get(f"search/{media_type}", params)
 
 
