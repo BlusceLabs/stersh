@@ -32,6 +32,8 @@
   let hlsUrl = $state('');
   let loading = $state(true);
   let error = $state('');
+  let fetchKey = $state(0);
+  const MAX_RETRIES = 3;
   let playing = $state(false);
   let ended = $state(false);
   let currentTime = $state(0);
@@ -346,7 +348,16 @@
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) error = 'Stream connection interrupted. Attempting recover...';
+        if (data.fatal) {
+          const code = data.response?.code;
+          if ((code === 404 || code === 410) && hlsRetries < MAX_RETRIES && src) {
+            hlsRetries++;
+            hlsUrl = '';
+            fetchKey++;
+            return;
+          }
+          error = 'Stream connection interrupted. Attempting recover...';
+        }
       });
 
       hlsInstance = hls;
@@ -358,9 +369,14 @@
     }
   });
 
-  // Stream Endpoint Ingestion Layer
+  // Stream Endpoint Ingestion Layer (re-triggers on src change or retry via fetchKey)
+  let prevSrc = $state('');
   $effect(() => {
-    if (!src) { hlsUrl = ''; return; }
+    if (src && src !== prevSrc) { prevSrc = src; hlsRetries = 0; }
+  });
+
+  $effect(() => {
+    fetchKey; if (!src) { hlsUrl = ''; return; }
     loading = true; error = ''; hlsUrl = '';
     let cancelled = false;
 
@@ -387,6 +403,7 @@
   let volPct = $derived(muted ? 0 : volume * 100);
   let activeQualityLabel = $derived(currentQualityIndex === -1 ? 'Auto' : qualities.find(q => q.index === currentQualityIndex)?.label || 'Auto');
   let activeCaptionLabel = $derived(currentCaptionIndex === -1 ? 'Off' : captions.find(c => c.index === currentCaptionIndex)?.label || 'Off');
+  let hlsRetries = $state(0);
 </script>
 
 <svelte:window onmousemove={showControlsTemp} />
