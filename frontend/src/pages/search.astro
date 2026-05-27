@@ -1,5 +1,4 @@
 ---
-// src/pages/search.astro
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -10,12 +9,12 @@ import Layout from '../layouts/Layout.astro';
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       
-      <header class="mb-10">
+      <header class="mb-8">
         <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tighter mb-2">Search Library</h1>
-        <p class="text-xs sm:text-sm text-zinc-500 font-medium">Discover instant metadata profiles for thousands of movies and television titles.</p>
+        <p class="text-xs sm:text-sm text-zinc-500 font-medium">Discover movies and TV shows by title, genre, or year.</p>
       </header>
       
-      <form id="search-form" class="max-w-3xl mb-12 group">
+      <form id="search-form" class="max-w-3xl mb-6 group">
         <div class="relative">
           <input
             type="text"
@@ -40,6 +39,25 @@ import Layout from '../layouts/Layout.astro';
           </button>
         </div>
       </form>
+
+      <div id="filter-bar" class="hidden flex flex-wrap items-center gap-3 mb-8 max-w-3xl">
+        <select id="type-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
+          <option value="multi">All Types</option>
+          <option value="movie">Movies</option>
+          <option value="tv">TV Shows</option>
+        </select>
+        <select id="genre-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
+          <option value="">All Genres</option>
+        </select>
+        <input
+          type="number"
+          id="year-filter"
+          placeholder="Year"
+          min="1900"
+          max="2030"
+          class="w-24 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 placeholder-zinc-500"
+        />
+      </form>
       
       <div id="search-skeleton" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 animate-pulse">
         {Array.from({ length: 6 }).map(() => (
@@ -61,6 +79,11 @@ import Layout from '../layouts/Layout.astro';
         </h2>
         <div id="results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
           </div>
+        <div id="pagination" class="hidden flex items-center justify-center gap-4 mt-10">
+          <button id="prev-page" class="px-4 py-2 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold rounded-xl hover:bg-zinc-800/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">Previous</button>
+          <span id="page-info" class="text-xs text-zinc-500 font-medium"></span>
+          <button id="next-page" class="px-4 py-2 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold rounded-xl hover:bg-zinc-800/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">Next</button>
+        </div>
       </section>
       
       <div id="status-card" class="py-20 text-center bg-zinc-900/10 border border-zinc-800/20 rounded-2xl p-8 backdrop-blur-sm max-w-md mx-auto">
@@ -81,13 +104,10 @@ import Layout from '../layouts/Layout.astro';
 <script>
   import { tmdbApi } from '../lib/api';
 
-  /**
-   * Generates dynamic media cards aligned with Watchfy's visual layout tokens.
-   * Leverages the multi-search payload context signature directly.
-   */
-  const constructResultCard = (item) => {
+  let genreMap: Record<string, { id: number; name: string }[]> = {};
+
+  const constructResultCard = (item: any) => {
     const id = item.id;
-    // Explicit Fallback safe routing parameters
     const explicitType = item.media_type === 'tv' ? 'tv' : 'movie';
     const title = item.title || item.name || 'Untitled Feature';
     const year = (item.release_date || item.first_air_date || '').split('-')[0] || '—';
@@ -134,72 +154,130 @@ import Layout from '../layouts/Layout.astro';
     return anchorNode;
   };
 
-  /**
-   * Search Execution Query Handler Stage
-   */
-  const executeLibrarySearch = async (query: string) => {
+  let currentPage = 1;
+  let totalPages = 1;
+  let currentQuery = '';
+
+  const executeLibrarySearch = async (query: string, page: number = 1) => {
     const resultsBlock = document.getElementById('search-results');
     const skeletonGrid = document.getElementById('search-skeleton');
     const statusCard = document.getElementById('status-card');
     const statusText = document.getElementById('status-text');
     const resultsGrid = document.getElementById('results-grid');
     const headline = document.getElementById('results-headline');
+    const pagination = document.getElementById('pagination');
+    const pageInfo = document.getElementById('page-info');
+    const prevBtn = document.getElementById('prev-page') as HTMLButtonElement;
+    const nextBtn = document.getElementById('next-page') as HTMLButtonElement;
+    const filterBar = document.getElementById('filter-bar');
     
+    currentQuery = query;
+    currentPage = page;
+
     if (!query.trim()) {
       resultsBlock?.classList.add('hidden');
       skeletonGrid?.classList.add('hidden');
+      filterBar?.classList.add('hidden');
+      pagination?.classList.add('hidden');
       statusCard?.classList.remove('hidden');
       if (statusText) statusText.innerText = "Enter a search query above to discover movies and television features.";
       return;
     }
     
-    // Set Visual Loading State Environments
+    filterBar?.classList.remove('hidden');
     statusCard?.classList.add('hidden');
     resultsBlock?.classList.add('hidden');
     skeletonGrid?.classList.remove('hidden');
+    pagination?.classList.add('hidden');
     
     if (!resultsGrid) return;
     resultsGrid.innerHTML = '';
     
     try {
-      const response = await tmdbApi.search(query);
-      // Filter out raw person cards or empty assets from results array
-      const hits = (response?.results || []).filter((item: any) => item.media_type !== 'person' && (item.poster_path || item.backdrop_path));
+      const typeFilter = (document.getElementById('type-filter') as HTMLSelectElement)?.value || 'multi';
+      const genreFilter = (document.getElementById('genre-filter') as HTMLSelectElement)?.value || '';
+      const yearFilter = (document.getElementById('year-filter') as HTMLInputElement)?.value || '';
+      
+      let response;
+      if (genreFilter || yearFilter) {
+        const searchType = typeFilter === 'multi' ? 'movie' : typeFilter;
+        response = await tmdbApi.search(query, searchType as any, page);
+      } else {
+        response = await tmdbApi.search(query, typeFilter as any, page);
+      }
+      
+      let hits = (response?.results || []).filter((item: any) => item.media_type !== 'person' && (item.poster_path || item.backdrop_path));
+      
+      if (genreFilter) {
+        const genreId = parseInt(genreFilter);
+        hits = hits.filter((item: any) => item.genre_ids?.includes(genreId));
+      }
+      if (yearFilter) {
+        const y = parseInt(yearFilter);
+        hits = hits.filter((item: any) => {
+          const year = (item.release_date || item.first_air_date || '').split('-')[0];
+          return year === String(y);
+        });
+      }
+
+      totalPages = Math.min(response?.total_pages || 1, 500);
       
       skeletonGrid.classList.add('hidden');
       
       if (hits.length === 0) {
         statusCard?.classList.remove('hidden');
-        if (statusText) statusText.innerText = `No digital streaming titles found matching the phrase: "${query}"`;
+        if (statusText) statusText.innerText = `No results found for "${query}"`;
         return;
       }
 
       if (headline) headline.innerText = `Results for "${query}"`;
       
-      // Batch element builds into virtual layout tree structures to streamline painting speed
       const docFragment = document.createDocumentFragment();
-      hits.forEach(item => {
+      hits.forEach((item: any) => {
         docFragment.appendChild(constructResultCard(item));
       });
       resultsGrid.appendChild(docFragment);
       
-      // Reveal final results cleanly
       resultsBlock.classList.remove('hidden');
       setTimeout(() => resultsBlock.classList.remove('opacity-0'), 50);
+
+      if (totalPages > 1) {
+        pagination?.classList.remove('hidden');
+        if (pageInfo) pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+        if (prevBtn) prevBtn.disabled = currentPage <= 1;
+        if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+      }
       
     } catch (err) {
-      console.error('Watchfy Search Core pipeline parsing execution fault:', err);
+      console.error('Search error:', err);
       skeletonGrid.classList.add('hidden');
       statusCard?.classList.remove('hidden');
-      if (statusText) statusText.innerHTML = '<span class="text-red-500 font-bold">Network Connection Interrupted</span><br><span class="text-xs text-zinc-500">Failed to pull real-time database queries.</span>';
+      if (statusText) statusText.innerHTML = '<span class="text-red-500 font-bold">Network Error</span><br><span class="text-xs text-zinc-500">Failed to load results.</span>';
     }
   };
 
-  // Setup Global Navigation Listeners
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('search-form') as HTMLFormElement;
     const input = form?.querySelector('input') as HTMLInputElement;
+    const genreFilter = document.getElementById('genre-filter') as HTMLSelectElement;
+    const prevBtn = document.getElementById('prev-page');
+    const nextBtn = document.getElementById('next-page');
     
+    Promise.all([
+      tmdbApi.genres('movie'),
+      tmdbApi.genres('tv'),
+    ]).then(([movieGenres, tvGenres]: any[]) => {
+      const all = new Map<number, string>();
+      (movieGenres.genres || []).forEach((g: any) => all.set(g.id, g.name));
+      (tvGenres.genres || []).forEach((g: any) => all.set(g.id, g.name));
+      for (const [id, name] of all) {
+        const opt = document.createElement('option');
+        opt.value = String(id);
+        opt.textContent = name;
+        genreFilter.appendChild(opt);
+      }
+    }).catch(() => {});
+
     const params = new URLSearchParams(window.location.search);
     const initialQuery = params.get('q');
     
@@ -215,6 +293,26 @@ import Layout from '../layouts/Layout.astro';
         history.pushState(null, '', `/search?q=${encodeURIComponent(currentQuery)}`);
         executeLibrarySearch(currentQuery);
       }
+    });
+
+    genreFilter?.addEventListener('change', () => {
+      if (currentQuery) executeLibrarySearch(currentQuery);
+    });
+
+    document.getElementById('type-filter')?.addEventListener('change', () => {
+      if (currentQuery) executeLibrarySearch(currentQuery);
+    });
+
+    document.getElementById('year-filter')?.addEventListener('input', () => {
+      if (currentQuery) executeLibrarySearch(currentQuery);
+    });
+
+    prevBtn?.addEventListener('click', () => {
+      if (currentPage > 1) executeLibrarySearch(currentQuery, currentPage - 1);
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      if (currentPage < totalPages) executeLibrarySearch(currentQuery, currentPage + 1);
     });
   });
 </script>

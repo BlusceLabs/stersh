@@ -3,9 +3,16 @@ import Navbar from '../components/Navbar.svelte';
 
 interface Props {
   title: string;
+  description?: string;
 }
 
-const { title } = Astro.props;
+const { 
+  title, 
+  description = "Discover, stream, and track your favorite movies and TV shows on Watchfy." 
+} = Astro.props;
+
+// Prevent duplicate branding if the passed title already includes the brand name
+const formattedTitle = title.includes('Watchfy') ? title : `${title} | Watchfy`;
 ---
 
 <!DOCTYPE html>
@@ -13,22 +20,38 @@ const { title } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#09090b" />
+    
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title} | Watchfy</title>
+    <title>{formattedTitle}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
 
-  <body class="bg-[#09090b] text-zinc-100 min-h-screen antialiased selection:bg-red-500/30 selection:text-white overflow-x-hidden">
-
+  <body class="bg-[#09090b] text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-red-500/30 selection:text-white overflow-x-hidden">
+    
     <Navbar client:load />
 
-    <div class="min-h-screen relative w-full">
+    <div class="relative w-full flex-grow">
       <slot />
     </div>
 
-    <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="midknightmantra" data-color="#FFDD00" data-emoji="" data-font="Bree" data-text="" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
+    <script 
+      defer
+      type="text/javascript" 
+      src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" 
+      data-name="bmc-button" 
+      data-slug="midknightmantra" 
+      data-color="#FFDD00" 
+      data-emoji="" 
+      data-font="Bree" 
+      data-text="" 
+      data-outline-color="#000000" 
+      data-font-color="#000000" 
+      data-coffee-color="#ffffff"
+    ></script>
   </body>
 </html>

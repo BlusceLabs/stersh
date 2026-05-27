@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
@@ -165,6 +166,18 @@ class ExtractionResult:
     def to_legacy_list(self) -> list[dict]:
         return [s.to_dict() for s in self.sources] + [s.to_dict() for s in self.downloads]
 
+    def to_dict(self) -> dict:
+        return {
+            "sources": [s.to_dict() for s in self.sources],
+            "downloads": [s.to_dict() for s in self.downloads],
+            "method": self.method,
+            "master_url": self.raw_hls_url or "",
+        }
+
+
+async def close_pooled_session():
+    pass
+
 
 async def extract_hls_from_white(
     tmdb_id: int,
@@ -174,25 +187,14 @@ async def extract_hls_from_white(
     session=None,
     cdn_headers: dict | None = None,
 ) -> ExtractionResult | None:
-    from scrapling.fetchers import AsyncStealthySession
-
     page_url = _build_page_url(tmdb_id, media_type, season, episode)
 
-    own_session = session is None
-    if own_session:
-        session = AsyncStealthySession(
-            headless=True,
-            solve_cloudflare=True,
-            block_ads=True,
-            block_webrtc=True,
-            hide_canvas=True,
-            timeout=120_000,
-            disable_resources=True,
-        )
+    from scrapling.fetchers import AsyncStealthySession
 
     captured_hls: str | None = None
     captured_mp4s: list[str] = []
     probe_result: dict | None = None
+    hls_captured_event = asyncio.Event()
 
     async def _setup_page(page):
         async def _on_response(response):
@@ -201,6 +203,7 @@ async def extract_hls_from_white(
             low = url.lower()
             if ".m3u8" in low and captured_hls is None:
                 captured_hls = url
+                hls_captured_event.set()
                 logger.info('"white_hls_captured":{"url":"%s"}', url[:120])
             elif ".mp4" in low and url not in captured_mp4s:
                 cl = int(response.headers.get("content-length", "0") or "0")
@@ -211,12 +214,13 @@ async def extract_hls_from_white(
 
     async def _run_action(page):
         nonlocal captured_hls, captured_mp4s, probe_result
-        if not captured_hls:
+        if captured_hls is None:
             try:
                 probe_result = await page.evaluate(_DOM_PROBE_SCRIPT) or {}
                 for url in probe_result.get("urls", []):
                     if ".m3u8" in url.lower() and not captured_hls:
                         captured_hls = url
+                        hls_captured_event.set()
                         logger.info('"white_hls_dom_found":{"url":"%s"}', url[:120])
                     elif ".mp4" in url.lower() and url not in captured_mp4s:
                         captured_mp4s.append(url)
@@ -225,28 +229,32 @@ async def extract_hls_from_white(
 
     logger.info('"white_loading":{"url":"%s"}', page_url)
     try:
-        if own_session:
-            async with session as s:
-                resp = await s.fetch(
-                    page_url,
-                    page_setup=_setup_page,
-                    page_action=_run_action,
-                    wait=5000,
-                )
-                result = await _post_process(
-                    resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
-                )
-            return result
-        else:
-            resp = await session.fetch(
+        async with AsyncStealthySession(
+            headless=True,
+            solve_cloudflare=True,
+            block_ads=True,
+            block_webrtc=True,
+            hide_canvas=True,
+            timeout=120_000,
+            disable_resources=True,
+        ) as s:
+            resp = await s.fetch(
                 page_url,
                 page_setup=_setup_page,
                 page_action=_run_action,
-                wait=5000,
+                wait=2500,
             )
-            return await _post_process(
-                resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
-            )
+
+            if captured_hls is None:
+                try:
+                    await asyncio.wait_for(hls_captured_event.wait(), timeout=3.0)
+                except asyncio.TimeoutError:
+                    pass
+
+        result = await _post_process(
+            resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
+        )
+        return result
 
     except Exception as exc:
         logger.error('"white_extraction_error":{"err":"%s"}', exc)
@@ -453,11 +461,11 @@ async def extract_sources_legacy(
     episode: int = 1,
     session=None,
     cdn_headers: dict | None = None,
-) -> list[dict] | None:
+) -> tuple[list[dict] | None, str]:
     result = await extract_hls_from_white(
         tmdb_id, media_type, season, episode, session, cdn_headers
     )
     if result is None:
-        return None
+        return None, ""
     combined = result.to_legacy_list()
-    return combined or None
+    return (combined or None), result.raw_hls_url

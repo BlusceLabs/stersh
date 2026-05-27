@@ -1,27 +1,24 @@
-# Redis utilities for TMDB caching
+import time
 from typing import Any
 
-redis_client = None
-redis_pool = None
+_cache: dict[str, tuple[Any, float]] = {}
+_DEFAULT_TTL = 3600
 
 def tmdb_cache_get(key: str) -> Any | None:
-    """Get cached TMDB response by key."""
-    return None
+    entry = _cache.get(key)
+    if entry is None:
+        return None
+    val, expiry = entry
+    if time.monotonic() > expiry:
+        del _cache[key]
+        return None
+    return val
 
-def tmdb_cache_set(key: str, value: Any, **kwargs: Any) -> None:
-    """Cache TMDB response."""
-    pass
+def tmdb_cache_set(key: str, value: Any, ttl: int | None = None, **kwargs: Any) -> None:
+    _cache[key] = (value, time.monotonic() + (ttl or _DEFAULT_TTL))
 
 def tmdb_cache_delete(key: str) -> None:
-    """Delete cached TMDB response."""
-    pass
+    _cache.pop(key, None)
 
 def cleanup_redis():
-    """Cleanup Redis connection pool."""
-    global redis_client, redis_pool
-    if redis_client is not None:
-        redis_client.close()
-        redis_client = None
-    if redis_pool is not None:
-        redis_pool.disconnect()
-        redis_pool = None
+    _cache.clear()

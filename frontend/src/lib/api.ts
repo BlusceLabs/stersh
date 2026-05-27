@@ -47,16 +47,15 @@ export const tmdbApi = {
   trending: (mediaType: 'movie' | 'tv', timeWindow: 'day' | 'week' = 'day'): Promise<any> => 
     api.get(`/api/tmdb/trending/${mediaType}/${timeWindow}`),
   
-  popular: (mediaType: 'movie' | 'tv'): Promise<any> => 
-    api.get(`/api/tmdb/${mediaType}/popular`),
+  popular: (mediaType: 'movie' | 'tv', page: number = 1): Promise<any> => 
+    api.get(`/api/tmdb/${mediaType}/popular?page=${page}`),
   
-  /**
-   * Dynamically formats search endpoints based on media type mapping
-   */
-  search: (query: string, mediaType: 'multi' | 'movie' | 'tv' = 'multi'): Promise<any> => {
+  topRated: (mediaType: 'movie' | 'tv', page: number = 1): Promise<any> =>
+    api.get(`/api/tmdb/${mediaType}/top_rated?page=${page}`),
+  
+  search: (query: string, mediaType: 'multi' | 'movie' | 'tv' = 'multi', page: number = 1): Promise<any> => {
     const cleanQuery = encodeURIComponent(query.trim());
-    // Directs routing traffic precisely to match standard API formats
-    return api.get(`/api/tmdb/search/${mediaType}?query=${cleanQuery}`);
+    return api.get(`/api/tmdb/search/${mediaType}?query=${cleanQuery}&page=${page}`);
   },
   
   details: (mediaType: 'movie' | 'tv', id: number | string): Promise<any> => 
@@ -64,6 +63,15 @@ export const tmdbApi = {
 
   seasonEpisodes: (id: number | string, season: number): Promise<any> =>
     api.get(`/api/tmdb/tv/${id}/season/${season}`),
+
+  recommendations: (mediaType: 'movie' | 'tv', id: number | string): Promise<any> =>
+    api.get(`/api/tmdb/${mediaType}/${id}/recommendations`),
+
+  similar: (mediaType: 'movie' | 'tv', id: number | string): Promise<any> =>
+    api.get(`/api/tmdb/${mediaType}/${id}/similar`),
+
+  genres: (mediaType: 'movie' | 'tv'): Promise<any> =>
+    api.get(`/api/tmdb/genre/${mediaType}/list`),
 };
 
 /* Unified Structural Type Signatures */

@@ -36,6 +36,7 @@
   let error = $state('');
   let selectedSeason = $state(1);
   let seasonEpisodes: Episode[] = $state([]);
+  let recommendations: any[] = $state([]);
 
   // Derived Values
   let mediaType = $derived(media === 'tv' ? 'tv' : 'movie');
@@ -73,6 +74,9 @@
     tmdbApi.details(mediaType, currentId)
       .then((res: any) => {
         data = res;
+        tmdbApi.recommendations(mediaType, currentId)
+          .then((r: any) => { recommendations = (r.results || []).filter((x: any) => x.poster_path).slice(0, 12); })
+          .catch(() => {});
       })
       .catch(() => {
         error = 'Unable to synchronize title metadata.';
@@ -345,6 +349,35 @@
               <p class="text-xs text-zinc-500 animate-pulse font-medium tracking-wide">Assembling episodic index...</p>
             </div>
           {/if}
+        </div>
+      {/if}
+
+      {#if recommendations.length > 0}
+        <div class="mt-16 border-t border-zinc-900 pt-10">
+          <h2 class="text-xl font-extrabold text-white tracking-tight mb-6">Recommendations</h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-6">
+            {#each recommendations as rec}
+              <a
+                href="/{mediaType}/{rec.id}"
+                class="group/rec block focus:outline-none"
+              >
+                <div class="aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800/40 transition-all duration-300 group-hover/rec:-translate-y-1 group-hover/rec:border-zinc-700/60 group-hover/rec:shadow-xl">
+                  <img
+                    src={rec.poster_path ? `https://image.tmdb.org/t/p/w500${rec.poster_path}` : ''}
+                    alt={rec.title || rec.name}
+                    class="w-full h-full object-cover transition-transform duration-300 group-hover/rec:scale-105"
+                    loading="lazy"
+                  />
+                </div>
+                <p class="text-xs text-zinc-300 group-hover/rec:text-white font-semibold mt-2 line-clamp-1 transition-colors">
+                  {rec.title || rec.name}
+                </p>
+                <p class="text-[10px] text-zinc-500">
+                  {((rec.release_date || rec.first_air_date || '').split('-')[0]) || ''}
+                </p>
+              </a>
+            {/each}
+          </div>
         </div>
       {/if}
     </div>

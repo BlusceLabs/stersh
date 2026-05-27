@@ -45,6 +45,7 @@ _CDN_HEADERS: dict[str, str] = {
 }
 
 _cache: TTLCache[str, list[dict]] = TTLCache(maxsize=400, ttl=_ONETOONE_CACHE_TTL)
+_master_urls: dict[str, str] = {}
 _timestamps: dict[str, float] = {}
 _refreshing: set[str] = set()
 
@@ -130,11 +131,13 @@ async def _extract_coalesced(
 
             async def _run():
                 try:
-                    result = await extract_sources_legacy(
+                    sources, master_url = await extract_sources_legacy(
                         tmdb_id, media_type, season, episode,
                         cdn_headers=_CDN_HEADERS,
                     )
-                    fut.set_result(result)
+                    if master_url:
+                        _master_urls[ck] = master_url
+                    fut.set_result(sources)
                 except Exception as exc:
                     fut.set_exception(exc)
                 finally:
@@ -175,7 +178,7 @@ async def onetoone_source(
                 asyncio.get_event_loop().create_task(
                     _bg_refresh(ck, tmdbId, mediaType, season, episode)
                 )
-            return {"sources": cached, "cached": True, "stale": stale, "server": "white"}
+            return {"sources": cached, "cached": True, "stale": stale, "server": "white", "master_url": _master_urls.get(ck, "")}
 
     try:
         sources = await asyncio.wait_for(
@@ -185,14 +188,14 @@ async def onetoone_source(
     except asyncio.TimeoutError:
         stale = _cache.get(ck)
         if stale:
-            return {"sources": stale, "cached": True, "stale": True, "server": "white"}
+            return {"sources": stale, "cached": True, "stale": True, "server": "white", "master_url": _master_urls.get(ck, "")}
         raise HTTPException(status_code=504, detail="Refresh timed out")
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Refresh failed: {exc}")
     if sources:
         _cache[ck] = sources
         _timestamps[ck] = time.monotonic()
-    return {"sources": sources or [], "refreshed": True, "server": "white"}
+    return {"sources": sources or [], "refreshed": True, "server": "white", "master_url": _master_urls.get(ck, "")}
 
 
 @router.get("/proxy/hls")

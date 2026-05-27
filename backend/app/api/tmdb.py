@@ -131,6 +131,78 @@ async def get_tv_show(
     return await _tmdb_get(f"tv/{tmdb_id}", {"language": language})
 
 
+@router.get("/{media_type}/{tmdb_id:int}/recommendations")
+async def get_recommendations(
+    media_type: str,
+    tmdb_id: int,
+    page: int = Query(1, ge=1, le=500),
+    language: str = Query("en-US"),
+) -> Any:
+    """Recommended content for a movie or TV show."""
+    if media_type not in ("movie", "tv"):
+        raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+    return await _tmdb_get(f"{media_type}/{tmdb_id}/recommendations", {
+        "language": language, "page": page
+    })
+
+
+@router.get("/{media_type}/{tmdb_id:int}/similar")
+async def get_similar(
+    media_type: str,
+    tmdb_id: int,
+    page: int = Query(1, ge=1, le=500),
+    language: str = Query("en-US"),
+) -> Any:
+    """Similar content for a movie or TV show."""
+    if media_type not in ("movie", "tv"):
+        raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+    return await _tmdb_get(f"{media_type}/{tmdb_id}/similar", {
+        "language": language, "page": page
+    })
+
+
+@router.get("/{media_type}/popular")
+async def get_popular(
+    media_type: str,
+    page: int = Query(1, ge=1, le=500),
+    language: str = Query("en-US"),
+    region: str | None = Query(None),
+) -> Any:
+    """Popular movies or TV shows with optional genre filter via catch-all."""
+    if media_type not in ("movie", "tv"):
+        raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+    params: dict[str, Any] = {"language": language, "page": page}
+    if region:
+        params["region"] = region
+    return await _tmdb_get(f"{media_type}/popular", params)
+
+
+@router.get("/{media_type}/top_rated")
+async def get_top_rated(
+    media_type: str,
+    page: int = Query(1, ge=1, le=500),
+    language: str = Query("en-US"),
+) -> Any:
+    """Top rated movies or TV shows."""
+    if media_type not in ("movie", "tv"):
+        raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+    return await _tmdb_get(f"{media_type}/top_rated", {"language": language, "page": page})
+
+
+@router.get("/{media_type}/trending/{time_window}")
+async def get_trending(
+    media_type: str,
+    time_window: str = "day",
+    language: str = Query("en-US"),
+) -> Any:
+    """Trending movies or TV shows."""
+    if media_type not in ("movie", "tv"):
+        raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+    if time_window not in ("day", "week"):
+        raise HTTPException(status_code=400, detail="time_window must be 'day' or 'week'")
+    return await _tmdb_get(f"trending/{media_type}/{time_window}", {"language": language})
+
+
 @router.get("/search")
 async def search(
     q: str = Query(..., description="Search query"),

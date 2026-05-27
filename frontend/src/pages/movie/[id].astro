@@ -2,11 +2,17 @@
 import Layout from '../../layouts/Layout.astro';
 import DetailsPage from '../../components/DetailsPage.svelte';
 
+// Extract route parameters
 const { id } = Astro.params;
+
+// Fail-safe: Redirect to 404 if the ID parameter is missing
+if (!id) {
+  return Astro.redirect('/404');
+}
 ---
 
-<Layout title="Loading... | Watchfy">
-  <main class="min-h-screen bg-[#0f0f0f] text-[#f1f1f1]">
+<Layout title="Watchfy — Stream Movies & TV Series">
+  <main class="min-h-screen bg-[#0f0f0f] text-[#f1f1f1] selection:bg-red-500/20 selection:text-red-200 antialiased">
     <DetailsPage client:load media="movie" id={id} />
   </main>
 </Layout>

@@ -14,6 +14,15 @@
     return `https://image.tmdb.org/t/p/${size}${path}`;
   }
 
+  function formatDuration(minutes: number | undefined | null): string {
+    if (!minutes) return '';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+  }
+
   let selected = $state(selectedSeason);
   $effect(() => {
     if (selected !== selectedSeason) {
@@ -90,9 +99,11 @@
               </div>
             {/if}
             
-            <div class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-medium px-1 rounded-[2px] tracking-wide">
-              {String(ep.episode_number).padStart(2, '0')}:00
-            </div>
+            {#if ep.runtime}
+              <div class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-medium px-1 rounded-[2px] tracking-wide">
+                {formatDuration(ep.runtime)}
+              </div>
+            {/if}
           </div>
 
           <div class="flex-1 min-w-0 pr-1">

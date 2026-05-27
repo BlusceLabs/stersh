@@ -1,5 +1,4 @@
 ---
-// src/pages/movies.astro
 import Layout from '../layouts/Layout.astro';
 ---
 
@@ -16,7 +15,7 @@ import Layout from '../layouts/Layout.astro';
             Explore Movies
           </h1>
           <p class="text-xs sm:text-sm text-zinc-500 font-medium mt-0.5">
-            Browse through the most popular theatrical feature releases active today.
+            Browse popular movies, filter by genre, or discover top rated titles.
           </p>
         </div>
         
@@ -25,6 +24,23 @@ import Layout from '../layouts/Layout.astro';
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
             Live Catalog
           </span>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 mb-8">
+        <select id="sort-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
+          <option value="popular">Most Popular</option>
+          <option value="top_rated">Top Rated</option>
+          <option value="now_playing">Now Playing</option>
+          <option value="upcoming">Upcoming</option>
+        </select>
+        <select id="genre-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
+          <option value="">All Genres</option>
+        </select>
+        <div class="flex items-center gap-2 ml-auto">
+          <button id="prev-page" class="px-3 py-2 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold rounded-xl hover:bg-zinc-800/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" disabled>Prev</button>
+          <span id="page-info" class="text-xs text-zinc-500 font-medium">Page 1</span>
+          <button id="next-page" class="px-3 py-2 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold rounded-xl hover:bg-zinc-800/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">Next</button>
         </div>
       </div>
 
@@ -55,17 +71,12 @@ import Layout from '../layouts/Layout.astro';
 <script>
   import { tmdbApi } from '../lib/api';
 
-  /**
-   * Premium DOM Builder function synchronized with Watchfy Core design tokens.
-   * Compiles dynamic API elements matching the application card parallax specs.
-   */
-  const constructMovieCardElement = (movie) => {
+  const constructMovieCardElement = (movie: any) => {
     const id = movie.id;
     const title = movie.title || movie.name || 'Untitled Feature';
     const year = (movie.release_date || '').split('-')[0] || '—';
     const rating = movie.vote_average || 0;
     
-    // Abstract dark placeholder grid token
     const poster = movie.poster_path 
       ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
       : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1470';
@@ -108,38 +119,88 @@ import Layout from '../layouts/Layout.astro';
     return cellAnchor;
   };
 
-  // Execution Lifecycle Loader Hook Loop
-  document.addEventListener('DOMContentLoaded', async () => {
+  let currentPage = 1;
+  let totalPages = 1;
+
+  async function loadMovies() {
     const grid = document.getElementById('movies-grid');
     const skeleton = document.getElementById('grid-skeleton');
+    const prevBtn = document.getElementById('prev-page') as HTMLButtonElement;
+    const nextBtn = document.getElementById('next-page') as HTMLButtonElement;
+    const pageInfo = document.getElementById('page-info');
     if (!grid || !skeleton) return;
-    
+
+    skeleton.classList.remove('hidden');
+    grid.classList.add('opacity-0');
+    grid.innerHTML = '';
+
+    const sort = (document.getElementById('sort-filter') as HTMLSelectElement)?.value || 'popular';
+    const genreId = (document.getElementById('genre-filter') as HTMLSelectElement)?.value || '';
+
     try {
-      const response = await tmdbApi.popular('movie');
-      const movies = response?.results || [];
+      let response;
+      if (sort === 'top_rated') {
+        response = await tmdbApi.topRated('movie', currentPage);
+      } else if (sort === 'now_playing') {
+        response = await tmdbApi.search('', 'movie', currentPage);
+        response = await fetch(`/api/tmdb/movie/now_playing?page=${currentPage}`).then(r => r.json());
+      } else if (sort === 'upcoming') {
+        response = await fetch(`/api/tmdb/movie/upcoming?page=${currentPage}`).then(r => r.json());
+      } else {
+        response = await tmdbApi.popular('movie', currentPage);
+      }
       
-      // Parse layout nodes into fragment tree mapping channels safely
+      let movies = response?.results || [];
+      totalPages = Math.min(response?.total_pages || 1, 500);
+
+      if (genreId) {
+        movies = movies.filter((m: any) => m.genre_ids?.includes(parseInt(genreId)));
+      }
+
       const fragment = document.createDocumentFragment();
-      movies.forEach(item => {
+      movies.forEach((item: any) => {
         fragment.appendChild(constructMovieCardElement(item));
       });
-      
       grid.appendChild(fragment);
       
-      // Swap interface visibilities smoothly without hard layout flickers
       skeleton.classList.add('hidden');
       grid.classList.remove('opacity-0');
+
+      if (pageInfo) pageInfo.innerText = `Page ${currentPage}`;
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
     } catch (e) {
-      console.error('Watchfy Movies Discovery structural pipeline processing exception:', e);
+      console.error('Movies load error:', e);
       skeleton.classList.add('hidden');
       grid.classList.remove('opacity-0');
       grid.innerHTML = `
         <div class="col-span-full py-16 text-center">
-          <p class="text-red-400 font-bold mb-1">Grid Handshake Interrupted</p>
-          <p class="text-zinc-500 text-xs">Failed to load active discover assets from the service node.</p>
+          <p class="text-red-400 font-bold mb-1">Failed to load</p>
+          <p class="text-zinc-500 text-xs">Could not fetch movie catalog.</p>
         </div>
       `;
     }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const genreFilter = document.getElementById('genre-filter') as HTMLSelectElement;
+
+    try {
+      const res = await tmdbApi.genres('movie');
+      (res.genres || []).forEach((g: any) => {
+        const opt = document.createElement('option');
+        opt.value = String(g.id);
+        opt.textContent = g.name;
+        genreFilter.appendChild(opt);
+      });
+    } catch {}
+
+    loadMovies();
+
+    document.getElementById('sort-filter')?.addEventListener('change', () => { currentPage = 1; loadMovies(); });
+    document.getElementById('genre-filter')?.addEventListener('change', () => { currentPage = 1; loadMovies(); });
+    document.getElementById('prev-page')?.addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadMovies(); } });
+    document.getElementById('next-page')?.addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; loadMovies(); } });
   });
 </script>
 

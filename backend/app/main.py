@@ -28,6 +28,7 @@ from app.api.providers.white import (
     shutdown_white_browser,
     shutdown_white_client,
 )
+from app.core.extractors.white import close_pooled_session as close_white_session
 from app.api.proxy import router as proxy_router
 from app.api.ffmpeg_remux import router as ffmpeg_router
 from app.api.tmdb import include_router as include_tmdb_router
@@ -68,6 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         shutdown_black_client(),
         shutdown_white_browser(),
         shutdown_white_client(),
+        close_white_session(),
 
         return_exceptions=True,
     )
