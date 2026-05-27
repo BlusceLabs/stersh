@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import HLSPlayer from './HLSPlayer.svelte';
+  import EpisodeSidebar from './EpisodeSidebar.svelte';
   import { tmdbApi, api } from '../lib/api';
 
   let { media = 'movie', id = '0', server = 'white' } = $props();
@@ -8,23 +9,26 @@
   let season = $state(1);
   let episode = $state(1);
   let showDetails: any = $state(null);
+  let seasonEpisodes: any[] = $state([]);
 
   let mediaType = $derived(media === 'tv' ? 'tv' : 'movie');
-  let currentSeason = $derived(
+  let currentSeasonData = $derived(
     showDetails?.seasons?.find((s: any) => s.season_number === season)
   );
-  let totalEpisodes = $derived(currentSeason?.episode_count ?? 0);
+  let totalEpisodes = $derived(currentSeasonData?.episode_count ?? 0);
   let hasNextEpisode = $derived(mediaType === 'tv' && showDetails && episode < totalEpisodes);
   let streamUrl = $derived(api.getStreamSource(Number(id), mediaType, season, episode, server));
   let title = $derived(showDetails?.name || showDetails?.title || 'Now Playing');
   let year = $derived((showDetails?.release_date || '').split('-')[0]);
   let epBadge = $derived(mediaType === 'tv' ? `S${season}:E${episode}` : year);
-
-  let subtext = $derived(
-    mediaType === 'tv'
-      ? `You are watching Season ${season} Episode ${episode} of "${title}".`
-      : showDetails?.overview || 'Streaming video file assets from localized provider arrays.'
+  let seasonsList = $derived(
+    (showDetails?.seasons || []).filter((s: any) => s.season_number > 0 && s.episode_count > 0)
   );
+
+  function tmdbImg(path: string, size: string = 'w185'): string {
+    if (!path) return '';
+    return `https://image.tmdb.org/t/p/${size}${path}`;
+  }
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
@@ -34,7 +38,7 @@
     tmdbApi.details(mediaType, Number(id))
       .then((data: any) => {
         showDetails = data;
-        document.title = `Watching: ${data.name || data.title || 'Stream'} - Watchfy`;
+        document.title = `${data.name || data.title || 'Stream'} - YouTube`;
       })
       .catch(() => {});
 
@@ -46,6 +50,16 @@
     season = parseInt(params.get('season') || '1');
     episode = parseInt(params.get('episode') || '1');
   }
+
+  $effect(() => {
+    if (mediaType !== 'tv' || !showDetails || !season) return;
+    fetch(`/api/tmdb/tv/${id}/season/${season}`)
+      .then(r => r.json())
+      .then(data => {
+        seasonEpisodes = data.episodes || [];
+      })
+      .catch(() => {});
+  });
 
   function findNextSeason() {
     return showDetails?.seasons?.find(
@@ -71,75 +85,172 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
     window.history.pushState({}, '', url.toString());
-    document.title = `Watching: ${title} - Watchfy`;
+    document.title = `${title} - YouTube`;
   }
 
-  function prewarmNext() {
-    const next = getNextEpisode();
-    if (!next) return;
-    const url = `/api/${server}/prewarm?tmdbId=${id}&mediaType=tv&season=${next.season}&episode=${next.episode}`;
-    fetch(url).catch(() => {});
+  function navigateToEpisode(ep: number) {
+    episode = ep;
+    const url = new URL(window.location.href);
+    url.searchParams.set('season', String(season));
+    url.searchParams.set('episode', String(ep));
+    window.history.pushState({}, '', url.toString());
+    document.title = `${title} - YouTube`;
   }
 
-  $effect(() => {
-    if (!showDetails || mediaType !== 'tv' || !streamUrl) return;
-    const timer = setTimeout(prewarmNext, 3000);
-    return () => clearTimeout(timer);
-  });
+  function navigateToSeason(s: number) {
+    season = s;
+    episode = 1;
+    const url = new URL(window.location.href);
+    url.searchParams.set('season', String(season));
+    url.searchParams.set('episode', String(episode));
+    window.history.pushState({}, '', url.toString());
+    document.title = `${title} - YouTube`;
+  }
+
+  // State mimicking YouTube interactive actions
+  let likes = $state(4205);
+  let liked = $state(false);
+  let disliked = $state(false);
+  let isSubscribed = $state(false);
+
+  function toggleLike() {
+    if (disliked) disliked = false;
+    liked = !liked;
+    likes += liked ? 1 : -1;
+  }
+
+  function toggleDislike() {
+    if (liked) {
+      liked = false;
+      likes -= 1;
+    }
+    disliked = !disliked;
+  }
 </script>
 
-<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-[#0f0f0f] text-[#f1f1f1] font-sans antialiased selection:bg-white/20">
+  <div class="max-w-[1744px] mx-auto px-4 xl:px-6 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      
+      <div class="lg:col-span-2 space-y-3">
+        <div class="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg relative group">
+          <HLSPlayer src={streamUrl} title={title} autoPlay={true} {server} />
+        </div>
 
-  <div class="w-full rounded-2xl overflow-hidden mb-8 border border-zinc-900/80 shadow-2xl shadow-black/90 bg-black">
-    <HLSPlayer
-      src={streamUrl}
-      title={title}
-      autoPlay={true}
-      {server}
-    />
-  </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight leading-7 break-words line-clamp-2 pt-1 text-white">
+            {#if mediaType === 'tv'}<span class="text-zinc-400 font-normal mr-1">[{epBadge}]</span>{/if}{title}
+          </h1>
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 pb-1">
+            <div class="flex items-center space-x-3">
+              <a href={`/${mediaType}/${id}`} class="flex-shrink-0">
+                <img
+                  src={tmdbImg(showDetails?.poster_path, 'w92')}
+                  alt={title}
+                  class="w-10 h-10 rounded-full object-cover bg-zinc-800 border border-zinc-800"
+                />
+              </a>
+              <div class="flex flex-col min-w-0 pr-2">
+                <a href={`/${mediaType}/${id}`} class="text-[16px] font-bold text-white hover:text-zinc-200 truncate leading-snug">
+                  {title}
+                </a>
+                <span class="text-xs text-[#aaa] truncate leading-none mt-1">
+                  {showDetails?.number_of_seasons ? `${showDetails.number_of_seasons} Seasons` : 'Movie'} • Verified
+                </span>
+              </div>
+              <button 
+                onclick={() => isSubscribed = !isSubscribed}
+                class="h-9 px-4 rounded-full text-sm font-semibold transition-all duration-200 active:scale-95 ml-2 shrink-0
+                  {isSubscribed ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-[#f1f1f1] hover:bg-[#d9d9d9] text-black'}"
+              >
+                {isSubscribed ? 'Subscribed' : 'Subscribe'}
+              </button>
+            </div>
 
-  <div class="bg-zinc-900/20 backdrop-blur-md border border-zinc-800/40 rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 shadow-xl">
-    <div class="space-y-2 flex-1">
-      <div class="flex items-center gap-2">
-        <span class="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/50">
-          {mediaType === 'tv' ? 'TV Show' : 'Movie'}
-        </span>
-        {#if epBadge}
-          <span class="text-xs font-bold text-red-400">{epBadge}</span>
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar sm:ml-auto">
+              <div class="inline-flex items-center bg-white/10 hover:bg-white/15 rounded-full h-9 transition-colors overflow-hidden">
+                <button onclick={toggleLike} class="flex items-center gap-2 h-full pl-4 pr-3 border-r border-white/10 hover:bg-white/5 transition-colors text-sm font-semibold text-white active:scale-95">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z" />
+                  </svg>
+                  <span>{likes.toLocaleString()}</span>
+                </button>
+                <button onclick={toggleDislike} class="flex items-center h-full px-3.5 hover:bg-white/5 transition-colors text-white active:scale-95" aria-label="Dislike video">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={disliked ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" class="w-5 h-5 transform rotate-180">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z" />
+                  </svg>
+                </button>
+              </div>
+              <button onclick={() => navigator.clipboard.writeText(window.location.href)} class="flex items-center gap-2 h-9 px-4 rounded-full bg-white/10 hover:bg-white/15 text-sm font-semibold text-white transition-colors active:scale-95 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
+                </svg>
+                <span>Share</span>
+              </button>
+              <button class="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 hover:bg-white/15 text-white active:scale-95 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                  <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white/10 hover:bg-white/[0.15] cursor-pointer rounded-xl p-3 text-sm text-[#f1f1f1] transition-colors leading-relaxed">
+          <div class="flex flex-wrap items-center gap-x-2.5 font-bold text-white mb-1.5">
+            <span>{showDetails?.vote_average ? `${(showDetails.vote_average * 10).toFixed(0)}% Match` : '98% Rating'}</span>
+            <span>•</span>
+            <span>{showDetails?.release_date?.split('-')[0] || showDetails?.first_air_date?.split('-')[0] || '2026'}</span>
+            <span>•</span>
+            <span class="text-zinc-400 font-normal">#StreamingTrend #Watchfy</span>
+          </div>
+          <p class="text-[#f1f1f1] whitespace-pre-line break-words text-sm font-normal">
+            {showDetails?.overview || 'No description available.'}
+          </p>
+        </div>
+      </div>
+
+      <div class="w-full space-y-4">
+        {#if mediaType === 'tv'}
+          <div class="rounded-xl overflow-hidden bg-transparent">
+            <EpisodeSidebar
+              {id}
+              seasons={seasonsList}
+              bind:selectedSeason={season}
+              episodes={seasonEpisodes}
+              currentEpisode={{ season, episode }}
+              onSeasonChange={(s: number) => navigateToSeason(s)}
+              onEpisodeClick={(ep: number) => navigateToEpisode(ep)}
+            />
+          </div>
+        {:else}
+          <div class="space-y-3">
+            <p class="text-sm font-bold text-white tracking-wide">Up Next</p>
+            <div class="flex gap-2 group cursor-pointer">
+              <div class="w-40 h-24 bg-zinc-800 rounded-lg flex-shrink-0 relative overflow-hidden">
+                <div class="absolute bottom-1 right-1 bg-black/80 px-1 text-[10px] font-bold rounded text-white tracking-widest">1:42:10</div>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <h4 class="text-sm font-bold text-white line-clamp-2 leading-tight">Recommended Related Film Feature</h4>
+                <p class="text-xs text-zinc-400 mt-1 truncate">Watchfy Movies</p>
+                <p class="text-xs text-zinc-500 mt-0.5">1.2M views • 3 days ago</p>
+              </div>
+            </div>
+          </div>
         {/if}
       </div>
 
-      <h1 class="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">
-        {title}
-      </h1>
-      <p class="text-sm text-zinc-400 font-medium max-w-2xl">
-        {subtext}
-      </p>
-    </div>
-
-    <div class="flex-shrink-0 flex items-center gap-3">
-      {#if hasNextEpisode}
-        <button
-          onclick={goToNextEpisode}
-          class="inline-flex items-center gap-2 px-5 py-3 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-xl transition-all active:scale-95 shadow-lg shadow-red-600/30"
-        >
-          Next Episode
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m9 12.75 3 3m0 0 3-3m-3 3v-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-          </svg>
-        </button>
-      {/if}
-      <a
-        href={`/${mediaType}/${id}`}
-        class="inline-flex items-center gap-2 px-5 py-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 text-zinc-200 hover:text-white text-sm font-semibold rounded-xl transition-all active:scale-95 shadow-lg shadow-black/40"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-        </svg>
-        Exit Player
-      </a>
     </div>
   </div>
-
 </div>
+
+<style>
+  :global(.no-scrollbar::-webkit-scrollbar) {
+    display: none;
+  }
+  :global(.no-scrollbar) {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>
