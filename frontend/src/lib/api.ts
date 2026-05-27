@@ -60,7 +60,10 @@ export const tmdbApi = {
   },
   
   details: (mediaType: 'movie' | 'tv', id: number | string): Promise<any> => 
-    api.get(`/api/tmdb/${mediaType}/${id}`),
+    api.get(`/api/tmdb/media/${mediaType}/${id}`),
+
+  seasonEpisodes: (id: number | string, season: number): Promise<any> =>
+    api.get(`/api/tmdb/tv/${id}/season/${season}`),
 };
 
 /* Unified Structural Type Signatures */

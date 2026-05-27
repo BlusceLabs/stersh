@@ -1,15 +1,27 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
+  // Svelte 5 reactive path state anchor
   let currentPath = $state('/');
 
   onMount(() => {
+    // Synchronize initial rendering coordinates securely
     currentPath = window.location.pathname;
-    const handleLocation = () => {
+
+    const syncRouteContext = () => {
       currentPath = window.location.pathname;
     };
-    window.addEventListener('popstate', handleLocation);
-    return () => window.removeEventListener('popstate', handleLocation);
+
+    // Listen to standard history updates
+    window.addEventListener('popstate', syncRouteContext);
+    
+    // Crucial Guard: Intercept Astro internal client-router swaps natively
+    document.addEventListener('astro:page-load', syncRouteContext);
+
+    return () => {
+      window.removeEventListener('popstate', syncRouteContext);
+      document.removeEventListener('astro:page-load', syncRouteContext);
+    };
   });
 
   const navItems = [
@@ -21,7 +33,8 @@
     {
       href: '/movies',
       label: 'Movies',
-      icon: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z',
+      // Fixed: Genuine cinema film frame outline path syntax
+      icon: 'M16.5 6v12m-9-12v12M3 7.5h18M3 12h18M3 16.5h18M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z',
     },
     {
       href: '/tv',
@@ -35,32 +48,44 @@
     },
   ];
 
-  function isActive(href: string): boolean {
-    if (href === '/') return currentPath === '/';
-    return currentPath.startsWith(href);
+  // Precise navigation matcher logic configuration
+  function checkActiveStatus(href: string, current: string): boolean {
+    if (href === '/') return current === '/';
+    return current.startsWith(href);
   }
 </script>
 
 <nav
-  class="fixed bottom-0 left-0 right-0 z-50 px-2 pb-[env(safe-area-inset-bottom,0px)]"
+  class="fixed bottom-0 left-0 right-0 z-50 px-4 pb-[env(safe-area-inset-bottom,16px)] pointer-events-none md:hidden"
+  aria-label="Mobile primary navigation shell"
 >
   <div
-    class="max-w-[1744px] mx-auto rounded-2xl flex items-center justify-around h-16 px-2
-      bg-black/[0.2] backdrop-blur-xl border border-white/[0.06] shadow-[0_-8px_32px_0_rgba(0,0,0,0.5)]
-      transition-all duration-300"
+    class="max-w-md mx-auto rounded-2xl flex items-center justify-around h-16 px-3
+      bg-[#09090b]/60 backdrop-blur-xl border border-zinc-800/50 shadow-[0_-12px_40px_rgba(0,0,0,0.7)]
+      pointer-events-auto transition-all duration-300"
   >
     {#each navItems as item}
+      {@const active = checkActiveStatus(item.href, currentPath)}
       <a
         href={item.href}
-        class="flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-0
-          {isActive(item.href)
-            ? 'text-red-500'
-            : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'}"
+        aria-current={active ? 'page' : undefined}
+        class="flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-300 min-w-0 select-none
+          {active
+            ? 'text-[#8B5CF6] scale-105 drop-shadow-[0_0_12px_rgba(139,92,246,0.3)]'
+            : 'text-zinc-500 hover:text-zinc-300 active:scale-95'}"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke-width={active ? "2.5" : "2"} 
+          stroke="currentColor" 
+          class="w-5 h-5 transition-transform duration-200"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" d={item.icon} />
         </svg>
-        <span class="text-[10px] font-semibold tracking-wide leading-none whitespace-nowrap">
+        
+        <span class="text-[10px] font-bold tracking-wider uppercase leading-none whitespace-nowrap">
           {item.label}
         </span>
       </a>
