@@ -1,13 +1,3 @@
-"""White (111movies.net) source extraction using Playwright.
-
-Follows the same pattern as the black (vidking.net) extractor:
-   1. Block ads/trackers/images before navigation
-   2. Intercept network responses for .m3u8 URLs passively
-   3. Click-to-play trigger if nothing captured
-   4. Deep DOM / JS player probe
-   5. Fetch master manifest -> parse quality variants
-   6. Return ExtractionResult sorted highest resolution first
-"""
 from __future__ import annotations
 
 import asyncio
@@ -22,21 +12,6 @@ logger = logging.getLogger(__name__)
 
 ONETOONE_BASE = "https://111movies.net"
 
-_BLOCKED_TYPES = {"image", "font", "media"}
-_BLOCKED_DOMAINS = frozenset({
-    "googlesyndication.com",
-    "doubleclick.net",
-    "adservice.google.com",
-    "googletagmanager.com",
-    "facebook.net",
-    "hotjar.com",
-    "clarity.ms",
-    "ads.pubmatic.com",
-    "securepubads.g.doubleclick.net",
-    "pagead2.googlesyndication.com",
-    "asokapygmoid.com",
-})
-
 _CDN_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -47,20 +22,6 @@ _CDN_HEADERS = {
     "Origin": "https://111movies.net",
     "Accept-Language": "en-US,en;q=0.9",
 }
-
-_PLAY_SELECTORS = [
-    ".vjs-big-play-button",
-    ".plyr__control--overlaid",
-    "[data-plyr='play']",
-    ".jwplayer .jw-display-icon-container",
-    ".video-js",
-    "[class*='play-btn']",
-    "[id*='play-btn']",
-    "button[aria-label*='play' i]",
-    ".fp-play",
-    ".mejs__overlay-play",
-    "video",
-]
 
 _DOM_PROBE_SCRIPT = """
 (() => {
@@ -122,6 +83,19 @@ _DOM_PROBE_SCRIPT = """
             if (fp && fp.conf && fp.conf.clip) {
                 const sources = fp.conf.clip.sources || [];
                 for (const s of sources) if (s.src) res.urls.push(s.src);
+            }
+        }
+    } catch(e) {}
+
+    try {
+        const fsc = window.FastStreamClient;
+        if (fsc) {
+            if (fsc.source && fsc.source.url) res.urls.push(fsc.source.url);
+            if (fsc.player) {
+                const s = fsc.player.getSource && fsc.player.getSource();
+                if (s && s.url) res.urls.push(s.url);
+                const v = fsc.player.getVideo && fsc.player.getVideo();
+                if (v && (v.src || v.currentSrc)) res.urls.push(v.src || v.currentSrc);
             }
         }
     } catch(e) {}
@@ -198,116 +172,82 @@ async def extract_hls_from_white(
     media_type: str,
     season: int = 1,
     episode: int = 1,
-    browser=None,
+    session=None,
     cdn_headers: dict | None = None,
 ) -> ExtractionResult | None:
-    from playwright.async_api import async_playwright
+    from scrapling.fetchers import AsyncStealthySession
 
     page_url = _build_page_url(tmdb_id, media_type, season, episode)
 
-    own_playwright = None
-    own_browser = browser is None
-    if own_browser:
-        own_playwright = await async_playwright().start()
-        browser = await own_playwright.chromium.launch(
+    own_session = session is None
+    if own_session:
+        session = AsyncStealthySession(
             headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-blink-features=AutomationControlled",
-                "--disable-gpu",
-                "--mute-audio",
-                "--autoplay-policy=no-user-gesture-required",
-            ],
+            solve_cloudflare=True,
+            block_ads=True,
+            block_webrtc=True,
+            hide_canvas=True,
+            timeout=120_000,
+            disable_resources=True,
         )
-
-    context = await browser.new_context(
-        user_agent=_CDN_HEADERS["User-Agent"],
-        viewport={"width": 1920, "height": 1080},
-        locale="en-US",
-        extra_http_headers={
-            "Accept-Language": "en-US,en;q=0.9",
-        },
-    )
-
-    await context.add_init_script(
-        "Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
-    )
-
-    page = await context.new_page()
-
-    async def _route(route, request):
-        if request.resource_type in _BLOCKED_TYPES:
-            await route.abort()
-            return
-        host = request.url.split("/")[2] if "//" in request.url else ""
-        if any(d in host for d in _BLOCKED_DOMAINS):
-            await route.abort()
-            return
-        await route.continue_()
-
-    await page.route("**/*", _route)
 
     captured_hls: str | None = None
     captured_mp4s: list[str] = []
 
-    async def _on_response(response):
-        nonlocal captured_hls
-        url = response.url
-        low = url.lower()
-        if ".m3u8" in low and captured_hls is None:
-            captured_hls = url
-            logger.info('"white_hls_captured":{"url":"%s"}', url[:120])
-        elif ".mp4" in low and url not in captured_mp4s:
-            cl = int(response.headers.get("content-length", "0") or "0")
-            if cl == 0 or cl > 500_000:
-                captured_mp4s.append(url)
+    async def _setup_page(page):
+        async def _on_response(response):
+            nonlocal captured_hls
+            url = response.url
+            low = url.lower()
+            if ".m3u8" in low and captured_hls is None:
+                captured_hls = url
+                logger.info('"white_hls_captured":{"url":"%s"}', url[:120])
+            elif ".mp4" in low and url not in captured_mp4s:
+                cl = int(response.headers.get("content-length", "0") or "0")
+                if cl == 0 or cl > 500_000:
+                    captured_mp4s.append(url)
 
-    page.on("response", _on_response)
+        page.on("response", _on_response)
 
     logger.info('"white_loading":{"url":"%s"}', page_url)
     try:
-        await page.goto(page_url, wait_until="networkidle", timeout=60_000)
+        if own_session:
+            async with session as s:
+                page = await s.fetch(
+                    page_url,
+                    page_setup=_setup_page,
+                    wait=5000,
+                )
+                result = await _post_process(
+                    page, captured_hls, captured_mp4s, page_url, cdn_headers
+                )
+            return result
+        else:
+            page = await session.fetch(
+                page_url,
+                page_setup=_setup_page,
+                wait=5000,
+            )
+            return await _post_process(
+                page, captured_hls, captured_mp4s, page_url, cdn_headers
+            )
+
     except Exception as exc:
-        logger.warning('"white_networkidle_timeout":{"err":"%s"}', exc)
-        try:
-            await page.goto(page_url, wait_until="domcontentloaded", timeout=60_000)
-        except Exception as exc2:
-            logger.error('"white_page_load_failed":{"err":"%s"}', exc2)
-            await context.close()
-            if own_browser and own_playwright:
-                await browser.close()
-                await own_playwright.stop()
-            return None
+        logger.error('"white_extraction_error":{"err":"%s"}', exc)
+        return None
 
-    for _ in range(20):
-        if captured_hls:
-            break
-        await asyncio.sleep(1)
 
-    if captured_hls:
-        logger.info('"white_phase1_success"')
-
-    if not captured_hls:
-        logger.info('"white_phase2_click_to_play"')
-        await _click_play(page)
-
-        for _ in range(12):
-            if captured_hls:
-                break
-            await asyncio.sleep(1)
-
-        if captured_hls:
-            logger.info('"white_phase2_success"')
-
-    probe: dict = {}
+async def _post_process(
+    page, captured_hls: str | None, captured_mp4s: list[str],
+    page_url: str, cdn_headers: dict | None,
+) -> ExtractionResult | None:
     if not captured_hls:
         logger.info('"white_phase3_dom_probe"')
         try:
             probe = await page.evaluate(_DOM_PROBE_SCRIPT) or {}
         except Exception as exc:
             logger.warning('"white_probe_error":{"err":"%s"}', exc)
+            probe = {}
 
         for url in probe.get("urls", []):
             if ".m3u8" in url.lower() and not captured_hls:
@@ -316,13 +256,10 @@ async def extract_hls_from_white(
             elif ".mp4" in url.lower():
                 captured_mp4s.append(url)
 
-    probe_downloads: list[str] = probe.get("downloads", [])
-
-    await asyncio.sleep(0.5)
-    await context.close()
-    if own_browser and own_playwright:
-        await browser.close()
-        await own_playwright.stop()
+        probe_downloads: list[str] = probe.get("downloads", [])
+    else:
+        probe = {}
+        probe_downloads = []
 
     if not captured_hls and not captured_mp4s and not probe_downloads:
         logger.warning('"white_extraction_failed":{"url":"%s"}', page_url)
@@ -365,18 +302,6 @@ def _build_page_url(tmdb_id: int, media_type: str, season: int, episode: int) ->
     return f"{ONETOONE_BASE}/tv/{tmdb_id}/{season}/{episode}"
 
 
-async def _click_play(page) -> None:
-    for sel in _PLAY_SELECTORS:
-        try:
-            el = await page.query_selector(sel)
-            if el:
-                await el.click(force=True, timeout=2000)
-                logger.info('"white_clicked":{"selector":"%s"}', sel)
-                return
-        except Exception:
-            pass
-
-
 async def _parse_master_manifest(
     hls_url: str,
     cdn_headers: dict | None,
@@ -399,7 +324,7 @@ async def _parse_master_manifest(
             return fallback
 
         base = hls_url.rsplit("/", 1)[0] + "/"
-        variants = _parse_ext_x_stream_inf(text, base)
+        variants = _parse_ext_x_stream_inf(text, base, hls_url)
         if not variants:
             return fallback
 
@@ -411,7 +336,7 @@ async def _parse_master_manifest(
         return fallback
 
 
-def _parse_ext_x_stream_inf(text: str, base_url: str) -> list[StreamSource]:
+def _parse_ext_x_stream_inf(text: str, base_url: str, master_url: str = "") -> list[StreamSource]:
     sources: list[StreamSource] = []
     seen: set[str] = set()
     lines = text.splitlines()
@@ -437,7 +362,13 @@ def _parse_ext_x_stream_inf(text: str, base_url: str) -> list[StreamSource]:
             if j < len(lines):
                 uri = lines[j].strip()
                 if uri and uri not in seen:
-                    if not uri.startswith("http"):
+                    if uri.startswith("http"):
+                        pass
+                    elif uri.startswith("/"):
+                        from urllib.parse import urlparse
+                        parsed = urlparse(master_url)
+                        uri = f"{parsed.scheme}://{parsed.netloc}{uri}"
+                    else:
                         uri = base_url + uri
                     seen.add(uri)
                     sources.append(StreamSource(
@@ -455,8 +386,8 @@ def _parse_ext_x_stream_inf(text: str, base_url: str) -> list[StreamSource]:
 
 def _parse_attrs(s: str) -> dict[str, str]:
     out: dict[str, str] = {}
-    for m in re.finditer(r'([A-Z0-9_-]+)=(?:"([^"]*)"|([\w@.,\-/]*))', s):
-        out[m.group(1)] = m.group(2) if m.group(2) is not None else m.group(3)
+    for m in re.finditer(r'([A-Z0-9_-]+)=(?:"([^"]*)"|([^,"\s]+))', s):
+        out[m.group(1)] = m.group(2) if m.group(3) is None else m.group(3)
     return out
 
 
@@ -509,11 +440,11 @@ async def extract_sources_legacy(
     media_type: str,
     season: int = 1,
     episode: int = 1,
-    browser=None,
+    session=None,
     cdn_headers: dict | None = None,
 ) -> list[dict] | None:
     result = await extract_hls_from_white(
-        tmdb_id, media_type, season, episode, browser, cdn_headers
+        tmdb_id, media_type, season, episode, session, cdn_headers
     )
     if result is None:
         return None

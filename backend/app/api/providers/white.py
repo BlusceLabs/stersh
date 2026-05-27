@@ -11,7 +11,6 @@ import httpx
 from cachetools import TTLCache
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
-
 from app.core.extractors.white import extract_sources_legacy
 
 logger = logging.getLogger(__name__)
@@ -52,44 +51,8 @@ _url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=1800)
 
 _client: httpx.AsyncClient | None = None
 
-_browser = None
-_playwright = None
-_browser_lock = asyncio.Lock()
-
-
-async def _get_browser():
-    global _browser, _playwright
-    async with _browser_lock:
-        if _browser is None or not _browser.is_connected():
-            from playwright.async_api import async_playwright
-            _playwright = await async_playwright().start()
-            _browser = await _playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-gpu",
-                    "--mute-audio",
-                    "--autoplay-policy=no-user-gesture-required",
-                ],
-            )
-    return _browser
-
-
 async def shutdown_white_browser() -> None:
-    global _browser, _playwright
-    async with _browser_lock:
-        for obj, method in [(_browser, "close"), (_playwright, "stop")]:
-            if obj is not None:
-                try:
-                    await getattr(obj, method)()
-                except Exception:
-                    pass
-        _browser = None
-        _playwright = None
-    logger.info('"white_browser_shutdown"')
+    pass
 
 
 async def shutdown_white_client() -> None:
@@ -159,10 +122,8 @@ async def _extract_coalesced(
 
             async def _run():
                 try:
-                    browser = await _get_browser()
                     result = await extract_sources_legacy(
                         tmdb_id, media_type, season, episode,
-                        browser=browser,
                         cdn_headers=_CDN_HEADERS,
                     )
                     fut.set_result(result)
