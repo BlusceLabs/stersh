@@ -7,13 +7,16 @@
     title = 'Video Player', 
     autoPlay = false, 
     server = 'white',
+    startTime = 0,
     onNext = undefined,
-    onPrev = undefined
+    onPrev = undefined,
+    onProgress = undefined
   }: {
     src?: string;
     title?: string;
     autoPlay?: boolean;
     server?: string;
+    startTime?: number;
     onNext?: () => void;
     onPrev?: () => void;
     onProgress?: (data: { currentTime: number; duration: number }) => void;
@@ -331,6 +334,9 @@
           label: lvl.height ? `${lvl.height}p` : `Level ${index}`
         }));
 
+        if (startTime > 0) {
+          videoEl.currentTime = startTime;
+        }
         if (autoPlay) videoEl.play().catch(() => {});
       });
 
@@ -357,6 +363,12 @@
     if (!src) { hlsUrl = ''; return; }
     loading = true; error = ''; hlsUrl = '';
     let cancelled = false;
+    let timeout = setTimeout(() => {
+      if (!cancelled && loading) {
+        error = 'Stream source timed out. Please try again.';
+        loading = false;
+      }
+    }, 30000);
 
     fetch(src)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
@@ -370,9 +382,9 @@
         }
       })
       .catch(() => { if (!cancelled) error = 'Failed to establish stable streaming pipeline.'; })
-      .finally(() => { if (!cancelled) loading = false; });
+      .finally(() => { if (!cancelled) { loading = false; clearTimeout(timeout); } });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timeout); };
   });
 
   let progressPct = $derived(duration > 0 ? (currentTime / duration) * 100 : 0);

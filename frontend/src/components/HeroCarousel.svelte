@@ -90,18 +90,20 @@
   {:else}
     {#each items as item, i}
       {@const m = meta(item)}
-      <div
-        class="absolute inset-0 transition-all duration-1000 ease-in-out transform"
+      <a
+        href={`/watch/${m.type}/${m.id}`}
+        class="absolute inset-0 transition-all duration-1000 ease-in-out transform block cursor-pointer"
         class:opacity-100={i === idx}
         class:opacity-0={i !== idx}
         class:scale-100={i === idx}
         class:scale-105={i !== idx}
+        aria-label={`Watch ${m.title}`}
       >
         <img src={m.backdrop} alt={m.title} class="w-full h-full object-cover brightness-[0.55]" loading={i === 0 ? "eager" : "lazy"} />
         
         <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/30 to-transparent z-[1]" />
         <div class="absolute inset-0 bg-gradient-to-r from-[#09090b]/90 via-[#09090b]/20 to-transparent z-[1]" />
-      </div>
+      </a>
     {/each}
 
     {@const cur = meta(items[idx])}

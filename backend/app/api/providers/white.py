@@ -54,6 +54,8 @@ _futures_lock = asyncio.Lock()
 
 _url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=1800)
 
+_prewarm_semaphore = asyncio.Semaphore(2)
+
 _client: httpx.AsyncClient | None = None
 
 async def shutdown_white_browser() -> None:
@@ -399,15 +401,16 @@ async def white_prewarm(
 
 
 async def _warm_and_cache(tmdb_id: int, media_type: str, season: int, episode: int) -> None:
-    ck = _cache_key(tmdb_id, media_type, season, episode)
-    try:
-        sources = await _extract_coalesced(ck, tmdb_id, media_type, season, episode)
-        if sources:
-            _cache[ck] = sources
-            _timestamps[ck] = time.monotonic()
-            logger.info('"white_prewarm_done":{"key":"%s","count":%d}', ck, len(sources))
-    except Exception as exc:
-        logger.error('"white_prewarm_error":{"key":"%s","err":"%s"}', ck, exc)
+    async with _prewarm_semaphore:
+        ck = _cache_key(tmdb_id, media_type, season, episode)
+        try:
+            sources = await _extract_coalesced(ck, tmdb_id, media_type, season, episode)
+            if sources:
+                _cache[ck] = sources
+                _timestamps[ck] = time.monotonic()
+                logger.info('"white_prewarm_done":{"key":"%s","count":%d}', ck, len(sources))
+        except Exception as exc:
+            logger.error('"white_prewarm_error":{"key":"%s","err":"%s"}', ck, exc)
 
 
 async def _bg_refresh(ck: str, tmdb_id: int, media_type: str, season: int, episode: int) -> None:

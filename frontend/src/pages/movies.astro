@@ -7,17 +7,34 @@ import Layout from '../layouts/Layout.astro';
     
     <div class="absolute top-0 left-1/4 w-[500px] h-[350px] bg-red-600/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="relative z-10">
       
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-5 mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-5 mb-8 px-4 sm:px-6 lg:px-8">
         <div>
           <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tighter">
             Explore Movies
           </h1>
-          <p class="text-xs sm:text-sm text-zinc-500 font-medium mt-0.5">
-            Browse popular movies, filter by genre, or discover top rated titles.
-          </p>
+          <p class="text-xs sm:text-sm text-zinc-500 mt-1 font-medium">Browse through our extensive movie catalog.</p>
         </div>
+
+        <div class="flex items-center gap-3">
+          <div class="flex-shrink-0 self-start sm:self-auto bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-3.5 py-1.5 backdrop-blur-md">
+            <span id="movie-count" class="text-xs font-bold text-zinc-300 tracking-wider">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="filter-bar" class="flex flex-wrap items-center gap-3 mb-8 px-4 sm:px-6 lg:px-8">
+        <select id="sort-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
+          <option value="popular">Popular</option>
+          <option value="top_rated">Top Rated</option>
+          <option value="now_playing">Now Playing</option>
+          <option value="upcoming">Upcoming</option>
+        </select>
+        <select id="genre-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
+          <option value="">All Genres</option>
+        </select>
+      </div>
         
         <div class="flex-shrink-0 self-start sm:self-auto bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-3.5 py-1.5 backdrop-blur-md">
           <span class="text-xs font-bold text-zinc-400 tracking-wide uppercase flex items-center gap-1.5">
@@ -46,11 +63,11 @@ import Layout from '../layouts/Layout.astro';
 
       <div 
         id="movies-grid" 
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 opacity-0 transition-opacity duration-500"
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 opacity-0 transition-opacity duration-500 px-4 sm:px-6 lg:px-8"
       >
         </div>
 
-      <div id="grid-skeleton" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 animate-pulse">
+      <div id="grid-skeleton" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 animate-pulse px-4 sm:px-6 lg:px-8">
         {Array.from({ length: 12 }).map(() => (
           <div class="space-y-3">
             <div class="aspect-[2/3] bg-zinc-900 border border-zinc-800/40 rounded-xl relative overflow-hidden">

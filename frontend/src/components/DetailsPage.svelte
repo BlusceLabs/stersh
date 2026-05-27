@@ -37,6 +37,33 @@
   let selectedSeason = $state(1);
   let seasonEpisodes: Episode[] = $state([]);
   let recommendations: any[] = $state([]);
+  let showTrailer = $state(false);
+  let myListFlag = $state(false);
+
+  $effect(() => {
+    try {
+      myListFlag = localStorage.getItem(`watchfy:mylist:${mediaType}:${id}`) === 'true';
+    } catch { myListFlag = false; }
+  });
+
+  function toggleMyList() {
+    const key = `watchfy:mylist:${mediaType}:${id}`;
+    try {
+      if (myListFlag) {
+        localStorage.removeItem(key);
+        myListFlag = false;
+      } else {
+        localStorage.setItem(key, 'true');
+        myListFlag = true;
+      }
+    } catch {}
+  }
+
+  let trailerKey = $derived(
+    data?.videos?.results?.find(
+      (v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
+    )?.key || data?.videos?.results?.[0]?.key || ''
+  );
 
   // Derived Values
   let mediaType = $derived(media === 'tv' ? 'tv' : 'movie');
@@ -221,18 +248,17 @@
               class="inline-flex items-center gap-2.5 px-8 py-3.5 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-xl transition-all duration-300 active:scale-95 shadow-xl shadow-red-600/20 hover:shadow-red-600/30 select-none"
             >
               <svg class="w-4 h-4 fill-white" viewBox="0 0 20 20"><path d="M6.423 4.167A1 1 0 005 5.035v9.93a1 1 0 001.423.868l8.5-4.965a1 1 0 000-1.736l-8.5-4.965z"/></svg>
-              {mediaType === 'tv' ? `Play S${selectedSeason}:E1` : 'Play Title'}
+              {mediaType === 'tv' ? `Play S${selectedSeason}:E1` : `Play`}
             </a>
             
-            <button class="inline-flex items-center gap-2 px-5 py-3.5 bg-zinc-900/40 backdrop-blur-md text-zinc-300 hover:text-white text-sm font-semibold rounded-xl border border-zinc-800/60 hover:bg-zinc-800/60 hover:border-zinc-700 transition-all duration-300 active:scale-95 cursor-pointer select-none">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              My List
+            <button onclick={toggleMyList} class="inline-flex items-center gap-2 px-5 py-3.5 bg-zinc-900/40 backdrop-blur-md text-zinc-300 hover:text-white text-sm font-semibold rounded-xl border border-zinc-800/60 hover:bg-zinc-800/60 hover:border-zinc-700 transition-all duration-300 active:scale-95 cursor-pointer select-none">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-4 h-4 transition-transform duration-300" class:rotate-45={myListFlag}>
+
+              {myListFlag ? 'In Your List' : 'My List'}
             </button>
 
-            {#if data?.videos?.results?.length}
-              <button class="inline-flex items-center gap-2 px-5 py-3.5 bg-zinc-900/40 backdrop-blur-md text-zinc-300 hover:text-white text-sm font-semibold rounded-xl border border-zinc-800/60 hover:bg-zinc-800/60 hover:border-zinc-700 transition-all duration-300 active:scale-95 cursor-pointer select-none">
+            {#if trailerKey}
+              <button onclick={() => showTrailer = true} class="inline-flex items-center gap-2 px-5 py-3.5 bg-zinc-900/40 backdrop-blur-md text-zinc-300 hover:text-white text-sm font-semibold rounded-xl border border-zinc-800/60 hover:bg-zinc-800/60 hover:border-zinc-700 transition-all duration-300 active:scale-95 cursor-pointer select-none">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
                 </svg>
@@ -380,6 +406,35 @@
           </div>
         </div>
       {/if}
+    </div>
+  </div>
+{/if}
+
+{#if showTrailer && trailerKey}
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+    onclick={() => showTrailer = false}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Trailer"
+  >
+    <div class="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-zinc-800/60" onclick={(e) => e.stopPropagation()}>
+      <button
+        onclick={() => showTrailer = false}
+        class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
+        aria-label="Close trailer"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&rel=0`}
+        class="w-full h-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        title="Trailer"
+      ></iframe>
     </div>
   </div>
 {/if}

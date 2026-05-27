@@ -1,5 +1,9 @@
 <script lang="ts">
-  let { movie, type = 'movie' } = $props();
+  let { movie, type = 'movie', progress = undefined } = $props<{
+    movie: any;
+    type?: string;
+    progress?: number;
+  }>();
   
   // Clean Data Normalization Engine
   const mediaType = typeof type === 'string' ? type : (movie.media_type === 'tv' ? 'tv' : 'movie');
@@ -36,6 +40,12 @@
     {/if}
 
     <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"></div>
+    
+    {#if progress !== undefined && progress > 0}
+      <div class="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
+        <div class="h-full bg-red-500 transition-all duration-300" style="width: {Math.min(progress * 100, 100)}%"></div>
+      </div>
+    {/if}
   </div>
 
   <div class="mt-2.5 px-0.5">
