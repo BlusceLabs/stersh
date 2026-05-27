@@ -231,11 +231,11 @@ async def onetoone_proxy_hls(url: str = Query(...)) -> Response:
         if stripped and not stripped.startswith("#"):
             if not stripped.startswith("http"):
                 stripped = base_url + stripped
-            token = _store_token(stripped)
             if next_is_variant:
+                token = _store_token(stripped)
                 lines.append(f"/api/white/proxy/hls?url={token}")
             else:
-                lines.append(f"/api/white/proxy/seg/{token}")
+                lines.append(stripped)
         else:
             lines.append(line)
 
