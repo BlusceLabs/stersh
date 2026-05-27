@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Watchfy" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0f0f0f</item>
+        <item name="android:navigationBarColor">#09090b</item>
+        <item name="android:windowBackground">#09090b</item>
+    </style>
+
+    <style name="Theme.Watchfy.Splash" parent="Theme.Watchfy">
+        <item name="android:windowSplashScreenBackground">#09090b</item>
+    </style>
+</resources>
