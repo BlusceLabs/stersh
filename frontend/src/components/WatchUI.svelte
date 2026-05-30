@@ -172,17 +172,22 @@
       // First: check backend continue-watching for saved season/episode
       try {
         const token = localStorage.getItem('watchfy_token');
+        console.log('[WatchUI] token:', !!token, 'id:', id, 'mediaType:', mediaType, 'season:', season, 'episode:', episode);
         if (token) {
           const res = await fetch('/continue-watching/', {
             headers: { 'Authorization': `Bearer ${token}` },
           });
+          console.log('[WatchUI] continue-watching status:', res.status);
           if (res.ok) {
             const items = await res.json();
+            console.log('[WatchUI] continue-watching items:', JSON.stringify(items));
             const match = items.find((i: any) => i.tmdb_id === Number(id));
+            console.log('[WatchUI] match:', match ? JSON.stringify(match) : 'NOT FOUND');
             if (match && mediaType === 'tv' && (match.season || match.episode)) {
               // Navigate to the saved episode if different from current
               const savedSeason = match.season || 1;
               const savedEpisode = match.episode || 1;
+              console.log(`[WatchUI] Navigating to saved S${savedSeason}E${savedEpisode}`);
               if (savedSeason !== season || savedEpisode !== episode) {
                 season = savedSeason;
                 episode = savedEpisode;
@@ -192,28 +197,38 @@
                 url.searchParams.set('season', String(season));
                 url.searchParams.set('episode', String(episode));
                 window.history.replaceState({}, '', url.toString());
+                console.log('[WatchUI] Navigated to', url.toString());
                 return;
               }
               if (match.current_time > 5) {
                 resumeTime = match.current_time;
+                console.log('[WatchUI] Resuming at', resumeTime);
                 return;
               }
             }
             if (match && mediaType === 'movie' && match.current_time > 5) {
               resumeTime = match.current_time;
+              console.log('[WatchUI] Movie resume at', resumeTime);
               return;
             }
           }
         }
-      } catch {}
+      } catch (e) {
+        console.error('[WatchUI] continue-watching error:', e);
+      }
       // Fallback: localStorage
       try {
-        const saved = localStorage.getItem(`watchfy:${mediaType}:${id}:${season}:${episode}`);
+        const savedKey = `watchfy:${mediaType}:${id}:${season}:${episode}`;
+        const saved = localStorage.getItem(savedKey);
+        console.log('[WatchUI] localStorage key:', savedKey, 'found:', !!saved);
         if (saved) {
           const data = JSON.parse(saved);
           resumeTime = data.currentTime || 0;
+          console.log('[WatchUI] localStorage resume at', resumeTime);
         }
-      } catch {}
+      } catch (e) {
+        console.error('[WatchUI] localStorage error:', e);
+      }
     })();
   });
 
