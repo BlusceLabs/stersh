@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy } from 'svelte';
   import Hls from 'hls.js';
 
   // Props (Svelte 5 Runes)
@@ -95,6 +95,13 @@
     if (!videoEl || !onProgress || !videoEl.duration) return;
     onProgress({ currentTime: videoEl.currentTime, duration: videoEl.duration });
   }
+
+  onDestroy(() => {
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  });
 
   // Playback Rate Options
   const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];

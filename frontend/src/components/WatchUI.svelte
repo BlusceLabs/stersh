@@ -88,6 +88,8 @@
     if (!prev) return;
     season = prev.season;
     episode = prev.episode;
+    resumeTime = 0;
+    episodeKey++;
     const url = new URL(window.location.href);
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
@@ -108,6 +110,8 @@
 
     season = next.season;
     episode = next.episode;
+    resumeTime = 0;
+    episodeKey++;
 
     const url = new URL(window.location.href);
     url.searchParams.set('season', String(season));
@@ -118,6 +122,8 @@
 
   function navigateToEpisode(ep: number) {
     episode = ep;
+    resumeTime = 0;
+    episodeKey++;
     const url = new URL(window.location.href);
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(ep));
@@ -128,6 +134,8 @@
   function navigateToSeason(s: number) {
     season = s;
     episode = 1;
+    resumeTime = 0;
+    episodeKey++;
     const url = new URL(window.location.href);
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
@@ -136,6 +144,7 @@
   }
 
   let resumeTime = $state(0);
+  let episodeKey = $state(0);
   let _lastPostTs = 0;
 
   async function saveProgressToBackend(currentTime: number, duration: number) {
@@ -160,6 +169,7 @@
 
   $effect(() => {
     (async () => {
+      // First: check backend continue-watching for saved season/episode
       try {
         const token = localStorage.getItem('watchfy_token');
         if (token) {
@@ -168,14 +178,35 @@
           });
           if (res.ok) {
             const items = await res.json();
-            const match = items.find((i: any) => i.tmdb_id === Number(id) && (mediaType !== 'tv' || i.season === season && i.episode === episode));
-            if (match && match.current_time > 5) {
+            const match = items.find((i: any) => i.tmdb_id === Number(id));
+            if (match && mediaType === 'tv' && (match.season || match.episode)) {
+              // Navigate to the saved episode if different from current
+              const savedSeason = match.season || 1;
+              const savedEpisode = match.episode || 1;
+              if (savedSeason !== season || savedEpisode !== episode) {
+                season = savedSeason;
+                episode = savedEpisode;
+                resumeTime = match.current_time > 5 ? match.current_time : 0;
+                episodeKey++;
+                const url = new URL(window.location.href);
+                url.searchParams.set('season', String(season));
+                url.searchParams.set('episode', String(episode));
+                window.history.replaceState({}, '', url.toString());
+                return;
+              }
+              if (match.current_time > 5) {
+                resumeTime = match.current_time;
+                return;
+              }
+            }
+            if (match && mediaType === 'movie' && match.current_time > 5) {
               resumeTime = match.current_time;
               return;
             }
           }
         }
       } catch {}
+      // Fallback: localStorage
       try {
         const saved = localStorage.getItem(`watchfy:${mediaType}:${id}:${season}:${episode}`);
         if (saved) {
@@ -223,6 +254,7 @@
       <div class="lg:col-span-2 space-y-3">
         <div class="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg relative group">
           <HLSPlayer
+            key={String(episodeKey)}
             src={streamUrl}
             title={title}
             autoPlay={true}
