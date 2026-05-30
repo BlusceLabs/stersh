@@ -216,15 +216,42 @@
       } catch (e) {
         console.error('[WatchUI] continue-watching error:', e);
       }
-      // Fallback: localStorage
+      // Fallback: scan localStorage for the latest saved episode of this show
       try {
-        const savedKey = `watchfy:${mediaType}:${id}:${season}:${episode}`;
-        const saved = localStorage.getItem(savedKey);
-        console.log('[WatchUI] localStorage key:', savedKey, 'found:', !!saved);
-        if (saved) {
-          const data = JSON.parse(saved);
+        const prefix = `watchfy:${mediaType}:${id}:`;
+        let bestKey = '';
+        let bestS = 0, bestE = 0;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (!key || !key.startsWith(prefix)) continue;
+          try {
+            const parts = key.split(':');
+            const s = Number(parts[3]);
+            const e = Number(parts[4]);
+            if (s > bestS || (s === bestS && e > bestE)) {
+              const data = JSON.parse(localStorage.getItem(key) || '{}');
+              if (data.currentTime && data.currentTime > 5) {
+                bestKey = key;
+                bestS = s;
+                bestE = e;
+              }
+            }
+          } catch {}
+        }
+        if (bestKey) {
+          const data = JSON.parse(localStorage.getItem(bestKey) || '{}');
+          console.log('[WatchUI] localStorage found:', bestS, 'x', bestE, 'time:', data.currentTime);
+          if (bestS !== season || bestE !== episode) {
+            season = bestS;
+            episode = bestE;
+            const url = new URL(window.location.href);
+            url.searchParams.set('season', String(season));
+            url.searchParams.set('episode', String(episode));
+            window.history.replaceState({}, '', url.toString());
+            episodeKey++;
+            console.log('[WatchUI] Navigated to', url.toString());
+          }
           resumeTime = data.currentTime || 0;
-          console.log('[WatchUI] localStorage resume at', resumeTime);
         }
       } catch (e) {
         console.error('[WatchUI] localStorage error:', e);
