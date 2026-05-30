@@ -146,6 +146,7 @@
   let resumeTime = $state(0);
   let episodeKey = $state(0);
   let _lastPostTs = 0;
+  let _initialized = $state(false);
 
   async function saveProgressToBackend(currentTime: number, duration: number) {
     try {
@@ -256,6 +257,7 @@
       } catch (e) {
         console.error('[WatchUI] localStorage error:', e);
       }
+      _initialized = true;
     })();
   });
 
@@ -295,33 +297,37 @@
       
       <div class="lg:col-span-2 space-y-3">
         <div class="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg relative group">
-          <HLSPlayer
-            key={String(episodeKey)}
-            src={streamUrl}
-            title={title}
-            autoPlay={true}
-            {server}
-            startTime={resumeTime}
-            onPrev={hasPrevEpisode ? goToPrevEpisode : undefined}
-            onNext={hasNextEpisode ? goToNextEpisode : undefined}
-            onProgress={(data) => {
-              const watchKey = `watchfy:${mediaType}:${id}:${season}:${episode}`;
-              try {
-                localStorage.setItem(watchKey, JSON.stringify({
-                  currentTime: data.currentTime,
-                  duration: data.duration,
-                  timestamp: Date.now(),
-                  title: showDetails?.title || showDetails?.name || title,
-                  poster: showDetails?.poster_path,
-                  mediaType,
-                  tmdbId: id,
-                  season,
-                  episode,
-                }));
-              } catch {}
-              saveProgressToBackend(data.currentTime, data.duration);
-            }}
-          />
+          {#if _initialized}
+            <HLSPlayer
+              key={String(episodeKey)}
+              src={streamUrl}
+              title={title}
+              autoPlay={true}
+              {server}
+              startTime={resumeTime}
+              onPrev={hasPrevEpisode ? goToPrevEpisode : undefined}
+              onNext={hasNextEpisode ? goToNextEpisode : undefined}
+              onProgress={(data) => {
+                const watchKey = `watchfy:${mediaType}:${id}:${season}:${episode}`;
+                try {
+                  localStorage.setItem(watchKey, JSON.stringify({
+                    currentTime: data.currentTime,
+                    duration: data.duration,
+                    timestamp: Date.now(),
+                    title: showDetails?.title || showDetails?.name || title,
+                    poster: showDetails?.poster_path,
+                    mediaType,
+                    tmdbId: id,
+                    season,
+                    episode,
+                  }));
+                } catch {}
+                saveProgressToBackend(data.currentTime, data.duration);
+              }}
+            />
+          {:else}
+            <div class="w-full h-full flex items-center justify-center text-zinc-500 text-sm">Loading…</div>
+          {/if}
         </div>
 
         <div>
