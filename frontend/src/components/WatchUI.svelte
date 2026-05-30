@@ -168,7 +168,7 @@
     } catch {}
   }
 
-  $effect(() => {
+  onMount(() => {
     (async () => {
       // First: check backend continue-watching for saved season/episode
       try {
@@ -185,7 +185,6 @@
             const match = items.find((i: any) => i.tmdb_id === Number(id));
             console.log('[WatchUI] match:', match ? JSON.stringify(match) : 'NOT FOUND');
             if (match && mediaType === 'tv' && (match.season || match.episode)) {
-              // Navigate to the saved episode if different from current
               const savedSeason = match.season || 1;
               const savedEpisode = match.episode || 1;
               console.log(`[WatchUI] Navigating to saved S${savedSeason}E${savedEpisode}`);
@@ -199,18 +198,13 @@
                 url.searchParams.set('episode', String(episode));
                 window.history.replaceState({}, '', url.toString());
                 console.log('[WatchUI] Navigated to', url.toString());
-                return;
-              }
-              if (match.current_time > 5) {
+              } else if (match.current_time > 5) {
                 resumeTime = match.current_time;
                 console.log('[WatchUI] Resuming at', resumeTime);
-                return;
               }
-            }
-            if (match && mediaType === 'movie' && match.current_time > 5) {
+            } else if (match && mediaType === 'movie' && match.current_time > 5) {
               resumeTime = match.current_time;
               console.log('[WatchUI] Movie resume at', resumeTime);
-              return;
             }
           }
         }
