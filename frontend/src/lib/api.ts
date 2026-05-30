@@ -1,7 +1,7 @@
 // src/lib/api.ts
 
-// Dynamically fallback to standard server-side paths if the wrapper variable is unset
-const API_BASE = import.meta.env.BACKEND_URL || 'http://localhost:8000';
+// Use relative paths so requests go through the Vite/Astro proxy to the backend
+const API_BASE = import.meta.env.BACKEND_URL || '';
 
 /**
  * Core Network Interface Handler 

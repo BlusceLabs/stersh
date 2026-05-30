@@ -33,7 +33,7 @@
   let loading = $state(true);
   let error = $state('');
   let fetchKey = $state(0);
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 5;
   let playing = $state(false);
   let ended = $state(false);
   let currentTime = $state(0);
@@ -293,6 +293,7 @@
     document.addEventListener('fullscreenchange', onFullscreenChange);
     document.addEventListener('keydown', handleKeydown);
     window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('beforeunload', saveProgress);
 
     let progressInterval: ReturnType<typeof setInterval> | null = null;
     if (onProgress) {
@@ -300,11 +301,12 @@
         if (v.duration > 0) {
           onProgress({ currentTime: v.currentTime, duration: v.duration });
         }
-      }, 15000);
+      }, 5000);
     }
 
     return () => {
       if (progressInterval) clearInterval(progressInterval);
+      window.removeEventListener('beforeunload', saveProgress);
       v.removeEventListener('timeupdate', onTime);
       v.removeEventListener('loadedmetadata', onMeta);
       v.removeEventListener('play', onPlay);
@@ -326,10 +328,16 @@
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
 
     if (Hls.isSupported()) {
-      const hls = new Hls({ startPosition: 0, capLevelToPlayerSize: true });
+      const hls = new Hls({
+        startPosition: startTime > 0 ? startTime : 0,
+        capLevelToPlayerSize: true,
+        xhrSetup: (xhr, url) => {
+          xhr.timeout = 30000;
+        },
+      });
       hls.loadSource(hlsUrl);
       hls.attachMedia(videoEl);
-      
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         qualities = [...hls.levels].reverse().map((lvl, index) => ({
           index,
@@ -350,13 +358,26 @@
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
           const code = data.response?.code;
-          if ((code === 404 || code === 410) && hlsRetries < MAX_RETRIES && src) {
-            hlsRetries++;
-            hlsUrl = '';
-            fetchKey++;
+          const isRetryable = code === 404 || code === 410 || code === 0 || !code;
+          const context = data.context;
+
+          // Don't retry network-level fragment/segment errors if we've exceeded retries
+          if (context && ('frag' in context || 'level' in context) && hlsRetries >= MAX_RETRIES) {
+            error = 'Stream connection interrupted. Please try switching servers or refreshing.';
             return;
           }
-          error = 'Stream connection interrupted. Attempting recover...';
+
+          if (isRetryable && hlsRetries < MAX_RETRIES && src) {
+            hlsRetries++;
+            console.warn(`[HLS] Fatal error (attempt ${hlsRetries}/${MAX_RETRIES}):`, data.type, data.details, 'code:', code);
+            // Clear hlsUrl and bump fetchKey to re-fetch manifest with fresh tokens
+            hlsUrl = '';
+            // Small delay before retry to avoid hammering
+            setTimeout(() => { fetchKey++; }, 500 * hlsRetries);
+            return;
+          }
+
+          error = 'Stream connection interrupted. Please try switching servers or refreshing.';
         }
       });
 
@@ -380,8 +401,15 @@
     loading = true; error = ''; hlsUrl = '';
     let cancelled = false;
 
-    fetch(src)
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    // On retry (hlsRetries > 0), force refresh to get fresh tokens
+    const refreshParam = hlsRetries > 0 ? '&refresh=true' : '';
+    const fetchUrl = `${src}${refreshParam}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    fetch(fetchUrl, { signal: controller.signal })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => {
         if (cancelled) return;
         error = '';
@@ -392,10 +420,23 @@
           error = 'No structural streaming feeds available.';
         }
       })
-      .catch(() => { if (!cancelled) error = 'Failed to establish stable streaming pipeline.'; })
-      .finally(() => { if (!cancelled) loading = false; });
+      .catch((err) => {
+        if (!cancelled) {
+          if (err.name === 'AbortError') {
+            error = 'Stream source timed out. Retrying...';
+            // Auto-retry on timeout
+            if (hlsRetries < MAX_RETRIES) {
+              hlsRetries++;
+              setTimeout(() => { fetchKey++; }, 1000);
+            }
+          } else {
+            error = 'Failed to establish stable streaming pipeline.';
+          }
+        }
+      })
+      .finally(() => { clearTimeout(timeoutId); if (!cancelled) loading = false; });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   });
 
   let progressPct = $derived(duration > 0 ? (currentTime / duration) * 100 : 0);
@@ -453,6 +494,14 @@
             </svg>
           </div>
           <p class="text-zinc-200 text-sm font-medium tracking-wide leading-relaxed px-4">{error}</p>
+          {#if src}
+            <button
+              onclick={(e) => { e.stopPropagation(); hlsRetries = 0; fetchKey++; }}
+              class="mt-4 px-5 py-2 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold uppercase tracking-wider hover:bg-red-500/25 hover:border-red-500/50 transition-all duration-200 active:scale-95"
+            >
+              Retry Stream
+            </button>
+          {/if}
         </div>
       </div>
     {/if}

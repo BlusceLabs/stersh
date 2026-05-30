@@ -40,6 +40,26 @@ export default defineConfig({
           changeOrigin: true,
           secure: false,
         },
+        '/continue-watching': {
+          target: BACKEND_URL,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/user': {
+          target: BACKEND_URL,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/ads': {
+          target: BACKEND_URL,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/analytics': {
+          target: BACKEND_URL,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     build: {
