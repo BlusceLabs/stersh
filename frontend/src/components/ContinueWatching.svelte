@@ -36,12 +36,16 @@
   }
 
   function loadFromStorage() {
+    const seen = new Set<string>();
     const result: any[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key || !key.startsWith('watchfy:')) continue;
       try {
         const data = JSON.parse(localStorage.getItem(key) || '');
+        const dedupeKey = `${data.mediaType}:${data.tmdbId}`;
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
         result.push({
           id: data.tmdbId,
           title: data.title,

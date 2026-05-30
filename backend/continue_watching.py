@@ -38,21 +38,27 @@ async def get_continue_watching(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ) -> List[Dict[str, Any]]:
-    """Get user's continue-watching list, sorted by most recently updated."""
+    """Get user's continue-watching list, deduplicated by tmdb_id (one entry per show/movie)."""
     rows = (
         db.query(PlaybackHistory)
         .filter(PlaybackHistory.user_id == current_user.id)
         .filter(PlaybackHistory.current_time > 0)
         .order_by(PlaybackHistory.updated_at.desc())
-        .limit(20)
         .all()
     )
+    seen: Dict[tuple, bool] = {}
     result = []
     for r in rows:
+        key = (r.tmdb_id, r.media_type)
+        if key in seen:
+            continue
+        seen[key] = True
         pct = round(r.current_time / r.duration * 100, 2) if r.duration and r.duration > 0 else 0
         result.append({
             "tmdb_id": r.tmdb_id,
             "media_type": r.media_type,
+            "title": r.title or "",
+            "poster_path": r.poster_path or "",
             "season": r.season,
             "episode": r.episode,
             "current_time": r.current_time,
@@ -60,6 +66,8 @@ async def get_continue_watching(
             "progress_pct": pct,
             "updated_at": r.updated_at.isoformat() if r.updated_at else None,
         })
+        if len(result) >= 20:
+            break
     return result
 
 
