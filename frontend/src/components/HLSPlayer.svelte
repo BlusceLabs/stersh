@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import Hls from 'hls.js';
 
   // Props (Svelte 5 Runes)
@@ -87,6 +88,12 @@
     if (countdownTimer) clearInterval(countdownTimer);
     countdownTimer = null;
     countdown = 0;
+  }
+
+  // Save progress before unload
+  function saveProgress() {
+    if (!videoEl || !onProgress || !videoEl.duration) return;
+    onProgress({ currentTime: videoEl.currentTime, duration: videoEl.duration });
   }
 
   // Playback Rate Options
