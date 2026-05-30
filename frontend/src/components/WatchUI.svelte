@@ -135,15 +135,55 @@
     document.title = `${title} - Watchfy`;
   }
 
-  let resumeTime = $derived.by(() => {
+  let resumeTime = $state(0);
+  let _lastPostTs = 0;
+
+  async function saveProgressToBackend(currentTime: number, duration: number) {
     try {
-      const saved = localStorage.getItem(`watchfy:${mediaType}:${id}:${season}:${episode}`);
-      if (saved) {
-        const data = JSON.parse(saved);
-        return data.currentTime || 0;
-      }
+      const token = localStorage.getItem('watchfy_token');
+      if (!token) return;
+      const now = Date.now();
+      if (now - _lastPostTs < 5000) return; // debounce 5s
+      _lastPostTs = now;
+      await fetch('/continue-watching/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          tmdb_id: Number(id),
+          media_type: mediaType,
+          current_time: currentTime,
+          duration: duration,
+        }),
+      });
     } catch {}
-    return 0;
+  }
+
+  $effect(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('watchfy_token');
+        if (token) {
+          const res = await fetch('/continue-watching/', {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const items = await res.json();
+            const match = items.find((i: any) => i.tmdb_id === Number(id) && (mediaType !== 'tv' || i.season === season && i.episode === episode));
+            if (match && match.current_time > 5) {
+              resumeTime = match.current_time;
+              return;
+            }
+          }
+        }
+      } catch {}
+      try {
+        const saved = localStorage.getItem(`watchfy:${mediaType}:${id}:${season}:${episode}`);
+        if (saved) {
+          const data = JSON.parse(saved);
+          resumeTime = data.currentTime || 0;
+        }
+      } catch {}
+    })();
   });
 
   let upnextItems: any[] = $state([]);
@@ -205,6 +245,7 @@
                   episode,
                 }));
               } catch {}
+              saveProgressToBackend(data.currentTime, data.duration);
             }}
           />
         </div>

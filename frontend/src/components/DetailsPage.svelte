@@ -41,13 +41,43 @@
   let myListFlag = $state(false);
 
   $effect(() => {
-    try {
-      myListFlag = localStorage.getItem(`watchfy:mylist:${mediaType}:${id}`) === 'true';
-    } catch { myListFlag = false; }
+    (async () => {
+      try {
+        const token = localStorage.getItem('watchfy_token');
+        if (token) {
+          const res = await fetch(`/user/watchlist/${mediaType}/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (res.ok) { myListFlag = true; return; }
+        }
+      } catch {}
+      try { myListFlag = localStorage.getItem(`watchfy:mylist:${mediaType}:${id}`) === 'true'; }
+      catch { myListFlag = false; }
+    })();
   });
 
-  function toggleMyList() {
+  async function toggleMyList() {
     const key = `watchfy:mylist:${mediaType}:${id}`;
+    const token = localStorage.getItem('watchfy_token');
+    if (token) {
+      try {
+        if (myListFlag) {
+          await fetch(`/user/watchlist/${mediaType}/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          myListFlag = false;
+        } else {
+          await fetch(`/user/watchlist/${mediaType}/${id}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          myListFlag = true;
+        }
+        return;
+      } catch {}
+    }
+    // Fallback to localStorage
     try {
       if (myListFlag) {
         localStorage.removeItem(key);

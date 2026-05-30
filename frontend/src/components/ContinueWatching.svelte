@@ -4,6 +4,37 @@
   let items = $state<any[]>([]);
   let loaded = $state(false);
 
+  async function loadFromAPI() {
+    try {
+      const token = localStorage.getItem('watchfy_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch('/continue-watching/', { headers });
+      if (res.ok) {
+        const data = await res.json();
+        items = (data || []).map((item: any) => ({
+          id: item.tmdb_id,
+          title: item.title,
+          name: item.title,
+          poster_path: item.poster_path,
+          vote_average: item.vote_average || 0,
+          release_date: item.release_date || '',
+          first_air_date: item.first_air_date || '',
+          media_type: item.media_type,
+          _progress: {
+            currentTime: item.current_time || 0,
+            duration: item.duration || 0,
+            timestamp: item.updated_at || item.created_at || 0,
+          },
+        }));
+        loaded = true;
+        return;
+      }
+    } catch {}
+    // Fallback to localStorage if API fails
+    loadFromStorage();
+  }
+
   function loadFromStorage() {
     const result: any[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -41,7 +72,7 @@
   }
 
   $effect(() => {
-    loadFromStorage();
+    loadFromAPI();
   });
 </script>
 

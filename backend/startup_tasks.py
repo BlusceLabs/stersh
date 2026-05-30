@@ -38,7 +38,7 @@ async def startup_event():
     
     # Test database connection
     try:
-        from .database import get_db
+        from database import get_db
         db = get_db()
         db.close()
         logger.info('"database_connection_ok"')

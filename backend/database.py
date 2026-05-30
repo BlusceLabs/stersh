@@ -3,11 +3,15 @@ from __future__ import annotations
 
 import os
 import logging
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from sqlalchemy import create_engine, pool
+from sqlalchemy import (
+    create_engine, pool,
+    Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker, scoped_session, relationship
 from sqlalchemy.sql import func
 
 # Configuration
@@ -18,6 +22,186 @@ DB_POOL_RECYCLE = int(os.environ.get("DB_POOL_RECYCLE", "3600"))  # 1 hour
 DB_POOL_PRE_PING = os.environ.get("DB_POOL_PRE_PING", "true").lower() == "true"
 
 Base = declarative_base()
+
+
+# ── Models ────────────────────────────────────────────────────────────────────
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    username = Column(String(100), unique=True, index=True, nullable=False)
+    password_hash = Column(String(512), nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
+    watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
+    playback_history = relationship("PlaybackHistory", back_populates="user", cascade="all, delete-orphan")
+    ratings = relationship("Rating", back_populates="user", cascade="all, delete-orphan")
+    ad_interactions = relationship("UserAdInteraction", back_populates="user", cascade="all, delete-orphan")
+    analytics_events = relationship("AnalyticsEvent", back_populates="user", cascade="all, delete-orphan")
+
+
+class Movie(Base):
+    __tablename__ = "movies"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    tmdb_id = Column(Integer, unique=True, index=True, nullable=False)
+    title = Column(String(500), nullable=False)
+    overview = Column(Text)
+    poster_path = Column(String(500))
+    backdrop_path = Column(String(500))
+    release_date = Column(String(20))
+    vote_average = Column(Float, default=0)
+    vote_count = Column(Integer, default=0)
+    popularity = Column(Float, default=0)
+    genre_ids = Column(String(500))  # JSON-serialized list
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TVShow(Base):
+    __tablename__ = "tv_shows"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    tmdb_id = Column(Integer, unique=True, index=True, nullable=False)
+    name = Column(String(500), nullable=False)
+    overview = Column(Text)
+    poster_path = Column(String(500))
+    backdrop_path = Column(String(500))
+    first_air_date = Column(String(20))
+    vote_average = Column(Float, default=0)
+    vote_count = Column(Integer, default=0)
+    popularity = Column(Float, default=0)
+    genre_ids = Column(String(500))
+    number_of_seasons = Column(Integer, default=0)
+    number_of_episodes = Column(Integer, default=0)
+    status = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+    __table_args__ = (
+        UniqueConstraint("user_id", "tmdb_id", "media_type", name="uq_favorite_user_item"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tmdb_id = Column(Integer, nullable=False)
+    media_type = Column(String(10), nullable=False)  # 'movie' or 'tv'
+    title = Column(String(500))
+    poster_path = Column(String(500))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="favorites")
+
+
+class Watchlist(Base):
+    __tablename__ = "watchlist"
+    __table_args__ = (
+        UniqueConstraint("user_id", "tmdb_id", "media_type", name="uq_watchlist_user_item"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tmdb_id = Column(Integer, nullable=False)
+    media_type = Column(String(10), nullable=False)  # 'movie' or 'tv'
+    title = Column(String(500))
+    poster_path = Column(String(500))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="watchlist")
+
+
+class PlaybackHistory(Base):
+    __tablename__ = "playback_history"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # nullable for anonymous
+    tmdb_id = Column(Integer, nullable=False)
+    media_type = Column(String(10), nullable=False)  # 'movie' or 'tv'
+    title = Column(String(500))
+    poster_path = Column(String(500))
+    season = Column(Integer)
+    episode = Column(Integer)
+    current_time = Column(Float, default=0)  # seconds
+    duration = Column(Float, default=0)  # seconds
+    progress_pct = Column(Float, default=0)  # 0-100
+    source_server = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="playback_history")
+
+
+class Rating(Base):
+    __tablename__ = "ratings"
+    __table_args__ = (
+        UniqueConstraint("user_id", "tmdb_id", "media_type", name="uq_rating_user_item"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tmdb_id = Column(Integer, nullable=False)
+    media_type = Column(String(10), nullable=False)  # 'movie' or 'tv'
+    rating = Column(Float, nullable=False)  # 0-10
+    review = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="ratings")
+
+
+class Ad(Base):
+    __tablename__ = "ads"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    title = Column(String(500), nullable=False)
+    description = Column(Text)
+    image_url = Column(String(1000))
+    target_url = Column(String(1000))
+    placement = Column(String(50), default="banner")  # banner, interstitial, sidebar
+    is_active = Column(Boolean, default=True)
+    impressions = Column(Integer, default=0)
+    clicks = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    interactions = relationship("UserAdInteraction", back_populates="ad", cascade="all, delete-orphan")
+
+
+class UserAdInteraction(Base):
+    __tablename__ = "user_ad_interactions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    ad_id = Column(Integer, ForeignKey("ads.id"), nullable=False)
+    interaction_type = Column(String(20), nullable=False)  # 'impression', 'click'
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="ad_interactions")
+    ad = relationship("Ad", back_populates="interactions")
+
+
+class AnalyticsEvent(Base):
+    __tablename__ = "analytics_events"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    event_type = Column(String(50), nullable=False)  # 'play', 'pause', 'stop', 'search', 'click'
+    event_data = Column(Text)  # JSON blob
+    ip_address = Column(String(45))
+    user_agent = Column(String(500))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="analytics_events")
+
 
 # Session factory with pooling
 if "sqlite" in DATABASE_URL.lower():

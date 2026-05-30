@@ -12,7 +12,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-from .database import SessionLocal, User, get_db
+from database import SessionLocal, User, get_db
 
 # Configuration
 JWT_SECRET = os.environ.get("JWT_SECRET", "your-secret-key-change-this")
@@ -44,7 +44,7 @@ class UserCreate(UserBase):
     pass
 
 class UserResponse(BaseModel):
-    user: User
+    user: UserOut
     access_token: str
     refresh_token: str
 

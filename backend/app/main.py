@@ -34,6 +34,11 @@ from app.api.proxy import router as proxy_router
 from app.api.ffmpeg_remux import router as ffmpeg_router
 from app.api.tmdb import include_router as include_tmdb_router
 
+from user_features import router as user_features_router
+from ads import router as ads_router
+from analytics import router as analytics_router
+from continue_watching import router as continue_watching_router
+
 load_dotenv()
 
 # ── Logging ────────────────────────────────────────────────────────────────────
@@ -141,6 +146,11 @@ app.include_router(white_router)
 app.include_router(proxy_router)
 app.include_router(ffmpeg_router)
 include_tmdb_router(app)
+
+app.include_router(user_features_router)
+app.include_router(ads_router)
+app.include_router(analytics_router)
+app.include_router(continue_watching_router)
 
 # ── Health & meta endpoints ────────────────────────────────────────────────────
 

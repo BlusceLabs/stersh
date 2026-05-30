@@ -5,8 +5,8 @@ from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from .database import get_db, Favorite, Watchlist, PlaybackHistory, Rating, Movie, TVShow
-from .auth import get_current_active_user
+from database import get_db, User, Favorite, Watchlist, PlaybackHistory, Rating, Movie, TVShow
+from auth import get_current_active_user
 
 router = APIRouter(prefix="/user", tags=["user-features"])
 
