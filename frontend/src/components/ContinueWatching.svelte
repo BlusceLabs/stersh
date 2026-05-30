@@ -21,6 +21,8 @@
           release_date: item.release_date || '',
           first_air_date: item.first_air_date || '',
           media_type: item.media_type,
+          season: item.season as number | undefined,
+          episode: item.episode as number | undefined,
           _progress: {
             currentTime: item.current_time || 0,
             duration: item.duration || 0,
@@ -55,6 +57,8 @@
           release_date: '',
           first_air_date: '',
           media_type: data.mediaType,
+          season: data.season as number | undefined,
+          episode: data.episode as number | undefined,
           _progress: data,
         });
       } catch {}
@@ -114,7 +118,7 @@
       >
         {#each items as item}
           <div class="flex-shrink-0 w-[140px] sm:w-[170px] snap-start transition-transform duration-300 transform hover:scale-[1.02] hover:z-10">
-            <MovieCard movie={item} type={item.media_type === 'tv' ? 'tv' : 'movie'} progress={item._progress?.duration > 0 ? item._progress.currentTime / item._progress.duration : 0} />
+            <MovieCard movie={item} type={item.media_type === 'tv' ? 'tv' : 'movie'} progress={item._progress?.duration > 0 ? item._progress.currentTime / item._progress.duration : 0} season={item.season} episode={item.episode} />
           </div>
         {/each}
       </div>

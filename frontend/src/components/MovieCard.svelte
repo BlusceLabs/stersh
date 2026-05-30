@@ -1,13 +1,16 @@
 <script lang="ts">
-  let { movie, type = 'movie', progress = undefined } = $props<{
+  let { movie, type = 'movie', progress = undefined, season = undefined, episode = undefined } = $props<{
     movie: any;
     type?: string;
     progress?: number;
+    season?: number;
+    episode?: number;
   }>();
   
   // Clean Data Normalization Engine
   const mediaType = typeof type === 'string' ? type : (movie.media_type === 'tv' ? 'tv' : 'movie');
   const id = movie.id;
+  const watchHref = season && episode ? `/${mediaType}/${id}?season=${season}&episode=${episode}` : `/${mediaType}/${id}`;
   const title = movie.title || movie.name || 'Untitled Feature';
   const year = (movie.release_date || movie.first_air_date || '').split('-')[0] || '—';
   const poster = movie.poster_path 
@@ -17,7 +20,7 @@
 </script>
 
 <a 
-  href={`/${mediaType}/${id}`} 
+  href={watchHref} 
   class="group block focus:outline-none"
   aria-label={`View details for ${title}`}
 >
