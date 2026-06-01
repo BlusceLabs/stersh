@@ -399,4 +399,5 @@ between `@qwikdev/astro`'s bundled `astro@4` types and the project's
 
 ## License
 
-Add a `LICENSE` file at the repo root to make this explicit.
+[MIT](./LICENSE) — Copyright (c) 2026 BlusceLabs. See [`LICENSE`](./LICENSE)
+for the full text.
