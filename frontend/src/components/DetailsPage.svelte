@@ -31,7 +31,7 @@
   }
 
   // Reactive States
-  let data: MediaDetails | null = $state(null);
+  let data = $state<MediaDetails | null>(null);
   let loading = $state(true);
   let error = $state('');
   let selectedSeason = $state(1);
@@ -96,7 +96,7 @@
   );
 
   // Derived Values
-  let mediaType = $derived(media === 'tv' ? 'tv' : 'movie');
+  let mediaType: 'movie' | 'tv' = $derived(media === 'tv' ? 'tv' : 'movie');
   let title = $derived(data?.title || data?.name || '');
   let year = $derived((data?.release_date || data?.first_air_date || '').split('-')[0]);
   let rating = $derived(data?.vote_average ? (data.vote_average / 2).toFixed(1) : null);
