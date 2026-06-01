@@ -1,5 +1,7 @@
 # Makefile for Watch!fy
-.PHONY: help setup backend frontend test clean
+.PHONY: help setup backend frontend gateway test up down logs health clean
+
+COMPOSE_FILE := backend/docker-compose.yml
 
 help:
 	@echo "Usage:"
@@ -10,8 +12,8 @@ help:
 	@echo "  make down         Stop all services"
 	@echo "  make logs         View logs"
 	@echo "  make health       Run health check"
-@echo "  make test          Run tests (if any)"
-@echo "  make clean         Clean up build artifacts"
+	@echo "  make test         Run project checks"
+	@echo "  make clean        Clean up build artifacts"
 
 setup:
 	@echo "Setting up Watch!fy..."
@@ -25,31 +27,37 @@ backend:
 	@echo "Starting backend..."
 	@cd backend && uvicorn black:app --reload --port 8000
 
+gateway:
+	@echo "Starting gateway..."
+	@cd backend/gateway && go run ./cmd/server
+
 frontend:
 	@echo "Starting frontend..."
 	@cd frontend && npm run dev
 
 up:
 	@echo "Starting all services with Docker Compose..."
-	@docker-compose up --build
+	@docker compose -f $(COMPOSE_FILE) up --build
 
 down:
 	@echo "Stopping all services..."
-	@docker-compose down
+	@docker compose -f $(COMPOSE_FILE) down
 
 logs:
 	@echo "Tailing logs..."
-	@docker-compose logs -f
+	@docker compose -f $(COMPOSE_FILE) logs -f
 
 health:
 	@echo "Running health check..."
 	@./health_check.sh
 
 test:
-	@echo "No tests implemented yet."
+	@cd frontend && npm run build
+	@cd backend/gateway && GOCACHE=/tmp/watchfy-go-cache GOPATH=/tmp/watchfy-go go test ./...
+	@python3 -m compileall -q backend
 
 clean:
 	@echo "Cleaning up..."
-	@docker-compose down --volumes
+	@docker compose -f $(COMPOSE_FILE) down --volumes
 	@rm -rf backend/__pycache__ backend/.pytest_cache backend/.ruff_cache
 	@rm -rf frontend/node_modules frontend/.next frontend/dist

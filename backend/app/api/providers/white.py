@@ -52,7 +52,7 @@ _refreshing: set[str] = set()
 _futures: dict[str, asyncio.Future] = {}
 _futures_lock = asyncio.Lock()
 
-_url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=1800)
+_url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=86400)
 
 _prewarm_semaphore = asyncio.Semaphore(2)
 
@@ -236,9 +236,6 @@ async def onetoone_proxy_hls(url: str = Query(...)) -> Response:
 
         for line in text.split("\n"):
             stripped = line.strip()
-
-            if stripped == "#EXT-X-ENDLIST":
-                continue
 
             if stripped.startswith("#EXT-X-PLAYLIST-TYPE:"):
                 lines.append(line)

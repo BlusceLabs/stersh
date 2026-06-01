@@ -52,6 +52,10 @@ func (s *MovieService) GetTrending(ctx context.Context) (*TrendingResponse, erro
     }
     defer resp.Body.Close()
 
+    if resp.StatusCode >= 400 {
+        return nil, fmt.Errorf("tmdb trending: HTTP %d", resp.StatusCode)
+    }
+
     var data struct {
         Results []struct {
             ID           int     `json:"id"`
@@ -72,12 +76,12 @@ func (s *MovieService) GetTrending(ctx context.Context) (*TrendingResponse, erro
         results = append(results, TrendingMovie{
             ID:           m.ID,
             Title:        m.Title,
-            PosterPath:   "https://image.tmdb.org/t/p/w780" + m.PosterPath,
-            BackdropPath: "https://image.tmdb.org/t/p/w1280" + m.BackdropPath,
-            Rating:       m.VoteAverage,
-            Year:         m.ReleaseDate[:4],
-        })
-    }
+			PosterPath:   tmdbImage("w780", m.PosterPath),
+			BackdropPath: tmdbImage("w1280", m.BackdropPath),
+			Rating:       m.VoteAverage,
+			Year:         yearFromDate(m.ReleaseDate),
+		})
+	}
 
     respData := &TrendingResponse{Results: results}
     s.cache.Set("trending", respData)

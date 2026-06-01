@@ -1,6 +1,7 @@
 package services
 
 import (
+    "log"
     "sync"
     "time"
 )
@@ -45,6 +46,15 @@ func (c *ttlCache) Set(key string, data any) {
 }
 
 func (c *ttlCache) cleanup() {
+    // A panic in this long-lived goroutine would otherwise crash the
+    // entire gateway process. Recover and re-arm the cleanup loop.
+    defer func() {
+        if r := recover(); r != nil {
+            log.Printf("ttlCache.cleanup panic: %v — restarting", r)
+            time.Sleep(time.Second)
+            go c.cleanup()
+        }
+    }()
     for {
         time.Sleep(c.ttl)
         c.mu.Lock()

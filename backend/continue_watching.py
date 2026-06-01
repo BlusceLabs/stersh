@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import get_db, PlaybackHistory, User
@@ -14,23 +14,28 @@ router = APIRouter(prefix="/continue-watching", tags=["continue-watching"])
 
 
 class ProgressIn(BaseModel):
-    tmdb_id: int
+    tmdb_id: int = Field(gt=0)
     media_type: str  # 'movie' or 'tv'
-    season: Optional[int] = None
-    episode: Optional[int] = None
-    current_time: float = 0
-    duration: float = 0
+    season: Optional[int] = Field(default=None, ge=1)
+    episode: Optional[int] = Field(default=None, ge=1)
+    title: Optional[str] = Field(default=None, max_length=500)
+    poster_path: Optional[str] = Field(default=None, max_length=500)
+    source_server: Optional[str] = Field(default=None, max_length=32)
+    current_time: float = Field(default=0, ge=0)
+    duration: float = Field(default=0, ge=0)
 
 
 class ProgressOut(BaseModel):
     tmdb_id: int
     media_type: str
+    title: str = ""
+    poster_path: str = ""
     season: Optional[int] = None
     episode: Optional[int] = None
     current_time: float
     duration: float
     progress_pct: float
-    updated_at: str
+    updated_at: Optional[str] = None
 
 
 @router.get("/", response_model=List[ProgressOut])
@@ -71,6 +76,9 @@ async def get_continue_watching(
     return result
 
 
+_ALLOWED_SOURCE_SERVERS = frozenset({"white", "black"})
+
+
 @router.post("/")
 async def save_progress(
     body: ProgressIn,
@@ -80,8 +88,12 @@ async def save_progress(
     """Save or update playback progress for the current user."""
     if body.media_type not in ("movie", "tv"):
         raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+    server = body.source_server
+    if server is not None and server not in _ALLOWED_SOURCE_SERVERS:
+        raise HTTPException(status_code=400, detail="source_server must be 'white' or 'black'")
 
-    # Upsert: check for existing row
+    progress_pct = round(body.current_time / body.duration * 100, 2) if body.duration and body.duration > 0 else 0
+
     row = (
         db.query(PlaybackHistory)
         .filter(PlaybackHistory.user_id == current_user.id)
@@ -90,35 +102,48 @@ async def save_progress(
     )
     if body.season is not None:
         row = row.filter(PlaybackHistory.season == body.season)
+    else:
+        row = row.filter(PlaybackHistory.season.is_(None))
     if body.episode is not None:
         row = row.filter(PlaybackHistory.episode == body.episode)
+    else:
+        row = row.filter(PlaybackHistory.episode.is_(None))
     row = row.first()
 
     if row:
         row.current_time = body.current_time
         row.duration = body.duration
+        row.progress_pct = progress_pct
+        row.title = body.title or row.title
+        row.poster_path = body.poster_path or row.poster_path
+        row.source_server = server or row.source_server
         row.updated_at = datetime.utcnow()
     else:
         row = PlaybackHistory(
             user_id=current_user.id,
             tmdb_id=body.tmdb_id,
             media_type=body.media_type,
+            title=body.title,
+            poster_path=body.poster_path,
             season=body.season,
             episode=body.episode,
             current_time=body.current_time,
             duration=body.duration,
+            progress_pct=progress_pct,
+            source_server=server,
         )
         db.add(row)
 
     db.commit()
     db.refresh(row)
 
-    pct = round(body.current_time / body.duration * 100, 2) if body.duration and body.duration > 0 else 0
     return {
         "message": "Progress saved",
         "tmdb_id": body.tmdb_id,
         "media_type": body.media_type,
-        "progress_pct": pct,
+        "season": body.season,
+        "episode": body.episode,
+        "progress_pct": progress_pct,
     }
 
 
@@ -132,6 +157,12 @@ async def remove_from_continue_watching(
     db: Session = Depends(get_db),
 ) -> Dict[str, str]:
     """Remove an item from continue watching."""
+    if media_type not in ("movie", "tv"):
+        raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+    if season is not None and season < 1:
+        raise HTTPException(status_code=400, detail="season must be >= 1")
+    if episode is not None and episode < 1:
+        raise HTTPException(status_code=400, detail="episode must be >= 1")
     q = (
         db.query(PlaybackHistory)
         .filter(PlaybackHistory.user_id == current_user.id)

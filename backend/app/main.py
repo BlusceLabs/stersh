@@ -9,6 +9,7 @@ import logging
 import os
 import platform
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
@@ -31,13 +32,18 @@ from app.api.providers.white import (
 )
 from app.core.extractors.white import close_pooled_session as close_white_session
 from app.api.proxy import router as proxy_router
+from app.api.proxy import shutdown_enhanced_client
 from app.api.ffmpeg_remux import router as ffmpeg_router
 from app.api.tmdb import include_router as include_tmdb_router
+from app.api.tmdb import close_client as close_tmdb_client
 
+from database import init_db, get_engine
+from auth import router as auth_router
 from user_features import router as user_features_router
 from ads import router as ads_router
 from analytics import router as analytics_router
 from continue_watching import router as continue_watching_router
+from config import router as config_router
 
 load_dotenv()
 
@@ -47,7 +53,7 @@ _LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 
 logging.basicConfig(
     level=_LOG_LEVEL,
-    format='{"time":"%(asctime)s","level":"%(levelname)s","name":"%(name)s","msg":%(message)s}',
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -68,6 +74,7 @@ if not _INDEX.exists():
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info('"watchfy_starting"')
+    init_db()
     yield
     logger.info('"watchfy_shutting_down"')
     results = await asyncio.gather(
@@ -75,6 +82,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         shutdown_black_client(),
         shutdown_white_browser(),
         shutdown_white_client(),
+        shutdown_enhanced_client(),
+        close_tmdb_client(),
         close_white_session(),
 
         return_exceptions=True,
@@ -116,6 +125,15 @@ app.add_middleware(
 
 
 @app.middleware("http")
+async def request_id_middleware(request: Request, call_next) -> Response:
+    request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+@app.middleware("http")
 async def security_headers_middleware(request: Request, call_next) -> Response:
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -132,7 +150,8 @@ async def latency_middleware(request: Request, call_next) -> Response:
     response.headers["X-Latency-Ms"] = str(elapsed_ms)
     if elapsed_ms > 5_000:
         logger.warning(
-            '"slow_request","method":"%s","path":"%s","latency_ms":%s',
+            '"slow_request","request_id":"%s","method":"%s","path":"%s","latency_ms":%s',
+            getattr(request.state, "request_id", ""),
             request.method, request.url.path, elapsed_ms,
         )
     return response
@@ -148,9 +167,11 @@ app.include_router(ffmpeg_router)
 include_tmdb_router(app)
 
 app.include_router(user_features_router)
+app.include_router(auth_router)
 app.include_router(ads_router)
 app.include_router(analytics_router)
 app.include_router(continue_watching_router)
+app.include_router(config_router)
 
 # ── Health & meta endpoints ────────────────────────────────────────────────────
 
@@ -161,7 +182,12 @@ async def health() -> JSONResponse:
 
 @app.get("/api/ready", tags=["meta"], summary="Readiness probe")
 async def ready() -> JSONResponse:
-    return JSONResponse({"status": "ready"}, status_code=200)
+    try:
+        with get_engine().connect() as conn:
+            conn.exec_driver_sql("SELECT 1")
+    except Exception as exc:
+        return JSONResponse({"status": "not_ready", "database": "unavailable", "detail": str(exc)}, status_code=503)
+    return JSONResponse({"status": "ready", "database": "ok"}, status_code=200)
 
 
 # ── Root health dashboard ─────────────────────────────────────────────────────

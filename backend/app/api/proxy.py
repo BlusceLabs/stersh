@@ -17,31 +17,15 @@ import time
 from urllib.parse import urlparse
 
 import httpx
+from cachetools import TTLCache
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
+from ssrf import ALLOWED_HOSTS as ENHANCED_ALLOWED_HOSTS  # re-exported for back-compat
+
 logger = logging.getLogger(__name__)
 
-# ── Allowed CDN hosts ─────────────────────────────────────────────────────────
-
-ENHANCED_ALLOWED_HOSTS = frozenset(
-    {
-        # Vidking CDN
-        "easy.speedsterwave.app",
-        "cdn.vidking.net",
-        "vidking.net",
-        # White CDN (111movies.net)
-        "cloudnestra.com",
-        "whisperingauroras.com",
-        "111movies.net",
-        "www.111movies.net",
-        "cdn.111movies.net",
-        # Common HLS CDN mirrors
-        "cdn.jwplayer.com",
-        "content.jwplatform.com",
-        "cdn.plyr.io",
-    }
-)
+# ── Allowed CDN hosts (single source of truth: ssrf.ALLOWED_HOSTS) ───────────
 
 _CDN_HEADERS = {
     "User-Agent": (
@@ -52,7 +36,9 @@ _CDN_HEADERS = {
 }
 
 _SHORT_TOKEN_LEN = 16
-_url_store: dict[str, str] = {}
+# Token store: TTLCache bounds both size and lifetime so the dict cannot
+# grow without bound if the upstream is spammed with arbitrary URL tokens.
+_url_store: TTLCache = TTLCache(maxsize=5000, ttl=86400)
 
 _proxy_client: httpx.AsyncClient | None = None
 
@@ -364,20 +350,20 @@ def _rewrite_manifest(text: str, base_url: str) -> str:
     *Media playlist* (no ``#EXT-X-STREAM-INF``)
       Segment URIs are rewritten to ``/api/proxy/seg/<token>``.
 
-    In both cases:
-      - ``#EXT-X-ENDLIST`` is stripped so the player periodically reloads the
-        manifest, refreshing token TTLs and avoiding mid-stream expiry.
-      - ``#EXT-X-PLAYLIST-TYPE`` tags are preserved as-is (no VOD→EVENT conversion,
-        which would cause hls.js to seek to the live edge near the end).
+    Details:
+      - ``#EXT-X-ENDLIST`` is preserved so VOD content stays VOD. hls.js will
+        NOT periodically reload the manifest, which avoids race conditions from
+        CDN URL rotation mid-playback and prevents spurious live-edge seeks.
+      - ``#EXT-X-PLAYLIST-TYPE`` tags are preserved as-is.
+      - Token TTL (86400s) is long enough to outlast any movie — if segments
+        fail mid-playback, the frontend retry logic re-fetches the source via
+        the API endpoint (getting fresh CDN URLs) and creates new tokens.
     """
     lines: list[str] = []
     next_is_variant = False
 
     for line in text.split("\n"):
         stripped = line.strip()
-
-        if stripped == "#EXT-X-ENDLIST":
-            continue
 
         if stripped.startswith("#EXT-X-PLAYLIST-TYPE:"):
             lines.append(line)

@@ -34,26 +34,6 @@ import Layout from '../layouts/Layout.astro';
         <select id="genre-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
           <option value="">All Genres</option>
         </select>
-      </div>
-        
-        <div class="flex-shrink-0 self-start sm:self-auto bg-zinc-900/60 border border-zinc-800/60 rounded-xl px-3.5 py-1.5 backdrop-blur-md">
-          <span class="text-xs font-bold text-zinc-400 tracking-wide uppercase flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-            Live Catalog
-          </span>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-3 mb-8">
-        <select id="sort-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
-          <option value="popular">Most Popular</option>
-          <option value="top_rated">Top Rated</option>
-          <option value="now_playing">Now Playing</option>
-          <option value="upcoming">Upcoming</option>
-        </select>
-        <select id="genre-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
-          <option value="">All Genres</option>
-        </select>
         <div class="flex items-center gap-2 ml-auto">
           <button id="prev-page" class="px-3 py-2 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold rounded-xl hover:bg-zinc-800/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" disabled>Prev</button>
           <span id="page-info" class="text-xs text-zinc-500 font-medium">Page 1</span>
@@ -93,46 +73,71 @@ import Layout from '../layouts/Layout.astro';
     const title = movie.title || movie.name || 'Untitled Feature';
     const year = (movie.release_date || '').split('-')[0] || '—';
     const rating = movie.vote_average || 0;
-    
-    const poster = movie.poster_path 
-      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+    const hasRating = rating > 0;
+
+    const poster = movie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
       : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1470';
 
     const cellAnchor = document.createElement('a');
     cellAnchor.href = `/movie/${id}`;
-    cellAnchor.className = "group block focus:outline-none";
+    cellAnchor.className = 'group block focus:outline-none';
     cellAnchor.setAttribute('aria-label', `View details for ${title}`);
-    
-    cellAnchor.innerHTML = `
-      <div class="relative bg-zinc-900 rounded-xl overflow-hidden aspect-[2/3] border border-zinc-800/40 shadow-md shadow-black/40 transition-all duration-500 ease-out transform group-hover:-translate-y-1.5 group-hover:border-zinc-700/60 group-hover:shadow-xl group-hover:shadow-black/70 focus-within:ring-2 focus-within:ring-red-500/50">
-        <img 
-          src="${poster}" 
-          alt="" 
-          class="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 brightness-[0.96] group-hover:brightness-110" 
-          loading="lazy" 
-        />
-        
-        ${rating > 0 ? `
-          <div class="absolute top-2 right-2 bg-zinc-950/75 backdrop-blur-md text-amber-400 font-bold text-[11px] px-2 py-1 rounded-lg flex items-center gap-1 border border-zinc-800/50 shadow-md">
-            <svg class="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            <span>${rating.toFixed(1)}</span>
-          </div>
-        ` : ''}
-        
-        <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none"></div>
-      </div>
-      
-      <div class="mt-2.5 px-0.5">
-        <h3 class="font-semibold text-zinc-200 group-hover:text-white text-sm tracking-tight line-clamp-1 transition-colors duration-200">
-          ${title}
-        </h3>
-        <div class="flex items-center gap-2 mt-0.5 text-[11px] font-medium text-zinc-500">
-          <span>${year}</span>
-          <span class="w-1 h-1 rounded-full bg-zinc-800"></span>
-          <span class="uppercase font-bold tracking-wider text-[9px] text-zinc-600">Feature</span>
-        </div>
-      </div>
-    `;
+
+    const posterWrap = document.createElement('div');
+    posterWrap.className = 'relative bg-zinc-900 rounded-xl overflow-hidden aspect-[2/3] border border-zinc-800/40 shadow-md shadow-black/40 transition-all duration-500 ease-out transform group-hover:-translate-y-1.5 group-hover:border-zinc-700/60 group-hover:shadow-xl group-hover:shadow-black/70 focus-within:ring-2 focus-within:ring-red-500/50';
+
+    const img = document.createElement('img');
+    img.src = poster;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.className = 'w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 brightness-[0.96] group-hover:brightness-110';
+    posterWrap.appendChild(img);
+
+    if (hasRating) {
+      const badge = document.createElement('div');
+      badge.className = 'absolute top-2 right-2 bg-zinc-950/75 backdrop-blur-md text-amber-400 font-bold text-[11px] px-2 py-1 rounded-lg flex items-center gap-1 border border-zinc-800/50 shadow-md';
+      const svgNs = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNs, 'svg');
+      svg.setAttribute('class', 'w-3.5 h-3.5 fill-amber-400');
+      svg.setAttribute('viewBox', '0 0 20 20');
+      const path = document.createElementNS(svgNs, 'path');
+      path.setAttribute('d', 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z');
+      svg.appendChild(path);
+      const ratingText = document.createElement('span');
+      ratingText.textContent = rating.toFixed(1);
+      badge.appendChild(svg);
+      badge.appendChild(ratingText);
+      posterWrap.appendChild(badge);
+    }
+
+    const gradient = document.createElement('div');
+    gradient.className = 'absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none';
+    posterWrap.appendChild(gradient);
+
+    cellAnchor.appendChild(posterWrap);
+
+    const meta = document.createElement('div');
+    meta.className = 'mt-2.5 px-0.5';
+    const h3 = document.createElement('h3');
+    h3.className = 'font-semibold text-zinc-200 group-hover:text-white text-sm tracking-tight line-clamp-1 transition-colors duration-200';
+    h3.textContent = title;
+    meta.appendChild(h3);
+    const metaRow = document.createElement('div');
+    metaRow.className = 'flex items-center gap-2 mt-0.5 text-[11px] font-medium text-zinc-500';
+    const yearSpan = document.createElement('span');
+    yearSpan.textContent = year;
+    const dot = document.createElement('span');
+    dot.className = 'w-1 h-1 rounded-full bg-zinc-800';
+    const badgeText = document.createElement('span');
+    badgeText.className = 'uppercase font-bold tracking-wider text-[9px] text-zinc-600';
+    badgeText.textContent = 'Feature';
+    metaRow.appendChild(yearSpan);
+    metaRow.appendChild(dot);
+    metaRow.appendChild(badgeText);
+    meta.appendChild(metaRow);
+    cellAnchor.appendChild(meta);
+
     return cellAnchor;
   };
 
@@ -159,7 +164,6 @@ import Layout from '../layouts/Layout.astro';
       if (sort === 'top_rated') {
         response = await tmdbApi.topRated('movie', currentPage);
       } else if (sort === 'now_playing') {
-        response = await tmdbApi.search('', 'movie', currentPage);
         response = await fetch(`/api/tmdb/movie/now_playing?page=${currentPage}`).then(r => r.json());
       } else if (sort === 'upcoming') {
         response = await fetch(`/api/tmdb/movie/upcoming?page=${currentPage}`).then(r => r.json());
@@ -190,12 +194,18 @@ import Layout from '../layouts/Layout.astro';
       console.error('Movies load error:', e);
       skeleton.classList.add('hidden');
       grid.classList.remove('opacity-0');
-      grid.innerHTML = `
-        <div class="col-span-full py-16 text-center">
-          <p class="text-red-400 font-bold mb-1">Failed to load</p>
-          <p class="text-zinc-500 text-xs">Could not fetch movie catalog.</p>
-        </div>
-      `;
+      grid.textContent = '';
+      const err = document.createElement('div');
+      err.className = 'col-span-full py-16 text-center';
+      const t1 = document.createElement('p');
+      t1.className = 'text-red-400 font-bold mb-1';
+      t1.textContent = 'Failed to load';
+      const t2 = document.createElement('p');
+      t2.className = 'text-zinc-500 text-xs';
+      t2.textContent = 'Could not fetch movie catalog.';
+      err.appendChild(t1);
+      err.appendChild(t2);
+      grid.appendChild(err);
     }
   }
 

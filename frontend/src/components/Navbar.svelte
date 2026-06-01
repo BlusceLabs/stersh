@@ -63,7 +63,7 @@
             : 'text-zinc-500 hover:text-zinc-300'}"
       >
         {#if active}
-          <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-white" />
+          <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-white"></div>
         {/if}
         <svg 
           xmlns="http://www.w3.org/2000/svg" 

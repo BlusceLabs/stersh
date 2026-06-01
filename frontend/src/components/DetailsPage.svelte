@@ -283,7 +283,8 @@
             
             <button onclick={toggleMyList} class="inline-flex items-center gap-2 px-5 py-3.5 bg-zinc-900/40 backdrop-blur-md text-zinc-300 hover:text-white text-sm font-semibold rounded-xl border border-zinc-800/60 hover:bg-zinc-800/60 hover:border-zinc-700 transition-all duration-300 active:scale-95 cursor-pointer select-none">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" class="w-4 h-4 transition-transform duration-300" class:rotate-45={myListFlag}>
-
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m7-7H5" />
+              </svg>
               {myListFlag ? 'In Your List' : 'My List'}
             </button>
 
@@ -443,12 +444,20 @@
 {#if showTrailer && trailerKey}
   <div
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
-    onclick={() => showTrailer = false}
+    onclick={(event) => {
+      if (event.currentTarget === event.target) showTrailer = false;
+    }}
+    onkeydown={(event) => {
+      if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+        showTrailer = false;
+      }
+    }}
     role="dialog"
     aria-modal="true"
     aria-label="Trailer"
+    tabindex="-1"
   >
-    <div class="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-zinc-800/60" onclick={(e) => e.stopPropagation()}>
+    <div class="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-zinc-800/60" role="document">
       <button
         onclick={() => showTrailer = false}
         class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"

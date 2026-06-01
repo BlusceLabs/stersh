@@ -18,10 +18,15 @@ type DetailsService struct {
     slugMu  sync.RWMutex
 }
 
+// maxSlugMapEntries bounds the slug → tmdbId map. Slugs are user-supplied
+// and unbounded in the wild; without a cap an attacker could exhaust
+// memory by hitting /api/details/by-slug/<unique-string> in a loop.
+const maxSlugMapEntries = 1024
+
 func NewDetailsService() *DetailsService {
     return &DetailsService{
         cache:   newTTLCache(10 * time.Minute),
-        slugMap: make(map[string]int),
+        slugMap: make(map[string]int, maxSlugMapEntries),
     }
 }
 
@@ -60,6 +65,10 @@ func (s *DetailsService) GetMovieDetails(ctx context.Context, id string) (*Movie
         return cached.(*MovieDetails), nil
     }
 
+    if !isSafePathSegment(id) {
+        return nil, fmt.Errorf("invalid movie id")
+    }
+
     apiKey := os.Getenv("TMDB_API_KEY")
 
     url := fmt.Sprintf(
@@ -74,6 +83,12 @@ func (s *DetailsService) GetMovieDetails(ctx context.Context, id string) (*Movie
         return nil, err
     }
     defer resp.Body.Close()
+
+    if resp.StatusCode >= 400 {
+        // Don't decode or cache error payloads — a 401/404/429 silently
+        // cached as a zero-value struct poisons the cache for `ttl`.
+        return nil, fmt.Errorf("tmdb movie %s: HTTP %d", id, resp.StatusCode)
+    }
 
     var data struct {
         ID           int    `json:"id"`
@@ -121,14 +136,14 @@ func (s *DetailsService) GetMovieDetails(ctx context.Context, id string) (*Movie
         companies = append(companies, ProductionCompany{
             ID:        pc.ID,
             Name:      pc.Name,
-            LogoPath:  "https://image.tmdb.org/t/p/w200" + pc.LogoPath,
+            LogoPath:  tmdbImage("w200", pc.LogoPath),
             OriginCountry: pc.OriginCountry,
         })
     }
 
     logo := ""
     if len(data.Images.Logos) > 0 {
-        logo = "https://image.tmdb.org/t/p/w780" + data.Images.Logos[0].FilePath
+        logo = tmdbImage("w780", data.Images.Logos[0].FilePath)
     }
 
     var runtime string
@@ -144,12 +159,12 @@ func (s *DetailsService) GetMovieDetails(ctx context.Context, id string) (*Movie
         ID:                  data.ID,
         Title:               data.Title,
         Overview:            data.Overview,
-        BackdropPath:        "https://image.tmdb.org/t/p/w1280" + data.BackdropPath,
-        PosterPath:          "https://image.tmdb.org/t/p/w780" + data.PosterPath,
+        BackdropPath:        tmdbImage("w1280", data.BackdropPath),
+        PosterPath:          tmdbImage("w780", data.PosterPath),
         LogoPath:            logo,
         Rating:              data.VoteAverage,
         Runtime:             runtime,
-        Year:                data.ReleaseDate[:4],
+        Year:                yearFromDate(data.ReleaseDate),
         Genres:              genres,
         MediaType:           "movie",
         ImdbID:              data.ImdbID,
@@ -185,6 +200,10 @@ func (s *DetailsService) GetTVDetails(ctx context.Context, id string) (*MovieDet
         return cached.(*MovieDetails), nil
     }
 
+    if !isSafePathSegment(id) {
+        return nil, fmt.Errorf("invalid tv id")
+    }
+
     apiKey := os.Getenv("TMDB_API_KEY")
 
     detailsURL := fmt.Sprintf(
@@ -198,6 +217,10 @@ func (s *DetailsService) GetTVDetails(ctx context.Context, id string) (*MovieDet
         return nil, err
     }
     defer resp.Body.Close()
+
+    if resp.StatusCode >= 400 {
+        return nil, fmt.Errorf("tmdb tv %s: HTTP %d", id, resp.StatusCode)
+    }
 
     var data struct {
         ID           int    `json:"id"`
@@ -253,19 +276,19 @@ func (s *DetailsService) GetTVDetails(ctx context.Context, id string) (*MovieDet
         companies = append(companies, ProductionCompany{
             ID:        pc.ID,
             Name:      pc.Name,
-            LogoPath:  "https://image.tmdb.org/t/p/w200" + pc.LogoPath,
+            LogoPath:  tmdbImage("w200", pc.LogoPath),
             OriginCountry: pc.OriginCountry,
         })
     }
 
     logo := ""
     if len(data.Images.Logos) > 0 {
-        logo = "https://image.tmdb.org/t/p/w780" + data.Images.Logos[0].FilePath
+        logo = tmdbImage("w780", data.Images.Logos[0].FilePath)
     }
 
     year := ""
     if len(data.FirstAirDate) >= 4 {
-        year = data.FirstAirDate[:4]
+        year = yearFromDate(data.FirstAirDate)
     }
 
     var seasons []SeasonInfo
@@ -280,8 +303,8 @@ func (s *DetailsService) GetTVDetails(ctx context.Context, id string) (*MovieDet
         ID:                  data.ID,
         Title:               data.Name,
         Overview:            data.Overview,
-        BackdropPath:        "https://image.tmdb.org/t/p/w1280" + data.BackdropPath,
-        PosterPath:          "https://image.tmdb.org/t/p/w780" + data.PosterPath,
+        BackdropPath:        tmdbImage("w1280", data.BackdropPath),
+        PosterPath:          tmdbImage("w780", data.PosterPath),
         LogoPath:            logo,
         Rating:              data.VoteAverage,
         Year:                year,
@@ -318,6 +341,10 @@ func (s *DetailsService) searchAndGetDetails(ctx context.Context, slug, title, s
     }
     defer resp.Body.Close()
 
+    if resp.StatusCode >= 400 {
+        return nil, fmt.Errorf("tmdb search %s: HTTP %d", mediaType, resp.StatusCode)
+    }
+
     var searchResult struct {
         Results []struct {
             ID int `json:"id"`
@@ -335,6 +362,15 @@ func (s *DetailsService) searchAndGetDetails(ctx context.Context, slug, title, s
     tmdbID := searchResult.Results[0].ID
 
     s.slugMu.Lock()
+    // Evict a random entry when the map is at capacity so it stays
+    // bounded. Random eviction is fine — entries are mere caches and a
+    // miss just causes a TMDB re-lookup.
+    if len(s.slugMap) >= maxSlugMapEntries {
+        for k := range s.slugMap {
+            delete(s.slugMap, k)
+            break
+        }
+    }
     s.slugMap[slug] = tmdbID
     s.slugMu.Unlock()
 
@@ -364,6 +400,10 @@ func (s *DetailsService) GetCredits(ctx context.Context, id string, mediaType st
 		return cached.(*CreditsResponse), nil
 	}
 
+	if !isSafePathSegment(id) {
+		return nil, fmt.Errorf("invalid id")
+	}
+
 	apiKey := os.Getenv("TMDB_API_KEY")
 	var endpoint string
 	if mediaType == "tv" {
@@ -378,6 +418,10 @@ func (s *DetailsService) GetCredits(ctx context.Context, id string, mediaType st
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("tmdb credits %s/%s: HTTP %d", mediaType, id, resp.StatusCode)
+	}
 
 	var data struct {
 		Cast []struct {
@@ -429,6 +473,10 @@ func (s *DetailsService) GetSimilar(ctx context.Context, id string, mediaType st
 		return cached.(*SimilarResponse), nil
 	}
 
+	if !isSafePathSegment(id) {
+		return nil, fmt.Errorf("invalid id")
+	}
+
 	apiKey := os.Getenv("TMDB_API_KEY")
 	var endpoint string
 	if mediaType == "tv" {
@@ -444,15 +492,19 @@ func (s *DetailsService) GetSimilar(ctx context.Context, id string, mediaType st
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("tmdb similar %s/%s: HTTP %d", mediaType, id, resp.StatusCode)
+	}
+
 	var data struct {
 		Results []struct {
-			ID          int    `json:"id"`
-			Title       string `json:"title"`
-			Name        string `json:"name"`
-			Overview    string `json:"overview"`
-			PosterPath  string `json:"poster_path"`
-			ReleaseDate string `json:"release_date"`
-			FirstAirDate string `json:"first_air_date"`
+			ID           int      `json:"id"`
+			Title        string   `json:"title"`
+			Name         string   `json:"name"`
+			Overview     string   `json:"overview"`
+			PosterPath   string   `json:"poster_path"`
+			ReleaseDate  string   `json:"release_date"`
+			FirstAirDate string   `json:"first_air_date"`
 		} `json:"results"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -508,6 +560,10 @@ func (s *DetailsService) GetTVSeason(ctx context.Context, id string, season int)
 		return cached.(*SeasonDetailsResponse), nil
 	}
 
+	if !isSafePathSegment(id) {
+		return nil, fmt.Errorf("invalid tv id")
+	}
+
 	apiKey := os.Getenv("TMDB_API_KEY")
 	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/tv/%s/season/%d?api_key=%s", id, season, apiKey)
 
@@ -517,6 +573,10 @@ func (s *DetailsService) GetTVSeason(ctx context.Context, id string, season int)
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("tmdb season %s/%d: HTTP %d", id, season, resp.StatusCode)
+	}
 
 	var data struct {
 		SeasonNumber int `json:"season_number"`

@@ -94,8 +94,8 @@
               <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent shimmer-line"></div>
             </div>
             <div class="space-y-1.5 px-1">
-              <div class="h-3.5 bg-zinc-800 rounded w-5/6 animate-pulse" />
-              <div class="h-2.5 bg-zinc-900 rounded w-1/2 animate-pulse" />
+              <div class="h-3.5 bg-zinc-800 rounded w-5/6 animate-pulse"></div>
+              <div class="h-2.5 bg-zinc-900 rounded w-1/2 animate-pulse"></div>
             </div>
           </div>
         {/each}

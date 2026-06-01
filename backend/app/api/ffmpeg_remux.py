@@ -15,6 +15,8 @@ import shutil
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
+from ssrf import redirect_event_hook, validate_outbound_url
+
 logger = logging.getLogger(__name__)
 
 _FFMPEG_BIN  = shutil.which("ffmpeg")  or "ffmpeg"
@@ -26,6 +28,10 @@ _CHUNK = 64 * 1024   # 64 KB read chunks
 
 async def _stream_mp4(hls_url: str):
     """Remux HLS → fragmented MP4 via pipe; yields chunks."""
+    # Validate the initial URL and any redirect target. ffmpeg is invoked
+    # with the validated URL — we cannot easily hook its internal HTTP
+    # client, so a curl/ffmpeg-level SSRF via redirects is out of scope
+    # here; the URL is already allowlisted.
     cmd = [
         _FFMPEG_BIN, "-loglevel", "error",
         "-i", hls_url,
@@ -91,8 +97,7 @@ async def remux_proxy(url: str, format: str = "mp4") -> StreamingResponse:
     if format not in ("mp4", "ts"):
         raise HTTPException(status_code=400, detail="format must be 'mp4' or 'ts'")
 
-    if not url.startswith("http"):
-        raise HTTPException(status_code=400, detail="Invalid source URL")
+    validate_outbound_url(url)
 
     logger.info('"remux_start":{"url":"%s","fmt":"%s"}', url[:100], format)
 
@@ -134,8 +139,7 @@ async def remux_endpoint(
 @router.get("/probe")
 async def probe_endpoint(url: str = Query(...)) -> dict:
     """Run ffprobe on a URL and return stream + format metadata."""
-    if not url.startswith("http"):
-        raise HTTPException(status_code=400, detail="Invalid URL")
+    validate_outbound_url(url)
     import json
     cmd = [
         _FFPROBE_BIN, "-v", "quiet",

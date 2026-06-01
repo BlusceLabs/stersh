@@ -3,13 +3,21 @@ import Layout from '../../../../layouts/Layout.astro';
 import WatchUI from '../../../../components/WatchUI.svelte';
 
 const { media, id } = Astro.params;
-const { server = 'white' } = Astro.url.searchParams;
-
+const rawServer = Astro.url.searchParams.get('server') ?? 'white';
+const safeServer = rawServer === 'black' ? 'black' : 'white';
+const numericId = Number(id);
+const validId = Number.isFinite(numericId) && numericId > 0 ? String(Math.floor(numericId)) : null;
 const normalizedMedia = media === 'tv' ? 'tv' : 'movie';
 ---
 
 <Layout title="Watchfy">
   <main class="min-h-screen bg-[#0f0f0f] text-[#f1f1f1] antialiased pb-24">
-    <WatchUI client:load media={normalizedMedia} id={id} server={server} />
+    {validId ? (
+      <WatchUI client:load media={normalizedMedia} id={validId} server={safeServer} />
+    ) : (
+      <div class="flex items-center justify-center min-h-screen text-zinc-400 text-sm">
+        Invalid media id.
+      </div>
+    )}
   </main>
 </Layout>

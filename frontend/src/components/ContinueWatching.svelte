@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import MovieCard from './MovieCard.svelte';
 
   let items = $state<any[]>([]);
@@ -44,7 +45,11 @@
       const key = localStorage.key(i);
       if (!key || !key.startsWith('watchfy:')) continue;
       try {
-        const data = JSON.parse(localStorage.getItem(key) || '');
+        const raw = localStorage.getItem(key) || '';
+        const data: any = JSON.parse(raw);
+        if (!data || typeof data !== 'object') continue;
+        if (Object.prototype.hasOwnProperty.call(data, '__proto__') ||
+            Object.prototype.hasOwnProperty.call(data, 'constructor')) continue;
         const dedupeKey = `${data.mediaType}:${data.tmdbId}`;
         if (seen.has(dedupeKey)) continue;
         seen.add(dedupeKey);
@@ -68,7 +73,7 @@
     loaded = true;
   }
 
-  let scrollEl: HTMLDivElement;
+  let scrollEl = $state<HTMLDivElement>();
 
   function scrollSide(direction: 'left' | 'right') {
     if (!scrollEl) return;
@@ -79,8 +84,8 @@
     });
   }
 
-  $effect(() => {
-    loadFromAPI();
+  onMount(() => {
+    if (!loaded) loadFromAPI();
   });
 </script>
 

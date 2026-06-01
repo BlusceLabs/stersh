@@ -25,6 +25,7 @@ func main() {
 		MovieHandler:   handlers.NewMovieHandler(services.NewMovieService()),
 		DetailsHandler: handlers.NewDetailsHandler(services.NewDetailsService()),
 		WatchHandler:   handlers.NewWatchHandler(services.NewWatchService()),
+		SearchHandler:  handlers.NewSearchHandler(services.NewSearchService()),
 	}
 
 	routes.Register(app, deps)

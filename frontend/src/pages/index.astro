@@ -125,7 +125,17 @@ try {
       let currentPoolIndex = 0;
       let player = null;
       let fallbackTimerId = null;
-      
+      const pageAbort = new AbortController();
+
+      window.addEventListener('pagehide', () => {
+        if (fallbackTimerId) {
+          clearTimeout(fallbackTimerId);
+          fallbackTimerId = null;
+        }
+        pageAbort.abort();
+        try { player?.stopVideo?.(); player?.destroy?.(); } catch (_) {}
+      });
+
       const elWrapper = document.getElementById('video-wrapper');
       const elBackdrop = document.getElementById('fallback-backdrop');
       const elPosterContainer = document.getElementById('poster-fallback-container');
@@ -151,8 +161,9 @@ try {
         }
 
         try {
-          const res = await fetch(`${BACKEND}/api/tmdb/movie/${movie.id}/images?include_image_language=en,null`);
+          const res = await fetch(`${BACKEND}/api/tmdb/movie/${movie.id}/images?include_image_language=en,null`, { signal: pageAbort.signal });
           const data = await res.json();
+          if (pageAbort.signal.aborted) return;
           const logo = data?.logos?.[0];
 
           if (logo) {
@@ -165,6 +176,7 @@ try {
             elLogo.classList.add('hidden');
           }
         } catch (err) {
+          if (pageAbort.signal.aborted || err?.name === 'AbortError') return;
           elTitle.textContent = movie.title || '';
           elTitle.classList.remove('hidden');
           elLogo.classList.add('hidden');
@@ -176,13 +188,15 @@ try {
        */
       async function resolveVideoSourceKey(movieId) {
         try {
-          const res = await fetch(`${BACKEND}/api/tmdb/movie/${movieId}/videos?language=en-US`);
+          const res = await fetch(`${BACKEND}/api/tmdb/movie/${movieId}/videos?language=en-US`, { signal: pageAbort.signal });
           const data = await res.json();
+          if (pageAbort.signal.aborted) return null;
           const source = data.results?.find(
             v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
           );
           return source ? source.key : null;
         } catch (e) {
+          if (pageAbort.signal.aborted || e?.name === 'AbortError') return null;
           return null;
         }
       }

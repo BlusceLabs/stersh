@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 
 from sqlalchemy import (
     create_engine, pool,
-    Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, UniqueConstraint,
+    Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, UniqueConstraint, Index,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session, relationship
@@ -138,6 +138,11 @@ class PlaybackHistory(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="playback_history")
+
+    __table_args__ = (
+        Index("ix_playback_user_updated", "user_id", "updated_at"),
+        Index("ix_playback_user_item", "user_id", "tmdb_id", "media_type", "season", "episode"),
+    )
 
 
 class Rating(Base):

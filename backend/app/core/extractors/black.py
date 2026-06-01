@@ -72,7 +72,7 @@ _PLAY_SELECTORS = [
 ]
 
 # Single JS evaluation that probes all known vidking player patterns
-_DOM_PROBE_SCRIPT = """
+_DOM_PROBE_SCRIPT = r"""
 (() => {
     const res = { urls: [], downloads: [] };
 
