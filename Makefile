@@ -25,7 +25,7 @@ setup:
 
 backend:
 	@echo "Starting backend..."
-	@cd backend && uvicorn black:app --reload --port 8000
+	@cd backend && uvicorn main:app --reload --port 8000
 
 gateway:
 	@echo "Starting gateway..."
@@ -54,6 +54,7 @@ health:
 test:
 	@cd frontend && npm run build
 	@cd backend/gateway && GOCACHE=/tmp/watchfy-go-cache GOPATH=/tmp/watchfy-go go test ./...
+	@cd backend && python3 -m unittest discover -s tests -v
 	@python3 -m compileall -q backend
 
 clean:

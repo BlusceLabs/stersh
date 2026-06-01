@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 // src/components/react/Tooltip.tsx
 import { useState, useRef, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"

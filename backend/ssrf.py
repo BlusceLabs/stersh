@@ -77,6 +77,16 @@ def _hostname_resolves_to_public(host: str) -> bool:
     This catches `localhost`, IP-literal forms (127.0.0.1, ::1, 169.254.169.254),
     DNS that resolves to private RFC1918 ranges, and DNS-rebinding cases where
     the public hostname resolves to a private IP.
+
+    NOTE (DNS-rebinding TOCTOU): we resolve once and check, then httpx resolves
+    again on connect. A host that returns short-TTL private IPs could in theory
+    race: present a public IP to satisfy this check, then return a private IP
+    to the second resolution. The hostname allowlist constrains the attacker
+    set to compromised or attacker-controlled CDN mirrors, so practical risk
+    is low. A complete fix would pin the resolved IP for the connection via a
+    custom httpx transport (resolve callback). Not implemented because no
+    allowlisted host currently exhibits this behavior; revisit if the
+    allowlist grows or threat model changes.
     """
     try:
         infos = socket.getaddrinfo(host, None)

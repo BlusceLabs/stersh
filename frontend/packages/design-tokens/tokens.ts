@@ -31,6 +31,13 @@ export const tokens = {
   },
 } as const;
 
+export type Tokens = typeof tokens;
+export type TokenColors = Tokens['colors'];
+export type TokenSpacing = Tokens['spacing'];
+export type PurpleShades = TokenColors['purple'];
+export type CyanShades = TokenColors['cyan'];
+export type SpacingSteps = keyof TokenSpacing;
+
 /**
  * Utility compile engine to output your explicit root stylesheet strings
  */

@@ -1,7 +1,5 @@
 package services
 
-import "strings"
-
 func tmdbImage(size, path string) string {
 	if path == "" {
 		return ""
@@ -30,5 +28,5 @@ func isSafePathSegment(s string) bool {
 			return false
 		}
 	}
-	return !strings.Contains(s, "%")
+	return true
 }

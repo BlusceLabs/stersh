@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 // src/components/react/Modal.tsx
 import { useEffect, useRef, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -117,18 +118,18 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
               className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white rounded-xl hover:bg-zinc-800/40 transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#8B5CF6]/50"
               aria-label="Close modal content box"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" className="w-4 h-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
               </svg>
             </button>
 
             {title && (
-              <h2 id="modal-title" class="pr-8 mb-5 text-xl sm:text-2xl font-bold tracking-tight text-white">
+              <h2 id="modal-title" className="pr-8 mb-5 text-xl sm:text-2xl font-bold tracking-tight text-white">
                 {title}
               </h2>
             )}
-            
-            <div class="text-zinc-300 text-sm sm:text-base leading-relaxed">
+
+            <div className="text-zinc-300 text-sm sm:text-base leading-relaxed">
               {children}
             </div>
           </motion.div>

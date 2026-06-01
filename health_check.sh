@@ -13,7 +13,7 @@ fi
 
 # Check frontend
 echo "Checking frontend..."
-if curl -s --fail http://localhost:3000/health; then
+  if curl -s --fail http://localhost:4321; then
   echo "✅ Frontend is running"
 else
   echo "❌ Frontend is NOT running"
