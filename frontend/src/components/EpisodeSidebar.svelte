@@ -25,11 +25,9 @@
     return `${m}m`;
   }
 
-  let selected = $state(selectedSeason);
+  let selected = $state(1);
   $effect(() => {
-    if (selected !== selectedSeason) {
-      onSeasonChange(selected);
-    }
+    selected = selectedSeason;
   });
 
   $effect(() => {
@@ -41,24 +39,26 @@
   });
 </script>
 
-<div class="w-full bg-[#1f1f1f] border border-white/10 rounded-xl overflow-hidden flex flex-col max-h-[75vh] lg:max-h-[800px]">
+<div class="w-full bg-zinc-950/80 border border-white/10 rounded-2xl overflow-hidden flex flex-col max-h-[75vh] lg:max-h-[calc(100vh-2.5rem)] shadow-2xl backdrop-blur-xl">
   
-  <div class="p-4 bg-white/5 border-b border-white/10 flex flex-col gap-2 shrink-0">
+  <div class="p-4 bg-white/[0.04] border-b border-white/10 flex flex-col gap-3 shrink-0">
     <div class="flex items-center justify-between">
       <div class="min-w-0">
-        <h3 class="text-[16px] font-bold text-white truncate leading-snug">
+        <h3 class="text-[16px] font-black text-white truncate leading-snug">
           {selectedSeason > 0 ? `Season ${selectedSeason}` : 'Episodes Feed'}
         </h3>
-        <p class="text-xs text-[#aaa] mt-0.5 font-normal">
-          Watchfy Queue • <span class="font-medium text-white">{episodes.length} episodes</span>
+        <p class="text-xs text-zinc-500 mt-0.5 font-medium">
+          {episodes.length} episodes
         </p>
       </div>
       
       {#if seasons.length > 1}
         <div class="relative">
           <select
+            aria-label="Select season"
             bind:value={selected}
-            class="appearance-none bg-white/10 hover:bg-white/15 text-xs font-semibold px-3 py-1.5 pr-8 rounded-full border border-transparent transition-colors cursor-pointer text-white focus:outline-none"
+            onchange={() => onSeasonChange(selected)}
+            class="appearance-none bg-white/10 hover:bg-white/15 text-xs font-bold px-3 py-1.5 pr-8 rounded-lg border border-white/10 transition-colors cursor-pointer text-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
           >
             {#each seasons as s}
               <option value={s.season_number} class="bg-[#1f1f1f] text-white">
@@ -76,7 +76,7 @@
     </div>
   </div>
 
-  <div bind:this={scrollContainer} class="flex-1 overflow-y-auto no-scrollbar divide-y divide-white/[0.04] p-1.5 space-y-0.5">
+  <div bind:this={scrollContainer} class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1.5">
     {#if episodes.length > 0}
       {#each episodes as ep, index (ep.episode_number)}
         {@const isCurrent = ep.episode_number === currentEpisode.episode && selectedSeason === currentEpisode.season}
@@ -84,16 +84,18 @@
         <button
           onclick={() => onEpisodeClick(ep.episode_number)}
           data-current={isCurrent ? 'true' : undefined}
-          class="w-full flex items-center gap-2 p-2 rounded-lg transition-colors text-left relative group
-            {isCurrent ? 'bg-white/10' : 'hover:bg-white/5'}"
+          aria-current={isCurrent ? 'true' : undefined}
+          aria-label={`Episode ${ep.episode_number}${ep.name ? `, ${ep.name}` : ''}${ep.runtime ? `, ${formatDuration(ep.runtime)}` : ''}`}
+          class="w-full flex items-center gap-3 p-2 rounded-xl transition-colors text-left relative group
+            {isCurrent ? 'bg-red-500/10 ring-1 ring-red-500/25' : 'hover:bg-white/[0.07]'}"
         >
           
           <div class="w-6 flex items-center justify-center shrink-0">
             {#if isCurrent}
               <div class="flex items-end gap-[2px] h-3 w-3 mb-0.5" aria-hidden="true">
-                <div class="bg-[#f00] w-[2px] h-full rounded-sm animate-[bounce_1s_infinite_100ms]"></div>
-                <div class="bg-[#f00] w-[2px] h-[60%] rounded-sm animate-[bounce_1s_infinite_300ms]"></div>
-                <div class="bg-[#f00] w-[2px] h-[85%] rounded-sm animate-[bounce_1s_infinite_200ms]"></div>
+                <div class="bg-red-400 w-[2px] h-full rounded-sm animate-[bounce_1s_infinite_100ms]"></div>
+                <div class="bg-red-400 w-[2px] h-[60%] rounded-sm animate-[bounce_1s_infinite_300ms]"></div>
+                <div class="bg-red-400 w-[2px] h-[85%] rounded-sm animate-[bounce_1s_infinite_200ms]"></div>
               </div>
             {:else}
               <span class="text-xs font-medium text-zinc-400 group-hover:hidden">{index + 1}</span>
@@ -103,7 +105,7 @@
             {/if}
           </div>
 
-          <div class="relative shrink-0 w-[100px] aspect-video rounded-md overflow-hidden bg-zinc-900 border border-white/5 shadow-inner">
+          <div class="relative shrink-0 w-[112px] aspect-video rounded-lg overflow-hidden bg-zinc-900 border border-white/5 shadow-inner">
             {#if ep.still_path}
               <img src={tmdbImg(ep.still_path, 'w185')} alt={ep.name} class="w-full h-full object-cover" loading="lazy" />
             {:else}
@@ -125,8 +127,8 @@
             >
               {ep.name || 'Episode ' + ep.episode_number}
             </h4>
-            <p class="text-xs text-[#aaa] mt-1 truncate font-normal">
-              Episode {ep.episode_number} {#if isCurrent}• <span class="text-[#f00] font-semibold">Now Playing</span>{/if}
+            <p class="text-xs text-zinc-500 mt-1 truncate font-medium">
+              Episode {ep.episode_number} {#if isCurrent}<span class="text-red-300"> • Now Playing</span>{/if}
             </p>
           </div>
 
@@ -142,14 +144,3 @@
     {/if}
   </div>
 </div>
-
-<style>
-  /* Hidden Scrollbar configuration layer for embedded feed tracking components */
-  :global(.no-scrollbar::-webkit-scrollbar) {
-    display: none;
-  }
-  :global(.no-scrollbar) {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-</style>

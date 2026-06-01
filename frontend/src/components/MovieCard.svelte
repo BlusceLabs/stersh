@@ -7,16 +7,15 @@
     episode?: number;
   }>();
   
-  // Clean Data Normalization Engine
-  const mediaType = typeof type === 'string' ? type : (movie.media_type === 'tv' ? 'tv' : 'movie');
-  const id = movie.id;
-  const watchHref = season && episode ? `/${mediaType}/${id}?season=${season}&episode=${episode}` : `/${mediaType}/${id}`;
-  const title = movie.title || movie.name || 'Untitled Feature';
-  const year = (movie.release_date || movie.first_air_date || '').split('-')[0] || '—';
-  const poster = movie.poster_path 
+  let mediaType = $derived(typeof type === 'string' ? type : (movie.media_type === 'tv' ? 'tv' : 'movie'));
+  let id = $derived(movie.id);
+  let watchHref = $derived(season && episode ? `/${mediaType}/${id}?season=${season}&episode=${episode}` : `/${mediaType}/${id}`);
+  let title = $derived(movie.title || movie.name || 'Untitled Feature');
+  let year = $derived((movie.release_date || movie.first_air_date || '').split('-')[0] || '—');
+  let poster = $derived(movie.poster_path
     ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
-    : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1470&auto=format&fit=crop'; // Cinematic fallback
-  const rating = movie.vote_average || 0;
+    : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1470&auto=format&fit=crop');
+  let rating = $derived(movie.vote_average || 0);
 </script>
 
 <a 

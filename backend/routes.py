@@ -191,6 +191,10 @@ _vidking_cb = CircuitBreaker()
 
 _rate_limit_lock = asyncio.Lock()
 _rate_limit_buckets: dict[str, list[float]] = defaultdict(list)
+# Cap on distinct client IDs we retain in memory. When exceeded we evict
+# the least-recently-touched entries — opportunistic cleanup on every
+# check means a periodic GC isn't required.
+_RATE_LIMIT_MAX_KEYS = 10_000
 
 
 async def _check_rate_limit(client_id: str) -> dict[str, str]:
@@ -213,6 +217,18 @@ async def _check_rate_limit(client_id: str) -> dict[str, str]:
                 headers={**headers, "Retry-After": str(reset_in)},
             )
         bucket.append(now)
+
+        # Opportunistic eviction: if the dict grew past the cap, drop
+        # entries whose buckets are already empty (expired). If still
+        # over the cap, evict the least-recently-seen entries first.
+        if len(_rate_limit_buckets) > _RATE_LIMIT_MAX_KEYS:
+            expired = [k for k, b in _rate_limit_buckets.items() if not b]
+            for k in expired:
+                _rate_limit_buckets.pop(k, None)
+            if len(_rate_limit_buckets) > _RATE_LIMIT_MAX_KEYS:
+                overflow = len(_rate_limit_buckets) - _RATE_LIMIT_MAX_KEYS
+                for k in list(_rate_limit_buckets.keys())[:overflow]:
+                    _rate_limit_buckets.pop(k, None)
         return headers
 
 
@@ -516,6 +532,8 @@ async def proxy_seg(token: str) -> Response:
 
 _playback_health_log: dict[str, list[dict]] = defaultdict(list)
 _HEALTH_LOG_MAX = 100
+_HEALTH_LOG_MAX_KEYS = 5_000
+_health_log_lock = asyncio.Lock()
 
 
 @router.post("/vidking/health/report", tags=["telemetry"])
@@ -533,10 +551,17 @@ async def health_report(request: Request) -> dict:
         "resolution": data.get("resolution"),
         "errorCount": data.get("errorCount", 0),
     }
-    log = _playback_health_log[key]
-    log.append(entry)
-    if len(log) > _HEALTH_LOG_MAX:
-        del log[: len(log) - _HEALTH_LOG_MAX]
+    async with _health_log_lock:
+        log = _playback_health_log[key]
+        log.append(entry)
+        if len(log) > _HEALTH_LOG_MAX:
+            del log[: len(log) - _HEALTH_LOG_MAX]
+        # Cap the number of distinct keys to prevent unbounded growth
+        # from a client spamming with random tmdbIds.
+        if len(_playback_health_log) > _HEALTH_LOG_MAX_KEYS:
+            overflow = len(_playback_health_log) - _HEALTH_LOG_MAX_KEYS
+            for k in list(_playback_health_log.keys())[:overflow]:
+                _playback_health_log.pop(k, None)
     return {"status": "ok"}
 
 
@@ -599,10 +624,16 @@ async def get_subtitles(
 async def proxy_subtitle(url: str = Query(...)) -> Response:
     """Proxy + auto-convert SRT→WebVTT, bypassing CORS restrictions."""
     from subtitles import convert_srt_to_vtt
+    from ssrf import redirect_event_hook, validate_outbound_url
+    validate_outbound_url(url)
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
+        async with httpx.AsyncClient(
+            timeout=15.0,
+            follow_redirects=True,
+            event_hooks={"response": [redirect_event_hook]},
+        ) as c:
             resp = await c.get(url)
-    except Exception as exc:
+    except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Subtitle fetch failed: {exc}")
     if not resp.is_success:
         raise HTTPException(status_code=resp.status_code, detail="Subtitle upstream error")

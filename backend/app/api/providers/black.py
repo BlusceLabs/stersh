@@ -65,7 +65,7 @@ _black_futures: dict[str, asyncio.Future] = {}
 _black_futures_lock = asyncio.Lock()
 
 # URL token store
-_url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=1800)
+_url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=86400)
 
 # Shared httpx client
 _black_client: httpx.AsyncClient | None = None
@@ -345,9 +345,6 @@ async def black_proxy_hls(url: str = Query(...)) -> Response:
 
     for line in resp.text.split("\n"):
         stripped = line.strip()
-
-        if stripped == "#EXT-X-ENDLIST":
-            continue
 
         if stripped.startswith("#EXT-X-PLAYLIST-TYPE:"):
             lines.append(line)

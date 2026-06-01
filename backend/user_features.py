@@ -1,11 +1,12 @@
 """User features router for favorites, watchlist, history, and ratings."""
 from __future__ import annotations
 
-from typing import List, Dict, Any
+from datetime import datetime
+from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import get_db, User, Favorite, Watchlist, PlaybackHistory, Rating, Movie, TVShow
+from database import get_db, User, Favorite, Watchlist, PlaybackHistory, Rating
 from auth import get_current_active_user
 
 router = APIRouter(prefix="/user", tags=["user-features"])
@@ -116,7 +117,6 @@ async def add_to_watchlist(
         user_id=current_user.id,
         tmdb_id=tmdb_id,
         media_type=media_type,
-        watched=False
     )
     db.add(watchlist_item)
     db.commit()
@@ -166,11 +166,20 @@ async def mark_watched(
     if not wl:
         raise HTTPException(status_code=404, detail="Item not found in watchlist")
     
-    wl.watched = True
+    db.delete(wl)
+    history = PlaybackHistory(
+        user_id=current_user.id,
+        tmdb_id=tmdb_id,
+        media_type=media_type,
+        current_time=0,
+        duration=0,
+        progress_pct=100,
+    )
+    db.add(history)
     db.commit()
-    db.refresh(wl)
+    db.refresh(history)
     
-    return {"message": "Marked as watched", "watchlist_item": wl}
+    return {"message": "Marked as watched", "history": history}
 
 @router.delete("/watchlist/{media_type}/{tmdb_id}")
 async def remove_from_watchlist(
@@ -222,9 +231,10 @@ async def add_playback_history(
     
     if history:
         # Update existing entry
-        history.progress = progress
-        history.total_duration = total_duration
-        history.watched_at = datetime.now()
+        history.current_time = progress
+        history.duration = total_duration or 0
+        history.progress_pct = round(progress / total_duration * 100, 2) if total_duration else 0
+        history.updated_at = datetime.utcnow()
     else:
         # Create new entry
         history = PlaybackHistory(
@@ -233,8 +243,9 @@ async def add_playback_history(
             media_type=media_type,
             season=season,
             episode=episode,
-            progress=progress,
-            total_duration=total_duration,
+            current_time=progress,
+            duration=total_duration or 0,
+            progress_pct=round(progress / total_duration * 100, 2) if total_duration else 0,
         )
         db.add(history)
     
@@ -251,7 +262,7 @@ async def get_playback_history(
     """Get user's playback history."""
     history = db.query(PlaybackHistory).filter(
         PlaybackHistory.user_id == current_user.id
-    ).order_by(PlaybackHistory.watched_at.desc()).all()
+    ).order_by(PlaybackHistory.updated_at.desc()).all()
     
     # Group by media type
     movies = []
@@ -297,7 +308,7 @@ async def add_rating(
         # Update existing rating
         existing.rating = rating
         existing.review = review
-        existing.updated_at = datetime.now()
+        existing.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(existing)
         return {"message": "Rating updated", "rating": existing}

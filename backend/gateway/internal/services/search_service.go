@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -37,30 +38,34 @@ func (s *SearchService) Search(ctx context.Context, query string) (*SearchRespon
 		return cached.(*SearchResponse), nil
 	}
 
-	apiKey := os.Getenv("TMDB_API_KEY")
-	url := fmt.Sprintf(
-		"https://api.themoviedb.org/3/search/multi?api_key=%s&query=%s&include_adult=false",
-		apiKey, query,
-	)
+    apiKey := os.Getenv("TMDB_API_KEY")
+    url := fmt.Sprintf(
+        "https://api.themoviedb.org/3/search/multi?api_key=%s&query=%s&include_adult=false",
+        apiKey, url.QueryEscape(query),
+    )
 
-	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+    req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+    resp, err := httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
 
-	var data struct {
-		Results []struct {
-			ID          int    `json:"id"`
-			Title       string `json:"title"`
-			Name        string `json:"name"`
-			PosterPath  string `json:"poster_path"`
-			MediaType   string `json:"media_type"`
-			ReleaseDate string `json:"release_date"`
-			FirstAirDate string `json:"first_air_date"`
-		} `json:"results"`
-	}
+    if resp.StatusCode >= 400 {
+        return nil, fmt.Errorf("tmdb search: HTTP %d", resp.StatusCode)
+    }
+
+    var data struct {
+        Results []struct {
+            ID          int    `json:"id"`
+            Title       string `json:"title"`
+            Name        string `json:"name"`
+            PosterPath  string `json:"poster_path"`
+            MediaType   string `json:"media_type"`
+            ReleaseDate string `json:"release_date"`
+            FirstAirDate string `json:"first_air_date"`
+        } `json:"results"`
+    }
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
 	}
@@ -75,15 +80,15 @@ func (s *SearchService) Search(ctx context.Context, query string) (*SearchRespon
 			title = r.Name
 		}
 		year := ""
-		if r.MediaType == "tv" && len(r.FirstAirDate) >= 4 {
-			year = r.FirstAirDate[:4]
-		} else if len(r.ReleaseDate) >= 4 {
-			year = r.ReleaseDate[:4]
+		if r.MediaType == "tv" {
+			year = yearFromDate(r.FirstAirDate)
+		} else {
+			year = yearFromDate(r.ReleaseDate)
 		}
 		results = append(results, SearchItem{
 			ID:         r.ID,
 			Title:      title,
-			PosterPath: "https://image.tmdb.org/t/p/w500" + r.PosterPath,
+			PosterPath: tmdbImage("w500", r.PosterPath),
 			MediaType:  r.MediaType,
 			Year:       year,
 		})

@@ -36,14 +36,14 @@ func Register(app *fiber.App, deps Dependencies) {
 	// TV season episodes
 	api.Get("/tv/:id/season", deps.DetailsHandler.GetTVSeason)
 
+	// Stream management
+	api.Get("/watch/refresh", deps.WatchHandler.RefreshSource)
+	api.Get("/watch/prewarm", deps.WatchHandler.Prewarm)
+	api.Post("/watch/health/report", deps.WatchHandler.HealthReport)
+
 	// Watch / streaming (use ?mediaType=tv&season=1&episode=1 for TV)
 	api.Get("/watch/:id", deps.WatchHandler.GetWatchSource)
 
 	// Subtitles
 	api.Get("/subtitles", deps.WatchHandler.GetSubtitles)
-
-	// Stream management
-	api.Get("/watch/refresh", deps.WatchHandler.RefreshSource)
-	api.Get("/watch/prewarm", deps.WatchHandler.Prewarm)
-	api.Post("/watch/health/report", deps.WatchHandler.HealthReport)
 }

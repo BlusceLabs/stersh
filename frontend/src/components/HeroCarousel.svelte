@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte';
   import { api } from '../lib/api';
 
   interface Item {
@@ -17,31 +18,58 @@
   let idx = $state(0);
   let hovering = $state(false);
   let loaded = $state(false);
+  let containerEl: HTMLElement | undefined;
+  let inView = $state(true);
 
-  $effect(() => {
-    loadItems();
+  onMount(() => {
+    if (!containerEl || typeof IntersectionObserver === 'undefined') return;
+    // Pause the autoplay carousel when it scrolls out of view — saves
+    // CPU, network, and battery on long pages.
+    const io = new IntersectionObserver(
+      ([entry]) => { inView = entry.isIntersecting; },
+      { threshold: 0.25 },
+    );
+    io.observe(containerEl);
+    return () => io.disconnect();
   });
 
-  async function loadItems() {
-    try {
-      const [movies, tv] = await Promise.all([
-        api.get('/api/tmdb/trending/movie/week'),
-        api.get('/api/tmdb/trending/tv/week'),
-      ]);
-      const all = [
-        ...((movies?.results || []).filter((m: Item) => m.backdrop_path)),
-        ...((tv?.results || []).filter((t: Item) => t.backdrop_path)),
-      ];
-      items = all.slice(0, 7);
-      loaded = true;
-    } catch (e) {
-      console.error('hero load error:', e);
-      loaded = true;
-    }
-  }
+  onDestroy(() => {
+    // IntersectionObserver.disconnect is called by the onMount cleanup,
+    // but defensively also null the reference in case onMount was
+    // never reached.
+    inView = false;
+  });
+
+  let loadAbort: AbortController | null = null;
 
   $effect(() => {
-    if (hovering || items.length < 2) return;
+    loadAbort?.abort();
+    loadAbort = new AbortController();
+    const signal = loadAbort.signal;
+    (async () => {
+      try {
+        const [movies, tv] = await Promise.all([
+          api.get('/api/tmdb/trending/movie/week'),
+          api.get('/api/tmdb/trending/tv/week'),
+        ]);
+        if (signal.aborted) return;
+        const all = [
+          ...((movies?.results || []).filter((m: Item) => m.backdrop_path)),
+          ...((tv?.results || []).filter((t: Item) => t.backdrop_path)),
+        ];
+        items = all.slice(0, 7);
+        loaded = true;
+      } catch (e) {
+        if (signal.aborted) return;
+        console.error('hero load error:', e);
+        loaded = true;
+      }
+    })();
+    return () => loadAbort?.abort();
+  });
+
+  $effect(() => {
+    if (hovering || items.length < 2 || !inView) return;
     const t = setInterval(() => idx = (idx + 1) % items.length, 6500);
     return () => clearInterval(t);
   });
@@ -64,10 +92,12 @@
 </script>
 
 <div
+  bind:this={containerEl}
   class="relative w-full h-[80vh] min-h-[550px] max-h-[850px] bg-[#09090b] overflow-hidden group select-none"
   onmouseenter={() => hovering = true}
   onmouseleave={() => hovering = false}
   role="region"
+  aria-roledescription="carousel"
   aria-label="Featured content slider"
 >
   {#if !loaded}
@@ -98,11 +128,13 @@
         class:scale-100={i === idx}
         class:scale-105={i !== idx}
         aria-label={`Watch ${m.title}`}
+        aria-hidden={i !== idx}
+        tabindex={i === idx ? 0 : -1}
       >
         <img src={m.backdrop} alt={m.title} class="w-full h-full object-cover brightness-[0.55]" loading={i === 0 ? "eager" : "lazy"} />
         
-        <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/30 to-transparent z-[1]" />
-        <div class="absolute inset-0 bg-gradient-to-r from-[#09090b]/90 via-[#09090b]/20 to-transparent z-[1]" />
+        <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/30 to-transparent z-[1]"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-[#09090b]/90 via-[#09090b]/20 to-transparent z-[1]"></div>
       </a>
     {/each}
 
@@ -156,8 +188,9 @@
         <button
           onclick={() => go(mIndex)}
           class={'rounded-full transition-all duration-500 cursor-pointer h-1.5 ' + (mIndex === idx ? 'bg-red-500 w-8' : 'bg-zinc-600/60 hover:bg-zinc-400 w-1.5')}
-          aria-label={`Go to slide ${mIndex + 1}`}
-        />
+          aria-label={`Go to slide ${mIndex + 1} of ${items.length}`}
+          aria-current={mIndex === idx ? 'true' : undefined}
+        ></button>
       {/each}
     </div>
 

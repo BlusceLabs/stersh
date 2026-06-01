@@ -65,30 +65,37 @@ func (s *HomeService) GetHomepage(ctx context.Context) (*HomepageResponse, error
     wg.Add(7)
 
     go func() {
+        defer func() { _ = recover() }()
         defer wg.Done()
         hero, heroErr = s.getHeroMovies(ctx)
     }()
     go func() {
+        defer func() { _ = recover() }()
         defer wg.Done()
         topRated, trErr = s.getItems(ctx, "movie/top_rated", "movie")
     }()
     go func() {
+        defer func() { _ = recover() }()
         defer wg.Done()
         popular, pErr = s.getItems(ctx, "movie/popular", "movie")
     }()
     go func() {
+        defer func() { _ = recover() }()
         defer wg.Done()
         upcoming, uErr = s.getItems(ctx, "movie/upcoming", "movie")
     }()
     go func() {
+        defer func() { _ = recover() }()
         defer wg.Done()
         trendingTV, ttErr = s.getItems(ctx, "trending/tv/week", "tv")
     }()
     go func() {
+        defer func() { _ = recover() }()
         defer wg.Done()
         popularTV, ptErr = s.getItems(ctx, "tv/popular", "tv")
     }()
     go func() {
+        defer func() { _ = recover() }()
         defer wg.Done()
         topRatedTV, trtErr = s.getItems(ctx, "tv/top_rated", "tv")
     }()
@@ -140,6 +147,10 @@ func (s *HomeService) getItems(ctx context.Context, path, mediaType string) ([]M
     }
     defer resp.Body.Close()
 
+    if resp.StatusCode >= 400 {
+        return nil, fmt.Errorf("tmdb %s: HTTP %d", path, resp.StatusCode)
+    }
+
     var data struct {
         Results []struct {
             ID           int    `json:"id"`
@@ -163,9 +174,9 @@ func (s *HomeService) getItems(ctx context.Context, path, mediaType string) ([]M
         items = append(items, MovieCard{
             ID:         item.ID,
             Title:      title,
-            PosterPath: "https://image.tmdb.org/t/p/w780" + item.PosterPath,
-            MediaType:  mediaType,
-        })
+			PosterPath: tmdbImage("w780", item.PosterPath),
+			MediaType:  mediaType,
+		})
     }
 
     return items, nil
@@ -186,6 +197,10 @@ func (s *HomeService) getHeroMovies(ctx context.Context) ([]HeroMovie, error) {
         return nil, err
     }
     defer resp.Body.Close()
+
+    if resp.StatusCode >= 400 {
+        return nil, fmt.Errorf("tmdb trending: HTTP %d", resp.StatusCode)
+    }
 
     var data struct {
         Results []struct {
@@ -212,16 +227,22 @@ func (s *HomeService) getHeroMovies(ctx context.Context) ([]HeroMovie, error) {
             Overview     string `json:"overview"`
             BackdropPath string `json:"backdrop_path"`
         }) {
-            defer wg.Done()
+            // Without recover(), a panic in any hero goroutine crashes
+            // the gateway. A single bad TMDB response shouldn't take
+            // down the whole homepage.
+            defer func() {
+                _ = recover()
+                wg.Done()
+            }()
             logo, trailer := s.getMovieAssets(ctx, m.ID)
 
             hero[idx] = HeroMovie{
                 ID:           m.ID,
                 Title:        m.Title,
                 Overview:     m.Overview,
-                BackdropPath: "https://image.tmdb.org/t/p/w1280" + m.BackdropPath,
-                LogoPath:     logo,
-                TrailerKey:   trailer,
+				BackdropPath: tmdbImage("w1280", m.BackdropPath),
+				LogoPath:     logo,
+				TrailerKey:   trailer,
             }
         }(i, movie)
     }
@@ -256,7 +277,7 @@ func (s *HomeService) getMovieAssets(ctx context.Context, id int) (string, strin
 
     logo := ""
     if len(data.Logos) > 0 {
-        logo = "https://image.tmdb.org/t/p/w780" + data.Logos[0].FilePath
+        logo = tmdbImage("w780", data.Logos[0].FilePath)
     }
 
     trailer := s.getMovieTrailer(ctx, id)

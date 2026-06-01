@@ -28,7 +28,7 @@
     });
   }
 
-  let scrollEl: HTMLDivElement;
+  let scrollEl = $state<HTMLDivElement>();
 
   function scrollSide(direction: 'left' | 'right') {
     if (!scrollEl) return;

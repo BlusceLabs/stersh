@@ -1,145 +1,212 @@
 package main
 
 import (
-    "io"
-    "log"
-    "net/http"
-    "net/url"
-    "strings"
+	"bytes"
+	"errors"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
 
-    "github.com/gofiber/fiber/v2"
-    "github.com/gofiber/fiber/v2/middleware/cors"
-    "github.com/gofiber/fiber/v2/middleware/compress"
-    "github.com/joho/godotenv"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/joho/godotenv"
 
-    "watchfy/backend/gateway/internal/handlers"
-    "watchfy/backend/gateway/internal/routes"
-    "watchfy/backend/gateway/internal/services"
+	"watchfy/backend/gateway/internal/handlers"
+	"watchfy/backend/gateway/internal/routes"
+	"watchfy/backend/gateway/internal/services"
 )
 
 func main() {
 
-    _ = godotenv.Load("../.env", ".env")
+	_ = godotenv.Load("../.env", ".env")
 
-    app := fiber.New(
-        fiber.Config{
-            AppName: "Watch!fy Gateway",
-        },
-    )
+	extractorURL := env("WATCHFY_EXTRACTOR_URL", env("VIDKING_EXTRACTOR_URL", "http://localhost:8000"))
+	listenAddr := env("WATCHFY_GATEWAY_ADDR", ":8080")
 
-    app.Use(compress.New(compress.Config{
-        Level: compress.LevelBestSpeed,
-    }))
+	app := fiber.New(
+		fiber.Config{
+			AppName:      "Watch!fy Gateway",
+			ReadTimeout:  15 * time.Second,
+			WriteTimeout: 60 * time.Second,
+			IdleTimeout:  90 * time.Second,
+			ErrorHandler: func(c *fiber.Ctx, err error) error {
+				code := fiber.StatusInternalServerError
+				var fiberErr *fiber.Error
+				if errors.As(err, &fiberErr) {
+					code = fiberErr.Code
+				}
+				return c.Status(code).JSON(fiber.Map{
+					"error":      http.StatusText(code),
+					"detail":     err.Error(),
+					"request_id": c.Locals("requestid"),
+				})
+			},
+		},
+	)
 
-    app.Use(cors.New(cors.Config{
-        AllowOrigins: "*",
-        AllowMethods: "GET,POST,OPTIONS",
-        AllowHeaders: "Origin,Content-Type,Accept",
-    }))
+	app.Use(recover.New())
+	app.Use(requestid.New())
+	app.Use(logger.New(logger.Config{
+		Format: `{"time":"${time}","status":${status},"latency":"${latency}","method":"${method}","path":"${path}","request_id":"${locals:requestid}"}` + "\n",
+	}))
 
-    // SERVICES
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
+	}))
 
-    homeService :=
-        services.NewHomeService()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,OPTIONS",
+		AllowHeaders: "Origin,Content-Type,Accept",
+	}))
 
-    movieService :=
-        services.NewMovieService()
+	// SERVICES
 
-    detailsService :=
-        services.NewDetailsService()
+	homeService :=
+		services.NewHomeService()
 
-    watchService :=
-        services.NewWatchService()
+	movieService :=
+		services.NewMovieService()
 
-    searchService :=
-        services.NewSearchService()
+	detailsService :=
+		services.NewDetailsService()
 
-    // HANDLERS
+	watchService :=
+		services.NewWatchService()
 
-    homeHandler :=
-        handlers.NewHomeHandler(
-            homeService,
-        )
+	searchService :=
+		services.NewSearchService()
 
-    movieHandler :=
-        handlers.NewMovieHandler(
-            movieService,
-        )
+	// HANDLERS
 
-    detailsHandler :=
-        handlers.NewDetailsHandler(
-            detailsService,
-        )
+	homeHandler :=
+		handlers.NewHomeHandler(
+			homeService,
+		)
 
-    watchHandler :=
-        handlers.NewWatchHandler(
-            watchService,
-        )
+	movieHandler :=
+		handlers.NewMovieHandler(
+			movieService,
+		)
 
-    searchHandler :=
-        handlers.NewSearchHandler(
-            searchService,
-        )
+	detailsHandler :=
+		handlers.NewDetailsHandler(
+			detailsService,
+		)
 
-    // Proxy /api/vidking/* and /api/white/* to Python streaming service
-    app.All("/api/vidking/*", reverseProxy("http://localhost:8000", "/api/vidking/"))
-    app.All("/api/white/*", reverseProxy("http://localhost:8000", "/api/white/"))
+	watchHandler :=
+		handlers.NewWatchHandler(
+			watchService,
+		)
 
-    // ROUTES
+	searchHandler :=
+		handlers.NewSearchHandler(
+			searchService,
+		)
 
-    routes.Register(
-        app,
-        routes.Dependencies{
-            HomeHandler:    homeHandler,
-            MovieHandler:   movieHandler,
-            DetailsHandler: detailsHandler,
-            WatchHandler:   watchHandler,
-            SearchHandler:  searchHandler,
-        },
-    )
+	app.Get("/api/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"status":        "ok",
+			"service":       "watchfy-gateway",
+			"extractor_url": extractorURL,
+		})
+	})
 
-    log.Fatal(
-        app.Listen(":8080"),
-    )
+	app.All("/api/black/*", reverseProxy(extractorURL, "/api/black/"))
+	app.All("/api/white/*", reverseProxy(extractorURL, "/api/white/"))
+	app.All("/api/proxy/*", reverseProxy(extractorURL, "/api/proxy/"))
+
+	// ROUTES
+
+	routes.Register(
+		app,
+		routes.Dependencies{
+			HomeHandler:    homeHandler,
+			MovieHandler:   movieHandler,
+			DetailsHandler: detailsHandler,
+			WatchHandler:   watchHandler,
+			SearchHandler:  searchHandler,
+		},
+	)
+
+	log.Fatal(
+		app.Listen(listenAddr),
+	)
+}
+
+func env(key, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+		return value
+	}
+	return fallback
 }
 
 func reverseProxy(target, prefix string) fiber.Handler {
-    targetURL, _ := url.Parse(target)
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		log.Fatalf("invalid proxy target %q: %v", target, err)
+	}
 
-    return func(c *fiber.Ctx) error {
-        suffix := strings.TrimPrefix(c.Params("*"), "/")
-        path := prefix + suffix
-        qs := string(c.Request().URI().QueryString())
+	return func(c *fiber.Ctx) error {
+		suffix := strings.TrimPrefix(c.Params("*"), "/")
+		path := prefix + suffix
+		qs := string(c.Request().URI().QueryString())
 
-        u := *targetURL
-        u.Path = path
-        u.RawQuery = qs
+		u := *targetURL
+		u.Path = path
+		u.RawQuery = qs
 
-        body := io.NopCloser(strings.NewReader(string(c.Body())))
-        req, err := http.NewRequest(c.Method(), u.String(), body)
-        if err != nil {
-            return c.Status(http.StatusInternalServerError).SendString(err.Error())
-        }
+		req, err := http.NewRequestWithContext(c.Context(), c.Method(), u.String(), bytes.NewReader(c.Body()))
+		if err != nil {
+			return c.Status(http.StatusInternalServerError).SendString(err.Error())
+		}
 
-        c.Request().Header.VisitAll(func(key, value []byte) {
-            req.Header.Set(string(key), string(value))
-        })
-        req.Header.Set("X-Forwarded-Host", req.Host)
+		c.Request().Header.VisitAll(func(key, value []byte) {
+			header := string(key)
+			if isHopByHop(header) {
+				return
+			}
+			req.Header.Set(header, string(value))
+		})
+		req.Header.Set("X-Forwarded-Host", c.Hostname())
+		req.Header.Set("X-Forwarded-Proto", c.Protocol())
+		if id, ok := c.Locals("requestid").(string); ok && id != "" {
+			req.Header.Set("X-Request-ID", id)
+		}
 
-        resp, err := http.DefaultClient.Do(req)
-        if err != nil {
-            return c.Status(http.StatusBadGateway).SendString(err.Error())
-        }
-        defer resp.Body.Close()
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return c.Status(http.StatusBadGateway).SendString(err.Error())
+		}
+		defer resp.Body.Close()
 
-        for k, vals := range resp.Header {
-            for _, v := range vals {
-                c.Response().Header.Set(k, v)
-            }
-        }
+		for k, vals := range resp.Header {
+			if isHopByHop(k) {
+				continue
+			}
+			for _, v := range vals {
+				c.Append(k, v)
+			}
+		}
 
-        c.Status(resp.StatusCode)
-        respBody, _ := io.ReadAll(resp.Body)
-        return c.Send(respBody)
-    }
+		c.Status(resp.StatusCode)
+		return c.SendStream(resp.Body)
+	}
+}
+
+func isHopByHop(header string) bool {
+	switch strings.ToLower(header) {
+	case "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+		"te", "trailer", "transfer-encoding", "upgrade":
+		return true
+	default:
+		return false
+	}
 }

@@ -32,9 +32,13 @@ export const api = {
    * Generates production paths targeting internal streaming instances
    */
   getStreamSource: (tmdbId: number, mediaType: 'movie' | 'tv', season?: number, episode?: number, server: string = 'white'): string => {
-    let url = `/api/${server}/source?tmdbId=${tmdbId}&mediaType=${mediaType}`;
-    if (mediaType === 'tv' && season !== undefined && episode !== undefined) {
-      url += `&season=${season}&episode=${episode}`;
+    const allowedServers = new Set(['white', 'black']);
+    const safeServer = allowedServers.has(server) ? server : 'white';
+    const safeMedia: 'movie' | 'tv' = mediaType === 'tv' ? 'tv' : 'movie';
+    const safeTmdb = Number.isFinite(tmdbId) && tmdbId > 0 ? Math.floor(tmdbId) : 0;
+    let url = `/api/${safeServer}/source?tmdbId=${safeTmdb}&mediaType=${safeMedia}`;
+    if (safeMedia === 'tv' && Number.isFinite(season) && Number.isFinite(episode)) {
+      url += `&season=${Math.max(1, Math.floor(season as number))}&episode=${Math.max(1, Math.floor(episode as number))}`;
     }
     return url;
   },

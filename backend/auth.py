@@ -5,23 +5,33 @@ import os
 import jwt
 import hashlib
 import secrets
+import hmac
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
+try:
+    from pydantic import ConfigDict
+except ImportError:  # Pydantic v1
+    ConfigDict = None
 
 from database import SessionLocal, User, get_db
 
 # Configuration
-JWT_SECRET = os.environ.get("JWT_SECRET", "your-secret-key-change-this")
+_DEFAULT_JWT_SECRET = "your-secret-key-change-this"
+JWT_SECRET = os.environ.get("JWT_SECRET", _DEFAULT_JWT_SECRET)
 JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 1 week
 REFRESH_TOKEN_EXPIRE_DAYS = 30  # 30 days
 
+if os.environ.get("ENV", "development").lower() in {"prod", "production"} and JWT_SECRET == _DEFAULT_JWT_SECRET:
+    raise RuntimeError("JWT_SECRET must be set in production")
+
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # Pydantic models
 class Token(BaseModel):
@@ -43,11 +53,6 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     pass
 
-class UserResponse(BaseModel):
-    user: UserOut
-    access_token: str
-    refresh_token: str
-
 class UserOut(BaseModel):
     id: int
     email: str
@@ -55,6 +60,17 @@ class UserOut(BaseModel):
     is_active: bool
     is_admin: bool
     created_at: datetime
+
+    if ConfigDict is not None:
+        model_config = ConfigDict(from_attributes=True)
+    else:
+        class Config:
+            orm_mode = True
+
+class UserResponse(BaseModel):
+    user: UserOut
+    access_token: str
+    refresh_token: str
 
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
@@ -87,7 +103,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
             int(iterations),
             dklen=32
         )
-        return pwdhash == hashed.hex()
+        return hmac.compare_digest(pwdhash, hashed.hex())
     except Exception:
         return False
 
@@ -100,9 +116,10 @@ def create_access_token(data: Dict[str, Any], expires_in: int = ACCESS_TOKEN_EXP
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
-def create_refresh_token() -> str:
+def create_refresh_token(data: Dict[str, Any]) -> str:
     """Create a refresh token."""
     refresh_data = {
+        **data,
         "type": "refresh",
         "random": secrets.token_urlsafe(16),
         "exp": datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -119,8 +136,21 @@ def decode_token(token: str) -> Optional[TokenData]:
         return TokenData(username=username, user_id=user_id, permissions=permissions)
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except jwt.InvalidTokenError:
         return None
+
+def _issue_tokens(user: User) -> UserResponse:
+    payload = {"username": user.username, "user_id": user.id, "permissions": ["admin"] if user.is_admin else []}
+    return UserResponse(
+        user=_user_out(user),
+        access_token=create_access_token(payload),
+        refresh_token=create_refresh_token(payload),
+    )
+
+def _user_out(user: User) -> UserOut:
+    if hasattr(UserOut, "model_validate"):
+        return UserOut.model_validate(user)
+    return UserOut.from_orm(user)
 
 # Auth dependency
 async def get_current_user(
@@ -184,18 +214,39 @@ def authenticate_user(db, username: str, password: str) -> Optional[User]:
     return user
 
 def update_user(db, user_id: int, updates: Dict[str, Any]) -> User:
-    """Update user information."""
+    """Update user information.
+
+    Only the fields in `_UPDATABLE_USER_FIELDS` may be modified. Privilege-
+    sensitive columns (`is_admin`, `is_active`) and credential columns
+    (`password_hash`, `id`) are never writable through this path, even if
+    a caller forwards a request body that includes them.
+    """
     db_user = db.query(User).filter(User.id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    if not isinstance(updates, dict):
+        raise HTTPException(status_code=400, detail="updates must be an object")
+
+    for key in updates:
+        if key not in _UPDATABLE_USER_FIELDS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Field '{key}' is not updatable",
+            )
+
     for key, value in updates.items():
-        if hasattr(db_user, key) and key != "id" and key != "password_hash":
-            setattr(db_user, key, value)
-    
+        setattr(db_user, key, value)
+
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+# Fields that update_user() will persist. Anything else is rejected
+# before it reaches the ORM to prevent mass-assignment privilege
+# escalation (e.g. `is_admin: True`).
+_UPDATABLE_USER_FIELDS = frozenset({"email", "username"})
 
 def delete_user(db, user_id: int) -> None:
     """Delete a user (soft delete by setting is_active=False)."""
@@ -206,3 +257,49 @@ def delete_user(db, user_id: int) -> None:
     db_user.is_active = False
     db.commit()
     db.refresh(db_user)
+
+
+@router.post("/register", response_model=UserResponse)
+async def register(user: UserCreate, db=Depends(get_db)) -> UserResponse:
+    db_user = create_user(db, user)
+    return _issue_tokens(db_user)
+
+
+@router.post("/token", response_model=Token)
+async def login(form: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)) -> Token:
+    user = authenticate_user(db, form.username, form.password)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    payload = {"username": user.username, "user_id": user.id, "permissions": ["admin"] if user.is_admin else []}
+    return Token(
+        access_token=create_access_token(payload),
+        refresh_token=create_refresh_token(payload),
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(body: TokenRefreshRequest, db=Depends(get_db)) -> Token:
+    try:
+        payload = jwt.decode(body.refresh_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if payload.get("type") != "refresh" or not payload.get("user_id"):
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user = db.query(User).filter(User.id == payload["user_id"]).first()
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    token_payload = {"username": user.username, "user_id": user.id, "permissions": ["admin"] if user.is_admin else []}
+    return Token(
+        access_token=create_access_token(token_payload),
+        refresh_token=create_refresh_token(token_payload),
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+
+@router.get("/me", response_model=UserOut)
+async def me(current_user: User = Depends(get_current_active_user)) -> UserOut:
+    return _user_out(current_user)

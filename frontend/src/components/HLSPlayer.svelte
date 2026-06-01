@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import Hls from 'hls.js';
+  import type Hls from 'hls.js';
 
   // Props (Svelte 5 Runes)
   let { 
@@ -96,12 +96,28 @@
     onProgress({ currentTime: videoEl.currentTime, duration: videoEl.duration });
   }
 
+  // Track all in-flight timeouts (retry timers, play-attempt retries)
+  // so unmount can cancel them — otherwise they fire on a dead
+  // component and bump reactive state.
+  const _pendingTimeouts: Set<ReturnType<typeof setTimeout>> = new Set();
+
   onDestroy(() => {
     if (countdownTimer) {
       clearInterval(countdownTimer);
       countdownTimer = null;
     }
+    for (const t of _pendingTimeouts) clearTimeout(t);
+    _pendingTimeouts.clear();
   });
+
+  function trackedSetTimeout(fn: () => void, ms: number): ReturnType<typeof setTimeout> {
+    const t = setTimeout(() => {
+      _pendingTimeouts.delete(t);
+      fn();
+    }, ms);
+    _pendingTimeouts.add(t);
+    return t;
+  }
 
   // Playback Rate Options
   const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -130,6 +146,11 @@
   function skip(seconds: number) {
     if (!videoEl) return;
     videoEl.currentTime = Math.max(0, Math.min(videoEl.currentTime + seconds, duration));
+  }
+
+  function seekToPercent(pct: number) {
+    if (!duration || !videoEl) return;
+    videoEl.currentTime = Math.max(0, Math.min(pct, 1)) * duration;
   }
 
   function toggleFullscreen() {
@@ -209,6 +230,35 @@
     }
   }
 
+  function handleTimelineTouch(e: TouchEvent) {
+    if (!duration || !videoEl || e.touches.length === 0) return;
+    e.preventDefault();
+    isScrubbing = true;
+    showPreview = true;
+    showControlsTemp();
+    const pct = getTimelinePercentage(e.touches[0].clientX);
+    seekPreview = pct * duration;
+    seekPos = pct * 100;
+    videoEl.currentTime = seekPreview;
+  }
+
+  function handleTimelineKeydown(e: KeyboardEvent) {
+    if (!duration || !videoEl) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      skip(10);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      skip(-10);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      seekToPercent(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      seekToPercent(1);
+    }
+  }
+
   function handleGlobalMouseUp() {
     if (isScrubbing) {
       isScrubbing = false;
@@ -278,10 +328,14 @@
       for (let i = 0; i < v.textTracks.length; i++) {
         const track = v.textTracks[i];
         if (track.kind === 'subtitles' || track.kind === 'captions') {
+          // `track.language` is null in some browsers (notably Firefox
+          // when the manifest omits the LANGUAGE attribute). Coerce to
+          // empty string before calling `.toUpperCase()`.
+          const lang = (track.language || '').toUpperCase();
           discoveredTracks.push({
             index: i,
-            label: track.label || track.language.toUpperCase() || `Track ${i + 1}`,
-            language: track.language,
+            label: track.label || lang || `Track ${i + 1}`,
+            language: track.language || '',
             trackObj: track
           });
           if (track.mode === 'showing') currentCaptionIndex = i;
@@ -341,9 +395,23 @@
     if (!hlsUrl || !videoEl) return;
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
 
-    if (Hls.isSupported()) {
+    let disposed = false;
+    let localHls: Hls | null = null;
+
+    import('hls.js').then(({ default: Hls }) => {
+      if (disposed || !videoEl) return;
+      if (!Hls.isSupported()) {
+        if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+          videoEl.src = hlsUrl;
+        } else {
+          error = 'Adaptive streaming playback layer failure.';
+        }
+        return;
+      }
+
+      const effectiveStart = _retryStartTime > 0 ? _retryStartTime : startTime;
       const hls = new Hls({
-        startPosition: startTime > 0 ? startTime : 0,
+        startPosition: effectiveStart > 0 ? effectiveStart : 0,
         capLevelToPlayerSize: true,
         xhrSetup: (xhr, url) => {
           xhr.timeout = 30000;
@@ -351,17 +419,29 @@
       });
       hls.loadSource(hlsUrl);
       hls.attachMedia(videoEl);
+      localHls = hls;
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        qualities = [...hls.levels].reverse().map((lvl, index) => ({
+        if (disposed) { hls.destroy(); return; }
+        qualities = hls.levels.map((lvl, index) => ({
           index,
           label: lvl.height ? `${lvl.height}p` : `Level ${index}`
-        }));
+        })).reverse();
 
-        if (startTime > 0) {
-          videoEl.currentTime = startTime;
+        if (effectiveStart > 0) {
+          videoEl.currentTime = effectiveStart;
         }
-        if (autoPlay) videoEl.play().catch(() => {});
+        _retryStartTime = 0;
+        // Reset retry counter on a successful manifest load so a
+        // subsequent error gets a fresh budget instead of being blocked
+        // by the budget of an already-resolved earlier failure.
+        hlsRetries = 0;
+        if (autoPlay) {
+          (function tryPlay(attempts = 0) {
+            if (attempts > 5) return;
+            videoEl.play().catch(() => trackedSetTimeout(() => tryPlay(attempts + 1), 250));
+          })();
+        }
       });
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
@@ -370,9 +450,10 @@
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (disposed) return;
         if (data.fatal) {
           const code = data.response?.code;
-          const isRetryable = code === 404 || code === 410 || code === 0 || !code;
+          const isRetryable = code === 401 || code === 403 || code === 404 || code === 410 || code === 0 || !code;
           const context = data.context;
 
           // Don't retry network-level fragment/segment errors if we've exceeded retries
@@ -384,10 +465,13 @@
           if (isRetryable && hlsRetries < MAX_RETRIES && src) {
             hlsRetries++;
             console.warn(`[HLS] Fatal error (attempt ${hlsRetries}/${MAX_RETRIES}):`, data.type, data.details, 'code:', code);
+            // Capture exact playback position BEFORE teardown so the new
+            // Hls instance resumes at the same timestamp instead of 0:00
+            _retryStartTime = videoEl.currentTime;
             // Clear hlsUrl and bump fetchKey to re-fetch manifest with fresh tokens
             hlsUrl = '';
             // Small delay before retry to avoid hammering
-            setTimeout(() => { fetchKey++; }, 500 * hlsRetries);
+            trackedSetTimeout(() => { fetchKey++; }, 500 * hlsRetries);
             return;
           }
 
@@ -395,13 +479,24 @@
         }
       });
 
+      // Assign to the component-scoped handle only if we're still alive;
+      // otherwise the cleanup function will not see this instance and
+      // the Hls object would leak (and the Hls.error event would have
+      // set component state on an unmounted component).
+      if (disposed) {
+        hls.destroy();
+        return;
+      }
       hlsInstance = hls;
-      return () => { hls.destroy(); if (hlsInstance === hls) hlsInstance = null; };
-    } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-      videoEl.src = hlsUrl;
-    } else {
-      error = 'Adaptive streaming playback layer failure.';
-    }
+    }).catch(() => {
+      if (!disposed) error = 'Adaptive streaming playback layer failure.';
+    });
+
+    return () => {
+      disposed = true;
+      if (localHls) localHls.destroy();
+      if (hlsInstance === localHls) hlsInstance = null;
+    };
   });
 
   // Stream Endpoint Ingestion Layer (re-triggers on src change or retry via fetchKey)
@@ -441,7 +536,7 @@
             // Auto-retry on timeout
             if (hlsRetries < MAX_RETRIES) {
               hlsRetries++;
-              setTimeout(() => { fetchKey++; }, 1000);
+              trackedSetTimeout(() => { fetchKey++; }, 1000);
             }
           } else {
             error = 'Failed to establish stable streaming pipeline.';
@@ -455,10 +550,12 @@
 
   let progressPct = $derived(duration > 0 ? (currentTime / duration) * 100 : 0);
   let bufferedPct = $derived(duration > 0 ? (buffered / duration) * 100 : 0);
+  let remainingTime = $derived(duration > 0 ? Math.max(duration - currentTime, 0) : 0);
   let volPct = $derived(muted ? 0 : volume * 100);
   let activeQualityLabel = $derived(currentQualityIndex === -1 ? 'Auto' : qualities.find(q => q.index === currentQualityIndex)?.label || 'Auto');
   let activeCaptionLabel = $derived(currentCaptionIndex === -1 ? 'Off' : captions.find(c => c.index === currentCaptionIndex)?.label || 'Off');
   let hlsRetries = $state(0);
+  let _retryStartTime = 0;
 </script>
 
 <svelte:window onmousemove={showControlsTemp} />
@@ -473,6 +570,7 @@
   <div 
     class="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center"
     onmouseleave={() => { if (!isScrubbing) showSettings = false; }}
+    role="presentation"
   >
     <video
       bind:this={videoEl}
@@ -488,11 +586,19 @@
       <p class="text-zinc-500 text-center p-4 text-sm">Your browser does not support internal streaming layers.</p>
     </video>
 
+    <div class="pointer-events-none absolute left-0 right-0 top-0 z-20 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-4 pb-12 pt-4 transition-opacity duration-300 {showControls || !playing ? 'opacity-100' : 'opacity-0'}">
+      <p class="max-w-[80%] truncate text-sm font-bold text-white drop-shadow-md sm:text-base">{title}</p>
+      <p class="mt-1 text-xs font-medium text-zinc-400">{activeQualityLabel} • {formatTime(currentTime)} elapsed</p>
+    </div>
+
     {#if loading}
       <div class="absolute inset-0 flex items-center justify-center bg-zinc-950/20 backdrop-blur-md z-20 pointer-events-none">
-        <div class="relative w-14 h-14 flex items-center justify-center">
-          <div class="w-14 h-14 border-[3px] border-zinc-800/60 rounded-full absolute"></div>
-          <div class="w-14 h-14 border-[3px] border-t-red-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin absolute"></div>
+        <div class="flex flex-col items-center gap-4">
+          <div class="relative w-14 h-14 flex items-center justify-center">
+            <div class="w-14 h-14 border-[3px] border-zinc-800/60 rounded-full absolute"></div>
+            <div class="w-14 h-14 border-[3px] border-t-red-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin absolute"></div>
+          </div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Opening stream</p>
         </div>
       </div>
     {/if}
@@ -521,34 +627,46 @@
     {/if}
 
     {#if !playing && !loading && !error}
-      <div class="absolute inset-0 flex items-center justify-center z-10 bg-black/10 backdrop-blur-[1px] cursor-pointer" onclick={togglePlay}>
+      <div
+        class="absolute inset-0 flex items-center justify-center z-10 bg-black/10 backdrop-blur-[1px] cursor-pointer"
+        onclick={togglePlay}
+        onkeydown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            togglePlay();
+          }
+        }}
+        role="button"
+        tabindex="0"
+        aria-label={ended ? 'Replay video' : 'Play video'}
+      >
         {#if ended && onNext && countdown > 0}
-          <div class="flex flex-col items-center gap-4" onclick={(e) => e.stopPropagation()}>
+          <div class="flex flex-col items-center gap-4">
             <div class="flex flex-col items-center gap-2">
               <p class="text-sm text-zinc-300 font-medium tracking-wide">Up Next</p>
               <p class="text-[56px] font-bold text-white tabular-nums leading-none">{countdown}</p>
               <p class="text-xs text-zinc-500">starting in...</p>
             </div>
             <div class="flex gap-3">
-              <button onclick={togglePlay} class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-semibold text-white transition-colors active:scale-95">
+              <button onclick={(event) => { event.stopPropagation(); togglePlay(); }} class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-semibold text-white transition-colors active:scale-95">
                 <svg class="inline-block -mt-0.5 mr-1.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" color="currentColor" fill="none">
                   <path d="M6.5 5.5L18.5 12L6.5 18.5V5.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
                 </svg>
                 Replay
               </button>
-              <button onclick={cancelCountdown} class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-semibold text-white transition-colors active:scale-95">
+              <button onclick={(event) => { event.stopPropagation(); cancelCountdown(); }} class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-semibold text-white transition-colors active:scale-95">
                 Cancel
               </button>
             </div>
           </div>
         {:else if ended}
-          <button class="w-16 h-16 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center backdrop-blur-xl shadow-2xl text-white transition-all scale-100 hover:scale-105 active:scale-95 duration-300">
+          <button class="w-16 h-16 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center backdrop-blur-xl shadow-2xl text-white transition-all scale-100 hover:scale-105 active:scale-95 duration-300" aria-label="Replay video">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none">
               <path d="M19 12H5M5 12L10 7M5 12L10 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
         {:else}
-          <button class="w-16 h-16 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center backdrop-blur-xl shadow-2xl text-white transition-all scale-100 hover:scale-105 active:scale-95 duration-300">
+          <button class="w-16 h-16 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center backdrop-blur-xl shadow-2xl text-white transition-all scale-100 hover:scale-105 active:scale-95 duration-300" aria-label="Play video">
             <svg class="translate-x-[1px]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none">
               <path d="M6.5 5.5L18.5 12L6.5 18.5V5.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
             </svg>
@@ -558,7 +676,7 @@
     {/if}
 
     {#if showSettings}
-      <div class="absolute bottom-20 right-4 w-64 bg-zinc-900/95 border border-zinc-800/80 rounded-2xl shadow-2xl backdrop-blur-xl z-30 p-2 text-zinc-200 text-xs font-medium animate-fade-in" onmouseenter={showControlsTemp}>
+      <div class="absolute bottom-20 right-4 w-64 bg-zinc-900/95 border border-zinc-800/80 rounded-2xl shadow-2xl backdrop-blur-xl z-30 p-2 text-zinc-200 text-xs font-medium animate-fade-in" onmouseenter={showControlsTemp} role="presentation">
         {#if currentMenuTab === 'main'}
           <div class="flex flex-col">
             {#if qualities.length > 0}
@@ -623,6 +741,7 @@
       class="absolute bottom-0 left-0 right-0 z-20 transition-all duration-300 ease-out flex flex-col justify-end px-4 pb-4 pt-24 bg-gradient-to-t from-black/90 via-black/40 to-transparent
       {showControls || !playing || isScrubbing ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}"
       onmouseenter={showControlsTemp}
+      role="presentation"
     >
       <div class="w-full flex flex-col gap-4 px-2">
         
@@ -631,7 +750,17 @@
           class="relative w-full h-3 group/progress cursor-pointer flex items-center"
           onmousedown={handleTimelineMouseDown}
           onmousemove={handleTimelineMouseMove}
+          ontouchstart={handleTimelineTouch}
+          ontouchmove={handleTimelineTouch}
+          ontouchend={() => { isScrubbing = false; showPreview = false; showControlsTemp(); }}
           onmouseleave={() => showPreview = false}
+          onkeydown={handleTimelineKeydown}
+          role="slider"
+          aria-label="Seek"
+          aria-valuemin="0"
+          aria-valuemax={Math.max(duration, 0)}
+          aria-valuenow={Math.min(currentTime, duration || currentTime)}
+          tabindex="0"
         >
           <div class="absolute left-0 right-0 h-1 bg-zinc-600/50 rounded-full transition-all group-hover/progress:h-1.5"></div>
           <div class="absolute h-1 bg-zinc-400/50 rounded-full transition-all group-hover/progress:h-1.5" style="width: {bufferedPct}%"></div>
@@ -701,6 +830,11 @@
             <span class="text-[12px] font-medium text-zinc-300 tracking-wider tabular-nums ml-3 drop-shadow-md">
               {formatTime(currentTime)} <span class="text-zinc-500 font-normal px-1">/</span> {formatTime(duration)}
             </span>
+            {#if remainingTime > 0}
+              <span class="hidden text-[12px] font-medium text-zinc-500 tabular-nums sm:inline">
+                -{formatTime(remainingTime)}
+              </span>
+            {/if}
           </div>
 
           <div class="flex items-center gap-1">
