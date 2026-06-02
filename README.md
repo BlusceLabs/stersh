@@ -17,6 +17,7 @@ that runs alongside when started manually.
 - [Running services individually](#running-services-individually)
 - [Environment variables](#environment-variables)
 - [Test suite](#test-suite)
+  - [Pre-commit hooks (lefthook)](#pre-commit-hooks-lefthook)
 - [Security model](#security-model)
 - [Provider model](#provider-model)
 - [Known setup gotchas](#known-setup-gotchas)
@@ -230,10 +231,12 @@ Runs:
 
 1. `cd frontend && npm run build` — Astro type check + Vite build
 2. `go test ./...` in `backend/gateway` — Go unit tests (30 subtests across `tmdb_utils_test.go`)
-3. `cd backend && python3 -m unittest discover -s tests -v` — Python unit tests
+3. `cd backend && python3 -m unittest discover -s tests -v` — Python unit tests (59 tests)
 4. `python3 -m compileall -q backend` — syntax check on every `.py` file
 
 The Python suite uses only the stdlib `unittest` module — no extra deps.
+
+`make ci-local` runs the same matrix as GitHub Actions (`.github/workflows/ci.yml`) plus the svelte-check step that CI runs separately.
 
 ### What's covered
 
@@ -242,6 +245,7 @@ The Python suite uses only the stdlib `unittest` module — no extra deps.
 | `test_ssrf.py` | 26 | Allowlist miss · RFC1918/loopback/IMDS/link-local/multicast/unspecified rejection · control characters · oversize URLs · non-http schemes · async redirect hook (`async def redirect_event_hook` re-validates 3xx Location headers) |
 | `test_auth.py` | 13 | `_UPDATABLE_USER_FIELDS = {email, username}` — blocks `is_admin`, `is_active`, `password_hash`, `id`, `role`, non-dict input · 404 on missing user |
 | `test_continue_watching.py` | 2 | `_ALLOWED_SOURCE_SERVERS = frozenset({white, black})` — no hostnames or IPs leak in |
+| `test_security_headers.py` | 19 | CSP/HSTS/COOP/CORP/Permissions-Policy defaults · HSTS env toggle, max-age, invalid-fallback · CSP & PP env overrides · relaxed CSP for `/api/docs` + `/api/redoc` · proxy-aware `X-Forwarded-Proto` HTTPS detection |
 | `tmdb_utils_test.go` | 30 | `isSafePathSegment` (digit-only, no `..`, no `%`, no Unicode digit substitution) · `yearFromDate` · `tmdbImage` |
 
 ### What's deliberately not covered
@@ -253,6 +257,34 @@ The Python suite uses only the stdlib `unittest` module — no extra deps.
 Add a test under `backend/tests/` for any new mass-assignment guard, allowlist,
 Pydantic validator, or URL validation — these are the layers that take the
 largest blast radius when they regress.
+
+### Pre-commit hooks (lefthook)
+
+```bash
+make install-hooks   # installs pre-commit + pre-push via lefthook
+```
+
+`lefthook.yml` ships in the repo root and wires:
+
+- **pre-commit** (parallel, on staged files only):
+  - `svelte-check` on `frontend/src/**/*.{svelte,ts,astro}`
+  - `python3 -m py_compile` on every staged `backend/**/*.py`
+  - `go vet ./...` when any `backend/gateway/**/*.go` changed
+- **pre-push** (serial, full validation):
+  - `npm run build` for the frontend
+  - `python3 -m compileall -q backend` + the full unittest suite
+  - `go test ./... -v` for the gateway
+
+Skip on demand with `git commit --no-verify` / `git push --no-verify`.
+
+To run the full CI matrix locally without going through git:
+
+```bash
+make ci-local
+```
+
+This is equivalent to `.github/workflows/ci.yml` minus the dependency-audit
+job (which depends on GitHub Actions-specific tooling).
 
 ---
 
@@ -301,6 +333,25 @@ Five layers, ordered by blast radius if they fail:
    - `_rate_limit_buckets`: capped at 10K keys with opportunistic eviction
    - `_playback_health_log`: capped at 5K keys with `asyncio.Lock` + LRU
      eviction, per-key list capped at 100 entries
+
+6. **Security headers** — `app/middleware/security_headers.py`
+   Every response carries a defense-in-depth header set:
+   - `X-Content-Type-Options: nosniff` — block MIME sniffing
+   - `X-Frame-Options: SAMEORIGIN` — clickjacking
+   - `Referrer-Policy: strict-origin-when-cross-origin` — leak less
+   - `Content-Security-Policy` — restrict resource loading; relaxed for
+     `/api/docs` and `/api/redoc` so Swagger UI / ReDoc can load
+   - `Permissions-Policy` — disable camera, microphone, geolocation,
+     payment, USB, and other features the app does not need
+   - `Cross-Origin-Opener-Policy: same-origin` and
+     `Cross-Origin-Resource-Policy: same-origin` — isolate the browsing
+     context and limit who can embed resources
+   - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+     — only sent over HTTPS (proxy-aware via `X-Forwarded-Proto`)
+
+   Override the CSP / Permissions-Policy at deploy time with
+   `SECURITY_CSP_OVERRIDE` / `SECURITY_PERMISSIONS_OVERRIDE` env vars
+   without touching code.
 
 ### What's deliberately exposed
 

@@ -1,0 +1,48 @@
+# lefthook configuration for Watchfy.
+# Install with:  go install github.com/evilmartians/lefthook@latest && lefthook install
+# Skip on demand:  git commit --no-verify / git push --no-verify
+# Run full local CI:  make ci-local
+
+min_version: 1.11.0
+
+# ── pre-commit: fast feedback on staged files only ───────────────────────────
+pre-commit:
+  parallel: true
+
+  commands:
+    # Frontend: svelte-check on the whole project (it's fast, no need
+    # to scope to staged files).
+    svelte-check:
+      glob: "frontend/src/**/*.{svelte,ts,astro}"
+      run: npm run check --prefix frontend
+      stage_fixed: false
+
+    # Backend Python: byte-compile all changed .py files.
+    python-compile:
+      glob: "backend/**/*.py"
+      run: python3 -m py_compile {staged_files}
+
+    # Backend Go: go vet on the gateway module (vet is fast enough
+    # that scoping to staged files is more trouble than it's worth).
+    go-vet:
+      glob: "backend/gateway/**/*.go"
+      run: cd backend/gateway && go vet ./...
+
+# ── pre-push: full validation before the commits leave the local repo ───────
+pre-push:
+  parallel: false
+
+  commands:
+    frontend-build:
+      glob: "frontend/**"
+      run: npm run build --prefix frontend
+
+    backend-python-tests:
+      glob: "backend/**/*.py"
+      run: |
+        python3 -m compileall -q backend && \
+        python3 -m unittest discover -s backend/tests -v
+
+    backend-go-tests:
+      glob: "backend/gateway/**/*.go"
+      run: cd backend/gateway && go test ./... -v
