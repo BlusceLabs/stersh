@@ -7,7 +7,9 @@
     "dev": "astro dev",
     "start": "node ./dist/server/entry.mjs",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "check": "svelte-check --tsconfig ./tsconfig.svelte-check.json",
+    "check:summary": "svelte-check --tsconfig ./tsconfig.svelte-check.json --output human --threshold warning"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.1",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49"
+    "postcss": "^8.4.49",
+    "svelte-check": "^4.5.0"
   }
 }

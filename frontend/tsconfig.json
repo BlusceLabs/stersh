@@ -7,11 +7,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    
+
     /* Agnostic JSX Federation configuration */
     "jsx": "react-jsx",
     "jsxImportSource": "astro",
-    
+
     /* Absolute Path Mapping Framework Alignment */
     "baseUrl": ".",
     "paths": {
@@ -20,5 +20,7 @@
       "@layouts/*": ["src/layouts/*"],
       "@lib/*": ["src/lib/*"]
     }
-  }
+  },
+  "include": ["src/**/*", "packages/**/*", "*.config.*", "*.d.ts"],
+  "exclude": ["node_modules", "dist", ".svelte-kit", ".astro", "**/dist/**", "**/node_modules/**"]
 }

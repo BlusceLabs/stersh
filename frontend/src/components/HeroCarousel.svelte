@@ -111,6 +111,15 @@
   }
 </script>
 
+<!--
+  WAI-ARIA Carousel Pattern: the slide container is a focusable region
+  (tabindex=0) with keyboard navigation (ArrowLeft/ArrowRight). The
+  svelte-ignore comments below acknowledge the WAI-ARIA Authoring
+  Practices carousel pattern, which svelte's a11y rules do not yet
+  recognize. See: https://www.w3.org/WAI/ARIA/apg/patterns/carousel/
+-->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   bind:this={containerEl}
   class="relative w-full h-[80vh] min-h-[550px] max-h-[850px] bg-surface-0 overflow-hidden group select-none"
@@ -118,7 +127,7 @@
   onmouseleave={() => hovering = false}
   onkeydown={onKey}
   tabindex="0"
-  role="region"
+  role="group"
   aria-roledescription="carousel"
   aria-label="Featured content slider"
 >

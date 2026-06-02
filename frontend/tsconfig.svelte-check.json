@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "packages/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".svelte-kit",
+    ".astro",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/*.config.*",
+    "**/*.test.ts"
+  ]
+}
