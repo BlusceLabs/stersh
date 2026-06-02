@@ -3,96 +3,103 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Search Catalog | Watchfy">
-  <main class="min-h-screen bg-[#09090b] text-zinc-100 pt-24 pb-24 select-none relative overflow-hidden">
-    
-    <div class="absolute top-0 right-1/4 w-[600px] h-[300px] bg-indigo-900/5 rounded-full blur-[140px] pointer-events-none z-0"></div>
+  <main class="min-h-screen bg-surface-0 text-ink pt-20 sm:pt-24 pb-32 lg:pb-12 select-none relative overflow-x-hidden">
+    <div class="absolute top-0 right-1/4 w-[600px] h-[300px] bg-brand-cyan/[0.04] rounded-full blur-[140px] pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="absolute top-1/2 left-1/4 w-[400px] h-[300px] bg-brand-red/[0.03] rounded-full blur-[140px] pointer-events-none z-0" aria-hidden="true"></div>
 
-    <div class="relative z-10">
-      
-      <header class="mb-8 px-4 sm:px-6 lg:px-8">
-        <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tighter mb-2">Search Library</h1>
-        <p class="text-xs sm:text-sm text-zinc-500 font-medium">Discover movies and TV shows by title, genre, or year.</p>
+    <div class="relative z-10 max-w-content mx-auto px-4 sm:px-6 lg:px-8">
+
+      <header class="mb-6">
+        <p class="text-[11px] uppercase tracking-[0.3em] font-bold text-brand-cyan mb-1.5">Discover</p>
+        <h1 class="text-2xl sm:text-4xl lg:text-display-lg font-display font-black text-ink tracking-tighter">
+          Search Library
+        </h1>
+        <p class="text-xs sm:text-sm text-ink-muted mt-1 font-medium">Discover movies and TV shows by title, genre, or year.</p>
       </header>
-      
-      <form id="search-form" class="max-w-5xl mb-6 group px-4 sm:px-6 lg:px-8">
+
+      <form id="search-form" class="max-w-3xl mb-6 group">
+        <label for="search-input" class="sr-only">Search</label>
         <div class="relative">
           <input
+            id="search-input"
             type="text"
             name="q"
-            autofocus
             autocomplete="off"
             placeholder="Search titles, actors, genres..."
-            class="w-full pl-14 pr-32 py-4 sm:py-5 bg-zinc-900/40 text-white font-medium placeholder-zinc-500 rounded-2xl border border-zinc-800/80 focus:border-zinc-700 focus:outline-none focus:ring-4 focus:ring-red-500/10 backdrop-blur-md transition-all duration-300 shadow-xl shadow-black/30"
+            class="w-full pl-14 pr-32 py-4 sm:py-5 bg-surface-1/60 text-ink font-medium placeholder-ink-subtle rounded-2xl border border-white/[0.06] focus:border-white/10 focus:outline-none focus:ring-4 focus:ring-brand-red/15 backdrop-blur-md transition-all duration-300 shadow-3"
           />
-          
-          <div class="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-red-400 transition-colors duration-300 pointer-events-none">
+
+          <div class="absolute left-5 top-1/2 -translate-y-1/2 text-ink-subtle group-focus-within:text-brand-red transition-colors duration-300 pointer-events-none" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" />
             </svg>
           </div>
-          
-          <button 
-            type="submit" 
-            class="absolute right-3 top-1/2 -translate-y-1/2 px-5 py-2 sm:py-2.5 bg-gradient-to-r from-red-600 to-pink-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:brightness-110 active:scale-95 shadow-md shadow-red-600/10 transition-all cursor-pointer"
+
+          <button
+            type="submit"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 px-5 py-2.5 sm:py-3 bg-brand-gradient-cta text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:brightness-110 active:scale-95 shadow-glow-red transition-all duration-300 ease-exo-out"
           >
             Search
           </button>
         </div>
       </form>
 
-      <div id="filter-bar" class="hidden flex flex-wrap items-center gap-3 mb-8 max-w-5xl px-4 sm:px-6 lg:px-8">
-        <select id="type-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
-          <option value="multi">All Types</option>
-          <option value="movie">Movies</option>
-          <option value="tv">TV Shows</option>
-        </select>
-        <select id="genre-filter" class="bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer">
-          <option value="">All Genres</option>
-        </select>
+      <div id="filter-bar" class="hidden flex flex-wrap items-center gap-2.5 mb-8 max-w-3xl">
+        <div class="relative">
+          <select id="type-filter" class="appearance-none bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold pl-3.5 pr-9 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/30 cursor-pointer hover:border-white/10 transition-colors">
+            <option value="multi">All Types</option>
+            <option value="movie">Movies</option>
+            <option value="tv">TV Shows</option>
+          </select>
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-subtle pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+        </div>
+        <div class="relative">
+          <select id="genre-filter" class="appearance-none bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold pl-3.5 pr-9 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/30 cursor-pointer hover:border-white/10 transition-colors">
+            <option value="">All Genres</option>
+          </select>
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-subtle pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+        </div>
         <input
           type="number"
           id="year-filter"
           placeholder="Year"
           min="1900"
           max="2030"
-          class="w-24 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 placeholder-zinc-500"
+          class="w-24 bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold px-3.5 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/30 placeholder-ink-subtle hover:border-white/10 transition-colors"
         />
       </div>
-      
-      <div id="search-skeleton" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 animate-pulse px-4 sm:px-6 lg:px-8">
+
+      <div id="search-skeleton" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
         {Array.from({ length: 6 }).map(() => (
           <div class="space-y-3">
-            <div class="aspect-[2/3] bg-zinc-900 border border-zinc-800/40 rounded-xl relative overflow-hidden">
-              <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent shimmer-wave"></div>
-            </div>
+            <div class="skeleton aspect-[2/3] rounded-2xl"></div>
             <div class="space-y-2 px-1">
-              <div class="h-3.5 bg-zinc-800 rounded w-5/6"></div>
-              <div class="h-2.5 bg-zinc-900 rounded w-1/2"></div>
+              <div class="skeleton h-3.5 rounded w-5/6"></div>
+              <div class="skeleton h-2.5 rounded w-1/2"></div>
             </div>
           </div>
         ))}
       </div>
-      
-      <section id="search-results" class="hidden opacity-0 transition-opacity duration-400 px-4 sm:px-6 lg:px-8">
-        <h2 id="results-headline" class="text-xs font-black uppercase tracking-widest text-zinc-400 mb-6 border-b border-zinc-900 pb-3">
+
+      <section id="search-results" class="hidden opacity-0 transition-opacity duration-400">
+        <h2 id="results-headline" class="text-xs font-black uppercase tracking-[0.18em] text-ink-muted mb-6 border-b border-white/[0.06] pb-3">
           Search Results
         </h2>
-        <div id="results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
-          </div>
+        <div id="results-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8"></div>
         <div id="pagination" class="hidden flex items-center justify-center gap-4 mt-10">
-          <button id="prev-page" class="px-4 py-2 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold rounded-xl hover:bg-zinc-800/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">Previous</button>
-          <span id="page-info" class="text-xs text-zinc-500 font-medium"></span>
-          <button id="next-page" class="px-4 py-2 bg-zinc-900/60 border border-zinc-800/60 text-zinc-300 text-xs font-semibold rounded-xl hover:bg-zinc-800/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">Next</button>
+          <button id="prev-page" class="px-4 py-2.5 bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold rounded-xl hover:bg-surface-2/60 hover:text-ink transition-all disabled:opacity-30 disabled:cursor-not-allowed">Previous</button>
+          <span id="page-info" class="text-xs text-ink-muted font-medium"></span>
+          <button id="next-page" class="px-4 py-2.5 bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold rounded-xl hover:bg-surface-2/60 hover:text-ink transition-all disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
         </div>
       </section>
-      
-      <div id="status-card" class="py-20 text-center bg-zinc-900/10 border border-zinc-800/20 rounded-2xl p-8 backdrop-blur-sm max-w-md mx-auto mx-4">
-        <div class="w-12 h-12 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-4 border border-zinc-800 text-zinc-400">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 21l8.954-8.955M21 12c0-1.668-.404-3.24-1.118-4.634V12a4 4 0 0 1-4 4h-1.118L18 21l-.813-5.096A7.5 7.5 0 1 1 21 12Z" />
+
+      <div id="status-card" class="py-20 text-center surface-elevated rounded-2xl p-8 backdrop-blur-sm max-w-md mx-auto">
+        <div class="w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center mx-auto mb-4 border border-white/[0.06] text-brand-cyan">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" />
           </svg>
         </div>
-        <p id="status-text" class="text-zinc-400 text-sm font-medium">
+        <p id="status-text" class="text-ink-secondary text-sm font-medium">
           Enter a search query above to discover movies and television features.
         </p>
       </div>
@@ -103,82 +110,7 @@ import Layout from '../layouts/Layout.astro';
 
 <script>
   import { tmdbApi } from '../lib/api';
-
-  let genreMap: Record<string, { id: number; name: string }[]> = {};
-
-  const constructResultCard = (item: any) => {
-    const id = item.id;
-    const explicitType = item.media_type === 'tv' ? 'tv' : 'movie';
-    const title = item.title || item.name || 'Untitled Feature';
-    const year = (item.release_date || item.first_air_date || '').split('-')[0] || '—';
-    const rating = item.vote_average || 0;
-    const hasRating = rating > 0;
-
-    const poster = item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=1470';
-
-    const anchorNode = document.createElement('a');
-    anchorNode.href = `/${explicitType}/${id}`;
-    anchorNode.className = 'group block focus:outline-none';
-    anchorNode.setAttribute('aria-label', `View details for ${title}`);
-
-    const posterWrap = document.createElement('div');
-    posterWrap.className = 'relative bg-zinc-900 rounded-xl overflow-hidden aspect-[2/3] border border-zinc-800/40 shadow-md shadow-black/40 transition-all duration-500 ease-out transform group-hover:-translate-y-1.5 group-hover:border-zinc-700/60 group-hover:shadow-xl group-hover:shadow-black/70 focus-within:ring-2 focus-within:ring-red-500/50';
-
-    const img = document.createElement('img');
-    img.src = poster;
-    img.alt = '';
-    img.loading = 'lazy';
-    img.className = 'w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 brightness-[0.96] group-hover:brightness-110';
-    posterWrap.appendChild(img);
-
-    if (hasRating) {
-      const badge = document.createElement('div');
-      badge.className = 'absolute top-2 right-2 bg-zinc-950/75 backdrop-blur-md text-amber-400 font-bold text-[11px] px-2 py-1 rounded-lg flex items-center gap-1 border border-zinc-800/50 shadow-md';
-      const svgNs = 'http://www.w3.org/2000/svg';
-      const svg = document.createElementNS(svgNs, 'svg');
-      svg.setAttribute('class', 'w-3.5 h-3.5 fill-amber-400');
-      svg.setAttribute('viewBox', '0 0 20 20');
-      const path = document.createElementNS(svgNs, 'path');
-      path.setAttribute('d', 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z');
-      svg.appendChild(path);
-      const ratingText = document.createElement('span');
-      ratingText.textContent = rating.toFixed(1);
-      badge.appendChild(svg);
-      badge.appendChild(ratingText);
-      posterWrap.appendChild(badge);
-    }
-
-    const gradient = document.createElement('div');
-    gradient.className = 'absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-0 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none';
-    posterWrap.appendChild(gradient);
-
-    anchorNode.appendChild(posterWrap);
-
-    const meta = document.createElement('div');
-    meta.className = 'mt-2.5 px-0.5';
-    const h3 = document.createElement('h3');
-    h3.className = 'font-semibold text-zinc-200 group-hover:text-white text-sm tracking-tight line-clamp-1 transition-colors duration-200';
-    h3.textContent = title;
-    meta.appendChild(h3);
-    const metaRow = document.createElement('div');
-    metaRow.className = 'flex items-center gap-2 mt-0.5 text-[11px] font-medium text-zinc-500';
-    const yearSpan = document.createElement('span');
-    yearSpan.textContent = year;
-    const dot = document.createElement('span');
-    dot.className = 'w-1 h-1 rounded-full bg-zinc-800';
-    const badgeText = document.createElement('span');
-    badgeText.className = 'uppercase font-bold tracking-wider text-[9px] text-zinc-600';
-    badgeText.textContent = explicitType === 'tv' ? 'TV' : 'Movie';
-    metaRow.appendChild(yearSpan);
-    metaRow.appendChild(dot);
-    metaRow.appendChild(badgeText);
-    meta.appendChild(metaRow);
-    anchorNode.appendChild(meta);
-
-    return anchorNode;
-  };
+  import { createMediaCardElement } from '../lib/mediaCardFactory';
 
   let currentPage = 1;
   let totalPages = 1;
@@ -196,7 +128,7 @@ import Layout from '../layouts/Layout.astro';
     const prevBtn = document.getElementById('prev-page') as HTMLButtonElement;
     const nextBtn = document.getElementById('next-page') as HTMLButtonElement;
     const filterBar = document.getElementById('filter-bar');
-    
+
     currentQuery = query;
     currentPage = page;
 
@@ -206,24 +138,24 @@ import Layout from '../layouts/Layout.astro';
       filterBar?.classList.add('hidden');
       pagination?.classList.add('hidden');
       statusCard?.classList.remove('hidden');
-      if (statusText) statusText.innerText = "Enter a search query above to discover movies and television features.";
+      if (statusText) statusText.textContent = "Enter a search query above to discover movies and television features.";
       return;
     }
-    
+
     filterBar?.classList.remove('hidden');
     statusCard?.classList.add('hidden');
     resultsBlock?.classList.add('hidden');
     skeletonGrid?.classList.remove('hidden');
     pagination?.classList.add('hidden');
-    
+
     if (!resultsGrid) return;
-    resultsGrid.innerHTML = '';
-    
+    resultsGrid.replaceChildren();
+
     try {
       const typeFilter = (document.getElementById('type-filter') as HTMLSelectElement)?.value || 'multi';
       const genreFilter = (document.getElementById('genre-filter') as HTMLSelectElement)?.value || '';
       const yearFilter = (document.getElementById('year-filter') as HTMLInputElement)?.value || '';
-      
+
       let response;
       if (genreFilter || yearFilter) {
         const searchType = typeFilter === 'multi' ? 'movie' : typeFilter;
@@ -231,9 +163,9 @@ import Layout from '../layouts/Layout.astro';
       } else {
         response = await tmdbApi.search(query, typeFilter as any, page);
       }
-      
+
       let hits = (response?.results || []).filter((item: any) => item.media_type !== 'person' && (item.poster_path || item.backdrop_path));
-      
+
       if (genreFilter) {
         const genreId = parseInt(genreFilter);
         hits = hits.filter((item: any) => item.genre_ids?.includes(genreId));
@@ -247,60 +179,65 @@ import Layout from '../layouts/Layout.astro';
       }
 
       totalPages = Math.min(response?.total_pages || 1, 500);
-      
+
       skeletonGrid.classList.add('hidden');
-      
+
       if (hits.length === 0) {
         statusCard?.classList.remove('hidden');
-        if (statusText) statusText.innerText = `No results found for "${query}"`;
+        statusCard.innerHTML = `
+          <div class="w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center mx-auto mb-4 border border-white/[0.06] text-ink-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-10.5h16.5" />
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-ink mb-1">No results found</h3>
+          <p class="text-sm text-ink-muted">Nothing matched "${query.replace(/[<>&"]/g, '')}". Try a different search.</p>
+        `;
         return;
       }
 
-      if (headline) headline.innerText = `Results for "${query}"`;
-      
+      if (headline) headline.textContent = `Results for "${query}"`;
+
       const docFragment = document.createDocumentFragment();
       hits.forEach((item: any) => {
-        docFragment.appendChild(constructResultCard(item));
+        docFragment.appendChild(createMediaCardElement(item));
       });
       resultsGrid.appendChild(docFragment);
-      
+
       resultsBlock.classList.remove('hidden');
       setTimeout(() => resultsBlock.classList.remove('opacity-0'), 50);
 
       if (totalPages > 1) {
         pagination?.classList.remove('hidden');
-        if (pageInfo) pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+        if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
         if (prevBtn) prevBtn.disabled = currentPage <= 1;
         if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
       }
-      
+
     } catch (err) {
       console.error('Search error:', err);
       skeletonGrid.classList.add('hidden');
       statusCard?.classList.remove('hidden');
-      if (statusText) {
-        statusText.textContent = '';
-        const line1 = document.createElement('span');
-        line1.className = 'text-red-500 font-bold';
-        line1.textContent = 'Network Error';
-        statusText.appendChild(line1);
-        statusText.appendChild(document.createElement('br'));
-        const line2 = document.createElement('span');
-        line2.className = 'text-xs text-zinc-500';
-        line2.textContent = 'Failed to load results.';
-        statusText.appendChild(line2);
-      }
+      statusCard.innerHTML = `
+        <div class="w-14 h-14 rounded-2xl bg-brand-red/[0.06] border border-brand-red/20 flex items-center justify-center mx-auto mb-4 text-brand-red">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-ink mb-1">Network Error</h3>
+        <p class="text-sm text-ink-muted">Failed to load results.</p>
+      `;
     }
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('search-form') as HTMLFormElement;
-    const input = form?.querySelector('input') as HTMLInputElement;
+    const input = document.getElementById('search-input') as HTMLInputElement;
     const genreFilter = document.getElementById('genre-filter') as HTMLSelectElement;
     const prevBtn = document.getElementById('prev-page');
     const nextBtn = document.getElementById('next-page');
     const resultsGrid = document.getElementById('results-grid');
-    
+
     Promise.all([
       tmdbApi.genres('movie'),
       tmdbApi.genres('tv'),
@@ -318,13 +255,15 @@ import Layout from '../layouts/Layout.astro';
 
     const params = new URLSearchParams(window.location.search);
     const initialQuery = params.get('q');
-    
+
     if (initialQuery && input) {
       input.value = initialQuery;
+      input.focus();
       executeLibrarySearch(initialQuery);
+    } else {
+      input?.focus();
     }
-    
-    // Debounced live search
+
     let debounceTimer: ReturnType<typeof setTimeout>;
     input?.addEventListener('input', () => {
       clearTimeout(debounceTimer);
@@ -333,6 +272,9 @@ import Layout from '../layouts/Layout.astro';
         if (val) {
           history.replaceState(null, '', `/search?q=${encodeURIComponent(val)}`);
           executeLibrarySearch(val);
+        } else {
+          history.replaceState(null, '', '/search');
+          executeLibrarySearch('');
         }
       }, 350);
     });
@@ -370,7 +312,6 @@ import Layout from '../layouts/Layout.astro';
       if (currentPage < totalPages) executeLibrarySearch(currentQuery, currentPage + 1);
     });
 
-    // Keyboard navigation in results
     let focusedIndex = -1;
     input?.addEventListener('keydown', (e) => {
       if (!resultsGrid) return;
@@ -394,7 +335,6 @@ import Layout from '../layouts/Layout.astro';
       }
     });
 
-    // Reset focus index when results change
     const origExecute = executeLibrarySearch;
     executeLibrarySearch = function(...args) {
       focusedIndex = -1;
@@ -402,12 +342,3 @@ import Layout from '../layouts/Layout.astro';
     };
   });
 </script>
-
-<style is:global>
-  @keyframes shimmer {
-    100% { transform: translateX(100%); }
-  }
-  .shimmer-wave {
-    animation: shimmer 2s infinite linear;
-  }
-</style>
