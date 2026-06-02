@@ -1,0 +1,17 @@
+# Minimal requirements for running the unit test suite.
+# Excludes heavy browser-automation deps (patchright, scrapling,
+# curl_cffi) so CI feedback stays fast. Production deployments
+# should use requirements.txt instead.
+
+# Core runtime (matches requirements.txt)
+redis==5.0.1
+pydantic==1.10.2
+typing-extensions==4.9.0
+SQLAlchemy==2.0.36
+PyJWT==2.10.1
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+httpx[http2]==0.27.2
+cachetools==5.5.0
+python-dotenv==1.0.1
