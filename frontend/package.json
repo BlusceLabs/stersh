@@ -9,7 +9,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "svelte-check --tsconfig ./tsconfig.svelte-check.json",
-    "check:summary": "svelte-check --tsconfig ./tsconfig.svelte-check.json --output human --threshold warning"
+    "check:summary": "svelte-check --tsconfig ./tsconfig.svelte-check.json --output human --threshold warning",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.1",
@@ -31,6 +34,7 @@
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.1",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
