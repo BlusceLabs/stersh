@@ -2,6 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import HLSPlayer from './HLSPlayer.svelte';
   import EpisodeSidebar from './EpisodeSidebar.svelte';
+  import EmptyState from './EmptyState.svelte';
   import { tmdbApi, api } from '../lib/api';
 
   let { media = 'movie', id = '0', server = 'white' } = $props();
@@ -485,12 +486,18 @@
                     <p class="mt-1 text-xs text-ink-muted">Recommended after this</p>
                   </div>
                 </a>
-              {:else}
-                <div class="py-10 text-center text-xs font-medium text-ink-muted">
-                  No recommendations available
-                </div>
               {/each}
             </div>
+            {#if upnextItems.length === 0}
+              <div class="px-1 pt-2">
+                <EmptyState
+                  compact
+                  icon="film"
+                  title="No recommendations yet"
+                  message="TMDB hasn't suggested similar titles for this one yet."
+                />
+              </div>
+            {/if}
           </div>
         {/if}
       </aside>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import EmptyState from './EmptyState.svelte';
+
   let {
     id,
     seasons = [],
@@ -135,15 +137,12 @@
         </button>
       {/each}
     {:else}
-      <div class="flex flex-col items-center justify-center text-center py-12 text-ink-muted">
-        <div class="w-12 h-12 rounded-2xl bg-surface-1 border border-white/[0.06] flex items-center justify-center mb-3 text-ink-faint">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-10.5h16.5" />
-          </svg>
-        </div>
-        <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">No episodes found</p>
-        <p class="text-[11px] text-ink-subtle mt-1">Try a different season</p>
-      </div>
+      <EmptyState
+        compact
+        icon="episode"
+        title="No episodes found"
+        message="Try a different season."
+      />
     {/if}
   </div>
 </div>

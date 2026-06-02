@@ -2,6 +2,7 @@
   import { tmdbApi } from '../lib/api';
   import DetailSkeleton from './skeletons/DetailSkeleton.svelte';
   import EmptyState from './EmptyState.svelte';
+  import MediaRow from './MediaRow.svelte';
 
   // Props (Svelte 5 Runes)
   let { media = 'movie', id = '0' } = $props<{ media?: string; id?: string }>();
@@ -134,7 +135,12 @@
       .then((res: any) => {
         data = res;
         tmdbApi.recommendations(mediaType, currentId)
-          .then((r: any) => { recommendations = (r.results || []).filter((x: any) => x.poster_path).slice(0, 12); })
+          .then((r: any) => {
+            recommendations = (r.results || [])
+              .filter((x: any) => x.poster_path)
+              .slice(0, 12)
+              .map((x: any) => ({ ...x, media_type: x.media_type || mediaType }));
+          })
           .catch(() => {});
       })
       .catch(() => {
@@ -402,35 +408,7 @@
 
       {#if recommendations.length > 0}
         <div class="mt-16 border-t border-white/[0.06] pt-10">
-          <h2 class="text-xl font-display font-extrabold text-ink tracking-tight mb-6">Recommendations</h2>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-6">
-            {#each recommendations as rec}
-              <a
-                href="/{mediaType}/{rec.id}"
-                class="group/rec block focus:outline-none rounded-2xl"
-                aria-label={`View ${rec.title || rec.name}`}
-              >
-                <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-surface-1 border border-white/[0.04] transition-all duration-300 ease-exo-out group-hover/rec:-translate-y-1 group-hover/rec:border-white/10 group-hover/rec:shadow-4">
-                  {#if rec.poster_path}
-                    <img
-                      src={`https://image.tmdb.org/t/p/w500${rec.poster_path}`}
-                      alt={rec.title || rec.name}
-                      class="w-full h-full object-cover transition-transform duration-500 ease-exo-out group-hover/rec:scale-[1.05]"
-                      loading="lazy"
-                    />
-                  {:else}
-                    <div class="w-full h-full flex items-center justify-center text-ink-faint text-xs font-bold uppercase tracking-wider">No Poster</div>
-                  {/if}
-                </div>
-                <p class="text-xs text-ink-secondary group-hover/rec:text-ink font-semibold mt-2 line-clamp-1 transition-colors">
-                  {rec.title || rec.name}
-                </p>
-                <p class="text-[10px] text-ink-subtle">
-                  {((rec.release_date || rec.first_air_date || '').split('-')[0]) || ''}
-                </p>
-              </a>
-            {/each}
-          </div>
+          <MediaRow title="Recommendations" items={recommendations} showViewAll={false} />
         </div>
       {/if}
     </div>
