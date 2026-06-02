@@ -36,6 +36,7 @@ from app.api.proxy import shutdown_enhanced_client
 from app.api.ffmpeg_remux import router as ffmpeg_router
 from app.api.tmdb import include_router as include_tmdb_router
 from app.api.tmdb import close_client as close_tmdb_client
+from app.middleware.security_headers import setup_security_headers
 
 from database import init_db, get_engine
 from auth import router as auth_router
@@ -133,13 +134,7 @@ async def request_id_middleware(request: Request, call_next) -> Response:
     return response
 
 
-@app.middleware("http")
-async def security_headers_middleware(request: Request, call_next) -> Response:
-    response = await call_next(request)
-    response.headers.setdefault("X-Content-Type-Options", "nosniff")
-    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
-    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    return response
+setup_security_headers(app)
 
 
 @app.middleware("http")
