@@ -1,0 +1,195 @@
+/* =====================================================================
+ * Watchfy Global Styles
+ * Shared design system utilities and accessibility primitives.
+ * Import in Layout.astro before any other stylesheet.
+ * ===================================================================== */
+
+/* Skip-to-content link for keyboard users */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border: 1px solid var(--surface-2);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: top var(--duration-base) var(--ease-exo-out);
+}
+.skip-link:focus {
+  top: 1rem;
+  outline: 2px solid var(--brand-red-500);
+  outline-offset: 2px;
+}
+
+/* Universal visible focus ring for keyboard navigation */
+*:focus {
+  outline: none;
+}
+*:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
+/* Smooth scrolling for in-page anchors */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar variants are configured in tailwind.config.mjs plugins */
+
+/* Glassmorphism helper (used by nav, header, modals) */
+.glass {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.glass-strong {
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Brand text gradient */
+.text-brand-gradient {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Brand background gradient */
+.bg-brand-gradient {
+  background: var(--brand-gradient);
+}
+.bg-brand-gradient-cta {
+  background: var(--brand-gradient-cta);
+}
+
+/* Cinematic text drop shadows */
+.text-cinematic {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.text-cinematic-lg {
+  text-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Elevated card surface (used by modals, popovers, episode cards) */
+.surface-elevated {
+  background: linear-gradient(
+    180deg,
+    rgba(24, 24, 27, 0.85) 0%,
+    rgba(9, 9, 11, 0.95) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    var(--shadow-3),
+    var(--shadow-inset);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Skeleton shimmer — single source of truth for the wave effect */
+@keyframes watchfy-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(39, 39, 42, 0.5);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  animation: watchfy-shimmer 1.8s var(--ease-standard) infinite;
+}
+
+/* Stagger fade-in for list children */
+@keyframes watchfy-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise-in {
+  animation: watchfy-rise var(--duration-slow) var(--ease-exo-out) both;
+}
+
+/* Subtle pulse for live indicators */
+@keyframes watchfy-live {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+}
+.live-dot {
+  animation: watchfy-live 1.6s var(--ease-standard) infinite;
+}
+
+/* Animated underline for in-text links */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--duration-base) var(--ease-exo-out);
+}
+.link-underline:hover::after,
+.link-underline:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Hide scrollbar in horizontal scrollers but keep keyboard scrollable */
+.scroll-x-clean {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+.scroll-x-clean::-webkit-scrollbar {
+  display: none;
+}
+
+/* Selection */
+::selection {
+  background: rgba(239, 68, 68, 0.35);
+  color: #fff;
+}

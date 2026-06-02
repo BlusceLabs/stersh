@@ -1,14 +1,17 @@
 ---
 import Navbar from '../components/Navbar.svelte';
+import Header from '../components/Header.svelte';
+import '../styles/tokens.css';
+import '../styles/global.css';
 
 interface Props {
   title: string;
   description?: string;
 }
 
-const { 
-  title, 
-  description = "Discover, stream, and track your favorite movies and TV shows on Watchfy." 
+const {
+  title,
+  description = "Discover, stream, and track your favorite movies and TV shows on Watchfy."
 } = Astro.props;
 
 // Prevent duplicate branding if the passed title already includes the brand name
@@ -16,13 +19,13 @@ const formattedTitle = title.includes('Watchfy') ? title : `${title} | Watchfy`;
 ---
 
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth bg-[#09090b]">
+<html lang="en" class="scroll-smooth bg-surface-0">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#09090b" />
-    
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{formattedTitle}</title>
 
@@ -31,11 +34,14 @@ const formattedTitle = title.includes('Watchfy') ? title : `${title} | Watchfy`;
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
 
-  <body class="bg-[#09090b] text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-red-500/30 selection:text-white overflow-x-hidden">
-    
+  <body class="bg-surface-0 text-ink min-h-screen flex flex-col antialiased overflow-x-hidden font-sans">
+
+    <a href="#main-content" class="skip-link">Skip to content</a>
+
+    <Header client:load />
     <Navbar client:load />
 
-    <div class="relative w-full flex-grow">
+    <div id="main-content" class="relative w-full flex-grow">
       <slot />
     </div>
 
