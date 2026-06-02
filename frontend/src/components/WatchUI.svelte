@@ -347,19 +347,19 @@
   ];
 </script>
 
-<div class="relative min-h-screen overflow-hidden bg-[#09090b] text-zinc-100 font-sans antialiased selection:bg-red-500/30">
+<div class="relative min-h-screen overflow-hidden bg-surface-0 text-ink font-sans antialiased">
   {#if backdropUrl}
     <div class="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-30">
       <img src={backdropUrl} alt="" class="h-full w-full object-cover blur-sm scale-105" />
-      <div class="absolute inset-0 bg-gradient-to-b from-[#09090b]/40 via-[#09090b]/90 to-[#09090b]"></div>
-      <div class="absolute inset-0 bg-gradient-to-r from-[#09090b] via-transparent to-[#09090b]"></div>
+      <div class="absolute inset-0 bg-gradient-to-b from-surface-0/40 via-surface-0/90 to-surface-0"></div>
+      <div class="absolute inset-0 bg-gradient-to-r from-surface-0 via-transparent to-surface-0"></div>
     </div>
   {/if}
 
   <div class="relative mx-auto max-w-[1800px] px-3 py-4 sm:px-5 lg:px-8 lg:py-6">
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px]">
       <section class="min-w-0 space-y-5">
-        <div class="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+        <div class="overflow-hidden rounded-2xl border border-white/[0.06] bg-black shadow-4">
           {#if _initialized}
             <HLSPlayer
               src={streamUrl}
@@ -389,40 +389,41 @@
               }}
             />
           {:else}
-            <div class="aspect-video w-full flex items-center justify-center bg-zinc-950 text-sm font-medium text-zinc-500">
-              Preparing playback...
+            <div class="aspect-video w-full flex flex-col items-center justify-center bg-surface-0 text-sm font-medium text-ink-muted">
+              <div class="w-10 h-10 rounded-2xl border-2 border-white/[0.08] border-t-brand-red animate-spin mb-3"></div>
+              Preparing playback…
             </div>
           {/if}
         </div>
 
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
           <div class="min-w-0">
-            <div class="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+            <div class="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-ink-muted">
               {#if mediaType === 'tv'}
-                <span class="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-red-300">{epBadge}</span>
+                <span class="rounded-md border border-brand-red/25 bg-brand-red/[0.08] px-2 py-1 text-brand-red">{epBadge}</span>
               {/if}
-              <span class="rounded-md border border-white/10 bg-white/5 px-2 py-1">{matchLabel}</span>
-              {#if year}<span class="rounded-md border border-white/10 bg-white/5 px-2 py-1">{year}</span>{/if}
-              {#if runtimeLabel}<span class="rounded-md border border-white/10 bg-white/5 px-2 py-1">{runtimeLabel}</span>{/if}
+              <span class="rounded-md border border-white/[0.06] bg-white/[0.04] px-2 py-1 text-ink-secondary">{matchLabel}</span>
+              {#if year}<span class="rounded-md border border-white/[0.06] bg-white/[0.04] px-2 py-1 text-ink-secondary">{year}</span>{/if}
+              {#if runtimeLabel}<span class="rounded-md border border-white/[0.06] bg-white/[0.04] px-2 py-1 text-ink-secondary">{runtimeLabel}</span>{/if}
             </div>
 
-            <h1 class="text-2xl font-black tracking-tight text-white sm:text-3xl lg:text-4xl">
+            <h1 class="text-2xl font-display font-black tracking-tighter text-ink sm:text-3xl lg:text-4xl">
               {watchHeading}
             </h1>
 
             {#if mediaType === 'tv'}
-              <a href={`/${mediaType}/${id}`} class="mt-2 inline-flex max-w-full text-sm font-semibold text-zinc-300 hover:text-white">
+              <a href={`/${mediaType}/${id}`} class="mt-2 inline-flex max-w-full text-sm font-semibold text-ink-muted hover:text-ink transition-colors">
                 <span class="truncate">{title}</span>
               </a>
             {/if}
           </div>
 
           <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-            <div class="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
+            <div class="inline-flex rounded-xl border border-white/[0.06] bg-white/[0.04] p-1">
               {#each servers as option}
                 <button
                   onclick={() => switchServer(option.id)}
-                  class="h-9 rounded-lg px-3 text-xs font-bold transition-colors {activeServer === option.id ? 'bg-white text-black' : 'text-zinc-400 hover:bg-white/10 hover:text-white'}"
+                  class="h-9 rounded-lg px-3 text-xs font-bold transition-all duration-200 ease-exo-out {activeServer === option.id ? 'bg-ink text-surface-0 shadow-2' : 'text-ink-muted hover:bg-white/[0.06] hover:text-ink'}"
                   aria-pressed={activeServer === option.id}
                 >
                   {option.label}
@@ -430,7 +431,7 @@
               {/each}
             </div>
 
-            <button onclick={shareCurrentWatch} class="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white transition-colors hover:bg-white/10 active:scale-95">
+            <button onclick={shareCurrentWatch} class="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.04] px-4 text-sm font-bold text-ink transition-all duration-200 ease-exo-out hover:bg-white/[0.08] hover:border-white/10 active:scale-95">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314" />
               </svg>
@@ -439,8 +440,8 @@
           </div>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5">
-          <p class="max-w-4xl text-sm leading-6 text-zinc-300">
+        <div class="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-md p-4 sm:p-5">
+          <p class="max-w-4xl text-sm leading-6 text-ink-secondary">
             {currentEpisodeData?.overview || showDetails?.overview || 'No description available.'}
           </p>
         </div>
@@ -458,34 +459,34 @@
             onEpisodeClick={(ep: number) => navigateToEpisode(ep)}
           />
         {:else}
-          <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+          <div class="surface-elevated rounded-2xl p-3">
             <div class="mb-3 flex items-center justify-between px-1">
-              <h2 class="text-sm font-black uppercase tracking-wide text-white">Up Next</h2>
-              <a href={`/${mediaType}/${id}`} class="text-xs font-semibold text-zinc-500 hover:text-zinc-300">Details</a>
+              <h2 class="text-sm font-black uppercase tracking-wide text-ink">Up Next</h2>
+              <a href={`/${mediaType}/${id}`} class="text-xs font-semibold text-ink-muted hover:text-ink transition-colors">Details</a>
             </div>
             <div class="flex flex-col gap-2">
               {#each upnextItems as item}
-                <a href={`/movie/${item.id}`} class="group flex gap-3 rounded-xl p-2 transition-colors hover:bg-white/10">
-                  <div class="relative aspect-video w-36 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
+                <a href={`/movie/${item.id}`} class="group flex gap-3 rounded-xl p-2 transition-all duration-200 ease-exo-out hover:bg-white/[0.04]">
+                  <div class="relative aspect-video w-36 shrink-0 overflow-hidden rounded-lg bg-surface-1">
                     {#if item.backdrop_path || item.poster_path}
-                      <img src={tmdbImg(item.backdrop_path || item.poster_path, item.backdrop_path ? 'w300' : 'w185')} alt={item.title || item.name} class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                      <img src={tmdbImg(item.backdrop_path || item.poster_path, item.backdrop_path ? 'w300' : 'w185')} alt={item.title || item.name} class="h-full w-full object-cover transition-transform duration-300 ease-exo-out group-hover:scale-105" loading="lazy" />
                     {/if}
-                    <div class="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <div class="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-ink">
                       {item.vote_average ? Math.round(item.vote_average * 10) + '%' : '--'}
                     </div>
                   </div>
                   <div class="min-w-0 flex-1 pt-0.5">
-                    <h3 class="line-clamp-2 text-sm font-bold leading-snug text-zinc-100 group-hover:text-white">
+                    <h3 class="line-clamp-2 text-sm font-bold leading-snug text-ink-secondary group-hover:text-ink transition-colors">
                       {item.title || item.name}
                     </h3>
-                    <p class="mt-1 truncate text-xs font-medium text-zinc-500">
+                    <p class="mt-1 truncate text-xs font-medium text-ink-subtle">
                       {(item.release_date || item.first_air_date || '').split('-')[0] || 'Watchfy'}
                     </p>
-                    <p class="mt-1 text-xs text-zinc-400">Recommended after this</p>
+                    <p class="mt-1 text-xs text-ink-muted">Recommended after this</p>
                   </div>
                 </a>
               {:else}
-                <div class="py-10 text-center text-xs font-medium text-zinc-500">
+                <div class="py-10 text-center text-xs font-medium text-ink-muted">
                   No recommendations available
                 </div>
               {/each}

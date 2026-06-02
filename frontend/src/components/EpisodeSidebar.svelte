@@ -39,35 +39,35 @@
   });
 </script>
 
-<div class="w-full bg-zinc-950/80 border border-white/10 rounded-2xl overflow-hidden flex flex-col max-h-[75vh] lg:max-h-[calc(100vh-2.5rem)] shadow-2xl backdrop-blur-xl">
-  
-  <div class="p-4 bg-white/[0.04] border-b border-white/10 flex flex-col gap-3 shrink-0">
+<div class="w-full surface-elevated rounded-2xl overflow-hidden flex flex-col max-h-[75vh] lg:max-h-[calc(100vh-2.5rem)] shadow-4">
+
+  <div class="p-4 bg-white/[0.04] border-b border-white/[0.06] flex flex-col gap-3 shrink-0">
     <div class="flex items-center justify-between">
       <div class="min-w-0">
-        <h3 class="text-[16px] font-black text-white truncate leading-snug">
+        <h3 class="text-base font-display font-black text-ink truncate leading-snug">
           {selectedSeason > 0 ? `Season ${selectedSeason}` : 'Episodes Feed'}
         </h3>
-        <p class="text-xs text-zinc-500 mt-0.5 font-medium">
+        <p class="text-xs text-ink-muted mt-0.5 font-medium">
           {episodes.length} episodes
         </p>
       </div>
-      
+
       {#if seasons.length > 1}
         <div class="relative">
           <select
             aria-label="Select season"
             bind:value={selected}
             onchange={() => onSeasonChange(selected)}
-            class="appearance-none bg-white/10 hover:bg-white/15 text-xs font-bold px-3 py-1.5 pr-8 rounded-lg border border-white/10 transition-colors cursor-pointer text-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
+            class="appearance-none bg-white/[0.08] hover:bg-white/[0.12] text-xs font-bold px-3 py-1.5 pr-8 rounded-lg border border-white/[0.08] transition-colors cursor-pointer text-ink focus:outline-none focus:ring-2 focus:ring-brand-red/30"
           >
             {#each seasons as s}
-              <option value={s.season_number} class="bg-[#1f1f1f] text-white">
+              <option value={s.season_number} class="bg-surface-0 text-ink">
                 Season {s.season_number}
               </option>
             {/each}
           </select>
-          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
               <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
             </svg>
           </div>
@@ -76,70 +76,73 @@
     </div>
   </div>
 
-  <div bind:this={scrollContainer} class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1.5">
+  <div bind:this={scrollContainer} class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1">
     {#if episodes.length > 0}
       {#each episodes as ep, index (ep.episode_number)}
         {@const isCurrent = ep.episode_number === currentEpisode.episode && selectedSeason === currentEpisode.season}
-        
+
         <button
           onclick={() => onEpisodeClick(ep.episode_number)}
           data-current={isCurrent ? 'true' : undefined}
           aria-current={isCurrent ? 'true' : undefined}
           aria-label={`Episode ${ep.episode_number}${ep.name ? `, ${ep.name}` : ''}${ep.runtime ? `, ${formatDuration(ep.runtime)}` : ''}`}
-          class="w-full flex items-center gap-3 p-2 rounded-xl transition-colors text-left relative group
-            {isCurrent ? 'bg-red-500/10 ring-1 ring-red-500/25' : 'hover:bg-white/[0.07]'}"
+          class="w-full flex items-center gap-3 p-2 rounded-xl transition-all duration-300 ease-exo-out text-left relative group
+            {isCurrent ? 'bg-brand-red/[0.08] ring-1 ring-brand-red/25' : 'hover:bg-white/[0.04]'}"
         >
-          
+
           <div class="w-6 flex items-center justify-center shrink-0">
             {#if isCurrent}
               <div class="flex items-end gap-[2px] h-3 w-3 mb-0.5" aria-hidden="true">
-                <div class="bg-red-400 w-[2px] h-full rounded-sm animate-[bounce_1s_infinite_100ms]"></div>
-                <div class="bg-red-400 w-[2px] h-[60%] rounded-sm animate-[bounce_1s_infinite_300ms]"></div>
-                <div class="bg-red-400 w-[2px] h-[85%] rounded-sm animate-[bounce_1s_infinite_200ms]"></div>
+                <div class="bg-brand-red w-[2px] h-full rounded-sm animate-[bounce_1s_infinite_100ms]"></div>
+                <div class="bg-brand-red w-[2px] h-[60%] rounded-sm animate-[bounce_1s_infinite_300ms]"></div>
+                <div class="bg-brand-red w-[2px] h-[85%] rounded-sm animate-[bounce_1s_infinite_200ms]"></div>
               </div>
             {:else}
-              <span class="text-xs font-medium text-zinc-400 group-hover:hidden">{index + 1}</span>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 text-white hidden group-hover:block">
+              <span class="text-xs font-medium text-ink-subtle group-hover:hidden">{index + 1}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 text-ink hidden group-hover:block">
                 <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.218-2.779-1.643V5.653Z" clip-rule="evenodd" />
               </svg>
             {/if}
           </div>
 
-          <div class="relative shrink-0 w-[112px] aspect-video rounded-lg overflow-hidden bg-zinc-900 border border-white/5 shadow-inner">
+          <div class="relative shrink-0 w-[112px] aspect-video rounded-lg overflow-hidden bg-surface-1 border border-white/[0.05]">
             {#if ep.still_path}
               <img src={tmdbImg(ep.still_path, 'w185')} alt={ep.name} class="w-full h-full object-cover" loading="lazy" />
             {:else}
-              <div class="w-full h-full flex items-center justify-center bg-zinc-900">
-                <span class="text-zinc-600 text-[10px] font-bold">E{String(ep.episode_number).padStart(2, '0')}</span>
+              <div class="w-full h-full flex items-center justify-center bg-surface-1">
+                <span class="text-ink-faint text-[10px] font-bold">E{String(ep.episode_number).padStart(2, '0')}</span>
               </div>
             {/if}
-            
+
             {#if ep.runtime}
-              <div class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-medium px-1 rounded-[2px] tracking-wide">
+              <div class="absolute bottom-1 right-1 bg-black/80 text-ink text-[10px] font-medium px-1 rounded-[2px] tracking-wide">
                 {formatDuration(ep.runtime)}
               </div>
             {/if}
           </div>
 
           <div class="flex-1 min-w-0 pr-1">
-            <h4 class="text-sm font-bold leading-tight line-clamp-2 transition-colors 
-              {isCurrent ? 'text-white' : 'text-[#f1f1f1]'}"
+            <h4 class="text-sm font-bold leading-tight line-clamp-2 transition-colors
+              {isCurrent ? 'text-ink' : 'text-ink-secondary group-hover:text-ink'}"
             >
               {ep.name || 'Episode ' + ep.episode_number}
             </h4>
-            <p class="text-xs text-zinc-500 mt-1 truncate font-medium">
-              Episode {ep.episode_number} {#if isCurrent}<span class="text-red-300"> • Now Playing</span>{/if}
+            <p class="text-xs text-ink-subtle mt-1 truncate font-medium">
+              Episode {ep.episode_number} {#if isCurrent}<span class="text-brand-red"> • Now Playing</span>{/if}
             </p>
           </div>
 
         </button>
       {/each}
     {:else}
-      <div class="flex flex-col items-center justify-center text-center py-12 text-zinc-500">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-2 text-zinc-600">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-10.5h16.5" />
-        </svg>
-        <p class="text-xs font-bold uppercase tracking-widest text-zinc-400">No episodes found for this season</p>
+      <div class="flex flex-col items-center justify-center text-center py-12 text-ink-muted">
+        <div class="w-12 h-12 rounded-2xl bg-surface-1 border border-white/[0.06] flex items-center justify-center mb-3 text-ink-faint">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 5.25h16.5m-16.5-10.5h16.5" />
+          </svg>
+        </div>
+        <p class="text-xs font-bold uppercase tracking-wider text-ink-muted">No episodes found</p>
+        <p class="text-[11px] text-ink-subtle mt-1">Try a different season</p>
       </div>
     {/if}
   </div>
