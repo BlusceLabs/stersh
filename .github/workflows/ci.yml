@@ -185,3 +185,18 @@ jobs:
           name: playwright-report
           path: frontend/playwright-report
           retention-days: 7
+
+  # ── Aggregator: single check that fires only if every other job passed ──
+  ci-summary:
+    name: CI summary
+    runs-on: ubuntu-latest
+    needs: [frontend, backend-python, backend-go, frontend-e2e, dependency-audit]
+    if: always()
+    steps:
+      - name: Decide overall result
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "## ❌ One or more CI jobs failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "## ✅ All CI jobs passed" >> $GITHUB_STEP_SUMMARY

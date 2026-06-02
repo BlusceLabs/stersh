@@ -23,6 +23,7 @@ that runs alongside when started manually.
 - [Provider model](#provider-model)
 - [Known setup gotchas](#known-setup-gotchas)
 - [Troubleshooting](#troubleshooting)
+- [Smoke test](#smoke-test)
 - [License](#license)
 
 ---
@@ -440,6 +441,42 @@ Adding a third provider:
 | `backend/` (Python · FastAPI) | ✅ Live — providers, extraction, FFmpeg, analytics | Yes (port 8000) |
 | `frontend/` (Astro) | ✅ Live — UI for all pages | Yes (port 4321) |
 | `backend/gateway/` (Go · Fiber) | ⚠️ Dormant — alt implementation, runs to `:8080` if you start it manually | **No** |
+
+---
+
+## Smoke test
+
+After `make up` (or `make docker-up`), run a full HTTP smoke test:
+
+```bash
+make smoke
+```
+
+`smoke_test.sh` verifies:
+
+- **Service health** — `/health` on every service, `200 OK`
+- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Content-Security-Policy`, `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy` all present and correct
+- **API surface** — TMDB passthrough returns `200`, CORS preflight
+  succeeds
+
+Then prints a **manual verification checklist** for the things
+that can't be automated (hero rotation, episode switch, mobile
+nav, deep-link search, sign-in, etc.).
+
+Override the URLs with env vars:
+
+```bash
+FRONTEND_URL=https://staging.example.com \
+EXTRACTOR_URL=https://api-staging.example.com \
+GATEWAY_URL=https://gw-staging.example.com \
+  ./smoke_test.sh
+```
+
+The CI matrix runs the same checks via `make ci-local` plus the
+Playwright E2E suite (`frontend-e2e` job) and uploads the
+HTML report as an artifact on failure.
 
 ---
 

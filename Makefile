@@ -1,5 +1,5 @@
 # Makefile for Watch!fy
-.PHONY: help setup backend frontend gateway test up down logs health clean install-hooks uninstall-hooks ci-local docker-build docker-up docker-down docker-logs docker-ps
+.PHONY: help setup backend frontend gateway test up down logs health clean install-hooks uninstall-hooks ci-local docker-build docker-up docker-down docker-logs docker-ps smoke
 
 COMPOSE_FILE := backend/docker-compose.yml
 TOP_COMPOSE_FILE := docker-compose.yml
@@ -22,6 +22,7 @@ help:
 	@echo "  make docker-down    Stop the full stack"
 	@echo "  make docker-logs    Tail logs from the full stack"
 	@echo "  make docker-ps      Show running services in the full stack"
+	@echo "  make smoke          Run end-to-end smoke test against a running stack"
 	@echo "  make clean          Clean up build artifacts"
 
 setup:
@@ -125,3 +126,6 @@ docker-logs:
 
 docker-ps:
 	docker compose -f $(TOP_COMPOSE_FILE) --env-file .env ps
+
+smoke:
+	@./smoke_test.sh
