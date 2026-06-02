@@ -1,0 +1,100 @@
+# Full Watchfy stack: frontend (Astro SSR) + extractor (FastAPI) + gateway (Go).
+#
+# Usage:
+#   docker compose --env-file .env up --build
+#   docker compose down -v          # also drop the database volume
+#
+# All ports are overridable via the .env file. The default wiring has the
+# frontend talk to the extractor over the internal docker network, so the
+# extractor is NOT exposed to the host by default.
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: watchfy/frontend:latest
+    container_name: watchfy-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4321}:4321"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4321
+      # The SSR server fetches from the extractor at runtime, so
+      # BACKEND_URL must be the in-network service name.
+      - BACKEND_URL=http://extractor:8000
+    depends_on:
+      extractor:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4321/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks:
+      - watchfy
+
+  extractor:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: watchfy/extractor:latest
+    container_name: watchfy-extractor
+    restart: unless-stopped
+    # Not exposed to host by default — only reachable from the frontend
+    # and gateway over the watchfy network. Override in .env if you
+    # need external access for development.
+    expose:
+      - "8000"
+    environment:
+      - TMDB_API_KEY=${TMDB_API_KEY:?Set TMDB_API_KEY in .env}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:4321,http://localhost:8080}
+      - DATABASE_URL=sqlite:///./data/watchfy.db
+      - SECURITY_HSTS_ENABLED=${SECURITY_HSTS_ENABLED:-true}
+    volumes:
+      - extractor-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - watchfy
+
+  gateway:
+    build:
+      context: ./backend/gateway
+      dockerfile: Dockerfile
+    image: watchfy/gateway:latest
+    container_name: watchfy-gateway
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    environment:
+      - TMDB_API_KEY=${TMDB_API_KEY:?Set TMDB_API_KEY in .env}
+      - WATCHFY_EXTRACTOR_URL=http://extractor:8000
+      - WATCHFY_GATEWAY_ADDR=:8080
+    depends_on:
+      extractor:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks:
+      - watchfy
+
+networks:
+  watchfy:
+    driver: bridge
+    name: watchfy
+
+volumes:
+  extractor-data:
+    name: watchfy-extractor-data

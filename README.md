@@ -14,6 +14,7 @@ that runs alongside when started manually.
 - [Tech stack](#tech-stack)
 - [Repository layout](#repository-layout)
 - [Quick start](#quick-start)
+  - [Production (Docker)](#production-docker)
 - [Running services individually](#running-services-individually)
 - [Environment variables](#environment-variables)
 - [Test suite](#test-suite)
@@ -172,6 +173,37 @@ Then open:
 - Web app → http://localhost:4321
 - API docs → http://localhost:8000/api/docs
 - Backend health → http://localhost:8000/api/health
+
+### Production (Docker)
+
+```bash
+cp .env.example .env
+$EDITOR .env                       # set TMDB_API_KEY
+
+make docker-build                  # build all three images
+make docker-up                     # start the full stack
+make docker-logs                   # tail logs
+make docker-ps                     # list running services
+make docker-down                   # stop
+```
+
+The top-level `docker-compose.yml` orchestrates three services on the
+internal `watchfy` network:
+
+| Service   | Image                  | Host port | Internal URL                |
+|-----------|------------------------|-----------|-----------------------------|
+| frontend  | `watchfy/frontend`     | 4321      | http://frontend:4321        |
+| extractor | `watchfy/extractor`    | — (expose only) | http://extractor:8000 |
+| gateway   | `watchfy/gateway`      | 8080      | http://gateway:8080         |
+
+The frontend is the only port that should be exposed publicly. The
+extractor and gateway sit on the private network — the frontend
+reaches the extractor via `BACKEND_URL=http://extractor:8000`, and
+the gateway reaches the extractor via
+`WATCHFY_EXTRACTOR_URL=http://extractor:8000`.
+
+The database lives in the named volume `watchfy-extractor-data` and
+survives `docker compose down` (only `down -v` removes it).
 
 ---
 

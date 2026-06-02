@@ -1,0 +1,30 @@
+# Top-level build-context exclusion for the docker-compose that lives here.
+# Each subproject's Dockerfile has its own .dockerignore for inner builds.
+.git
+.github
+.venv
+.vscode
+.idea
+node_modules
+**/node_modules
+**/__pycache__
+**/dist
+**/build
+**/.svelte-kit
+**/.astro
+**/.cache
+.DS_Store
+*.log
+*.db
+*.rvf
+.env
+.env.*
+!.env.example
+coverage
+playwright-report
+test-results
+lefthook.yml
+Makefile
+README.md
+LICENSE
+health_check.sh
