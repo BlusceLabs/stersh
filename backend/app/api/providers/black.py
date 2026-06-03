@@ -33,7 +33,7 @@ _BLACK_CACHE_TTL = int(os.environ.get("BLACK_CACHE_TTL", 15 * 60))
 _BLACK_STALE_TTL = int(os.environ.get("BLACK_STALE_TTL", 30 * 60))
 _SHORT_TOKEN_LEN = 16
 
-ALLOWED_BLACK_HOSTS = frozenset(
+ALLOWED_BLACK_HOSTS: frozenset[str] = frozenset(
     {
         "easy.speedsterwave.app",
         "cdn.vidking.net",
@@ -41,7 +41,17 @@ ALLOWED_BLACK_HOSTS = frozenset(
         "www.vidking.net",
         "cloudnestra.com",
         "whisperingauroras.com",
+        "hello.mousedoor.com",
+        "mousedoor.com",
     }
+    | set(h.strip() for h in os.environ.get("BLACK_EXTRA_HOSTS", "").split(",") if h.strip())
+)
+
+_ALLOWED_SUFFIXES: tuple[str, ...] = (
+    ".mousedoor.com",
+    ".speedsterwave.app",
+    ".vidking.net",
+    ".cloudnestra.com",
 )
 
 _CDN_HEADERS: dict[str, str] = {
@@ -66,6 +76,8 @@ _black_futures_lock = asyncio.Lock()
 
 # URL token store
 _url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=86400)
+
+_dynamic_hosts: set[str] = set()
 
 # Shared httpx client
 _black_client: httpx.AsyncClient | None = None
@@ -146,6 +158,19 @@ def _store_token(url: str) -> str:
     return token
 
 
+def _register_hosts(sources: list[dict]) -> None:
+    for src in sources:
+        u = src.get("url")
+        if u:
+            try:
+                h = urlparse(u).hostname
+                if h and h not in ALLOWED_BLACK_HOSTS:
+                    _dynamic_hosts.add(h)
+                    logger.info('"black_dynamic_host":{"host":"%s"}', h)
+            except Exception:
+                pass
+
+
 def _resolve_token(token: str) -> str | None:
     return _url_tokens.get(token)
 
@@ -157,8 +182,14 @@ def _validate_host(url: str) -> None:
         raise HTTPException(status_code=400, detail="Malformed URL")
     if parsed.scheme not in ("http", "https"):
         raise HTTPException(status_code=400, detail="Invalid URL scheme")
-    if parsed.hostname not in ALLOWED_BLACK_HOSTS:
-        raise HTTPException(status_code=403, detail=f"Host not allowed: {parsed.hostname}")
+    hostname = parsed.hostname
+    if not hostname:
+        raise HTTPException(status_code=400, detail="URL must include a hostname")
+    if hostname in ALLOWED_BLACK_HOSTS or hostname in _dynamic_hosts:
+        return
+    if any(hostname.endswith(s) for s in _ALLOWED_SUFFIXES):
+        return
+    raise HTTPException(status_code=403, detail=f"Host not allowed: {hostname}")
 
 
 def _is_stale(ck: str) -> bool:
@@ -264,6 +295,7 @@ async def black_source(
     if sources:
         _black_cache[ck] = sources
         _black_timestamps[ck] = time.monotonic()
+        _register_hosts(sources)
 
     return {"sources": sources or [], "cached": False, "stale": False, "server": "black"}
 
@@ -319,6 +351,7 @@ async def black_refresh(
     if sources:
         _black_cache[ck] = sources
         _black_timestamps[ck] = time.monotonic()
+        _register_hosts(sources)
     return {"sources": sources or [], "refreshed": True, "server": "black"}
 
 
@@ -462,6 +495,7 @@ async def _warm_and_cache(tmdb_id: int, media_type: str, season: int, episode: i
         if sources:
             _black_cache[ck] = sources
             _black_timestamps[ck] = time.monotonic()
+            _register_hosts(sources)
             logger.info('"black_prewarm_done":{"key":"%s","count":%d}', ck, len(sources))
     except Exception as exc:
         logger.error('"black_prewarm_error":{"key":"%s","err":"%s"}', ck, exc)
@@ -474,6 +508,7 @@ async def _bg_refresh(ck: str, tmdb_id: int, media_type: str, season: int, episo
         if sources:
             _black_cache[ck] = sources
             _black_timestamps[ck] = time.monotonic()
+            _register_hosts(sources)
             logger.info('"black_bg_refresh_done":{"key":"%s","count":%d}', ck, len(sources))
     except Exception as exc:
         logger.error('"black_bg_refresh_error":{"key":"%s","err":"%s"}', ck, exc)

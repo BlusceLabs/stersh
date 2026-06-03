@@ -3,7 +3,7 @@ export default {
   // Broadened to explicitly capture Svelte, Qwik, and standard Astro layouts
   content: [
     './src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx}',
-    './packages/**/*.{ts,tsx,js,jsx}',
+    './packages/*/src/**/*.{ts,tsx,js,jsx,svelte}',
   ],
   theme: {
     extend: {

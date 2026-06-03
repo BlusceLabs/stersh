@@ -16,7 +16,12 @@ httpx[http2]==0.27.2
 patchright>=1.60.0
 # After install, run: python3 -m patchright install chromium
 # scrapling uses patchright under the hood for Cloudflare bypass
+# scrapling also imports playwright for type definitions
+playwright>=1.60.0
 scrapling>=0.4.8
+# scrapling transitive deps (not all declared):
+msgspec>=0.18.0
+browserforge>=1.2.0
 curl_cffi>=0.15.0
 
 # ── Cache ────────────────────────────────────────────────────

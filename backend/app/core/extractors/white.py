@@ -260,6 +260,10 @@ async def extract_hls_from_white(
         logger.error('"white_extraction_error":{"err":"%s"}', exc)
         return None
 
+# Keep the browser shutdown function for compatibility with router
+async def shutdown_browser():
+    pass
+
 
 async def _post_process(
     page, captured_hls: str | None, captured_mp4s: list[str],

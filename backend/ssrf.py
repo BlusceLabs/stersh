@@ -36,12 +36,21 @@ ALLOWED_HOSTS: Final[frozenset[str]] = frozenset(
         "easy.speedsterwave.app",
         "cdn.vidking.net",
         "vidking.net",
+        "www.vidking.net",
+        # Mousedoor CDN (vidking stream host)
+        "hello.mousedoor.com",
+        "mousedoor.com",
         # White CDN (111movies.net)
         "cloudnestra.com",
         "whisperingauroras.com",
         "111movies.net",
         "www.111movies.net",
         "cdn.111movies.net",
+        # Workers proxies
+        "tylerfisher55.workers.dev",
+        "old.tylerfisher55.workers.dev",
+        "broad.tylerfisher55.workers.dev",
+        "black.tylerfisher55.workers.dev",
         # Common HLS CDN mirrors
         "cdn.jwplayer.com",
         "content.jwplatform.com",

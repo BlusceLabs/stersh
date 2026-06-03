@@ -28,11 +28,22 @@ ALLOWED_ONETOONE_HOSTS = frozenset({
     "whisperingauroras.com",
     "111movies.net",
     "www.111movies.net",
+    "cdn.111movies.net",
+    "hello.mousedoor.com",
+    "mousedoor.com",
     "tylerfisher55.workers.dev",
     "old.tylerfisher55.workers.dev",
     "broad.tylerfisher55.workers.dev",
     "black.tylerfisher55.workers.dev",
-})
+} | set(h.strip() for h in os.environ.get("WHITE_EXTRA_HOSTS", "").split(",") if h.strip()))
+
+_ONETOONE_SUFFIXES: tuple[str, ...] = (
+    ".mousedoor.com",
+    ".speedsterwave.app",
+    ".vidking.net",
+    ".cloudnestra.com",
+    ".tylerfisher55.workers.dev",
+)
 
 _CDN_HEADERS: dict[str, str] = {
     "User-Agent": (
@@ -48,6 +59,7 @@ _cache: TTLCache[str, list[dict]] = TTLCache(maxsize=400, ttl=_ONETOONE_CACHE_TT
 _master_urls: dict[str, str] = {}
 _timestamps: dict[str, float] = {}
 _refreshing: set[str] = set()
+_dynamic_onetoone_hosts: set[str] = set()
 
 _futures: dict[str, asyncio.Future] = {}
 _futures_lock = asyncio.Lock()
@@ -59,7 +71,8 @@ _prewarm_semaphore = asyncio.Semaphore(2)
 _client: httpx.AsyncClient | None = None
 
 async def shutdown_white_browser() -> None:
-    pass
+    from app.core.extractors.white import shutdown_browser
+    await shutdown_browser()
 
 
 async def shutdown_white_client() -> None:
@@ -80,6 +93,19 @@ async def _get_client() -> httpx.AsyncClient:
             limits=httpx.Limits(max_connections=40, max_keepalive_connections=15),
         )
     return _client
+
+
+def _register_onetoone_hosts(sources: list[dict]) -> None:
+    for src in sources:
+        u = src.get("url")
+        if u:
+            try:
+                h = urlparse(u).hostname
+                if h and h not in ALLOWED_ONETOONE_HOSTS:
+                    _dynamic_onetoone_hosts.add(h)
+                    logger.info('"white_dynamic_host":{"host":"%s"}', h)
+            except Exception:
+                pass
 
 
 def _cache_key(tmdb_id: int, media_type: str, season: int, episode: int) -> str:
@@ -104,9 +130,9 @@ def _validate_host(url: str) -> None:
     if parsed.scheme not in ("http", "https"):
         raise HTTPException(status_code=400, detail="Invalid URL scheme")
     hostname = parsed.hostname or ""
-    if hostname in ALLOWED_ONETOONE_HOSTS:
+    if hostname in ALLOWED_ONETOONE_HOSTS or hostname in _dynamic_onetoone_hosts:
         return
-    if hostname.endswith(".tylerfisher55.workers.dev") or hostname.endswith(".vidking.net"):
+    if hostname.endswith(_ONETOONE_SUFFIXES):
         return
     raise HTTPException(status_code=403, detail=f"Host not allowed: {hostname}")
 
@@ -197,6 +223,7 @@ async def onetoone_source(
     if sources:
         _cache[ck] = sources
         _timestamps[ck] = time.monotonic()
+        _register_onetoone_hosts(sources)
     return {"sources": sources or [], "refreshed": True, "server": "white", "master_url": _master_urls.get(ck, "")}
 
 
