@@ -1,7 +1,5 @@
 import { defineConfig } from 'astro/config';
-import react from '@astrojs/react';
 import svelte from '@astrojs/svelte';
-import qwik from '@qwikdev/astro';
 import tailwind from '@astrojs/tailwind';
 import node from '@astrojs/node';
 import { loadEnv } from 'vite';
@@ -15,8 +13,6 @@ export default defineConfig({
 
   integrations: [
     svelte(),
-    qwik(),
-    react(),
     tailwind({
       applyBaseStyles: true,
     })
@@ -71,7 +67,6 @@ export default defineConfig({
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (id.includes('svelte')) return 'vendor-svelte';
-              if (id.includes('qwik')) return 'vendor-qwik';
               return 'vendor-core';
             }
           }

@@ -25,6 +25,9 @@
   let containerEl: HTMLElement | undefined;
   let inView = $state(true);
   let progress = $state(0);
+  let myListIds = $state<Set<string>>(new Set());
+  let myListBounce = $state(false);
+  let logos = $state<Map<number, string>>(new Map());
 
   onMount(() => {
     if (!containerEl || typeof IntersectionObserver === 'undefined') return;
@@ -59,6 +62,8 @@
         ];
         items = all.slice(0, 7);
         loaded = true;
+        loadMyList();
+        fetchLogos(items);
       } catch (e) {
         if (signal.aborted) return;
         console.error('hero load error:', e);
@@ -92,6 +97,54 @@
   function go(i: number) { idx = i; }
   function next() { idx = (idx + 1) % items.length; }
   function prev() { idx = (idx - 1 + items.length) % items.length; }
+
+  function loadMyList() {
+    const ids = new Set<string>();
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('watchfy:mylist:')) {
+        const parts = key.split(':');
+        if (parts.length === 4) ids.add(`${parts[2]}:${parts[3]}`);
+      }
+    }
+    myListIds = ids;
+  }
+
+  function isInMyList(type: string, id: number): boolean {
+    return myListIds.has(`${type}:${id}`);
+  }
+
+  function toggleMyList(type: string, id: number) {
+    const key = `watchfy:mylist:${type}:${id}`;
+    if (myListIds.has(`${type}:${id}`)) {
+      localStorage.removeItem(key);
+      myListIds = new Set([...myListIds].filter(k => k !== `${type}:${id}`));
+    } else {
+      localStorage.setItem(key, JSON.stringify({ tmdbId: id, mediaType: type }));
+      myListIds = new Set([...myListIds, `${type}:${id}`]);
+    }
+    myListBounce = true;
+    setTimeout(() => { myListBounce = false; }, 400);
+  }
+
+  async function fetchLogos(fetchedItems: Item[]) {
+    const entries = await Promise.all(
+      fetchedItems.map(async (item) => {
+        try {
+          const type = item.title ? 'movie' : 'tv';
+          const data = await api.get(`/api/tmdb/${type}/${item.id}/images?include_image_language=en,null`);
+          const logo = data?.logos?.[0];
+          if (logo?.file_path) return [item.id, `https://image.tmdb.org/t/p/original${logo.file_path}`] as const;
+        } catch {}
+        return null;
+      })
+    );
+    const map = new Map<number, string>();
+    for (const entry of entries) {
+      if (entry) map.set(entry[0], entry[1]);
+    }
+    logos = map;
+  }
 
   function onKey(e: KeyboardEvent) {
     if (!items.length) return;
@@ -136,7 +189,7 @@
   {#if !loaded}
     <div class="absolute inset-0 bg-surface-0">
       <div class="absolute inset-0 bg-gradient-to-r from-surface-1 via-surface-2/40 to-surface-1 animate-pulse"></div>
-      <div class="absolute bottom-16 left-8 md:left-16 lg:left-24 space-y-4 max-w-2xl">
+      <div class="absolute bottom-16 right-8 md:right-16 lg:right-24 space-y-4 max-w-2xl text-right">
         <div class="flex gap-2 mb-4">
           <div class="skeleton h-6 rounded w-16"></div>
           <div class="skeleton h-6 rounded w-20"></div>
@@ -182,14 +235,14 @@
             />
         </div>
         <div class="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/40 to-transparent" aria-hidden="true"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-surface-0/95 via-surface-0/30 to-transparent" aria-hidden="true"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-surface-0/20 via-transparent to-surface-0" aria-hidden="true"></div>
+        <div class="absolute inset-0 bg-gradient-to-l from-surface-0/95 via-surface-0/30 to-transparent" aria-hidden="true"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-surface-0/20 via-transparent to-surface-0" aria-hidden="true"></div>
       </a>
     {/each}
 
 {@const cur = meta(items[idx])}
-    <div class="absolute inset-0 flex items-end justify-center lg:justify-start lg:items-center p-8 md:p-16 lg:px-24 pointer-events-none">
-      <div class="max-w-3xl pointer-events-auto lg:max-w-2xl" aria-live="polite">
+    <div class="absolute inset-0 flex items-end justify-end p-8 md:p-16 lg:px-24 pointer-events-none">
+      <div class="max-w-3xl pointer-events-auto lg:max-w-2xl text-right" aria-live="polite">
 
         <div class="flex items-center gap-2 text-xs md:text-sm font-bold mb-4 text-ink-secondary">
           {#if cur.rating > 0}
@@ -209,14 +262,18 @@
         </div>
 
         <h2 class="text-4xl md:text-6xl lg:text-7xl font-display font-black text-ink mb-4 tracking-tighter leading-[1.05] text-cinematic-lg">
-          {cur.title}
+          {#if logos.has(cur.id)}
+            <img src={logos.get(cur.id)} alt={cur.title} class="max-w-xs md:max-w-md lg:max-w-xl h-auto max-h-[120px] object-contain" />
+          {:else}
+            {cur.title}
+          {/if}
         </h2>
 
         <p class="text-ink-secondary text-sm md:text-base leading-relaxed line-clamp-3 mb-8 max-w-2xl">
           {cur.overview}
         </p>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3 justify-end">
           <a
             href={`/watch/${cur.type}/${cur.id}`}
             class="inline-flex items-center gap-2.5 px-7 py-3.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all duration-300 ease-exo-out shadow-glow-red transform hover:scale-[1.02] active:scale-[0.98]"
@@ -237,21 +294,21 @@
           </a>
           <button
             type="button"
-            onclick={() => {
-              const key = `watchfy:mylist:${cur.type}:${cur.id}`;
-              const existing = localStorage.getItem(key);
-              if (existing) {
-                localStorage.removeItem(key);
-              } else {
-                localStorage.setItem(key, JSON.stringify({ tmdbId: cur.id, mediaType: cur.type }));
-              }
-            }}
-            class="inline-flex items-center justify-center w-11 h-11 rounded-xl glass-strong text-ink-muted hover:text-ink transition-all duration-300 ease-exo-out transform hover:scale-110 active:scale-95"
-            aria-label="Add to My List"
+            onclick={() => toggleMyList(cur.type, cur.id)}
+            class="inline-flex items-center justify-center w-11 h-11 rounded-xl glass-strong transition-all duration-300 ease-exo-out transform hover:scale-110 active:scale-95
+              {isInMyList(cur.type, cur.id) ? 'text-brand-red hover:text-brand-red/80' : 'text-ink-muted hover:text-ink'}
+              {myListBounce ? 'scale-110' : ''}"
+            aria-label={isInMyList(cur.type, cur.id) ? 'Remove from My List' : 'Add to My List'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+            {#if isInMyList(cur.type, cur.id)}
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            {/if}
           </button>
         </div>
 </div>

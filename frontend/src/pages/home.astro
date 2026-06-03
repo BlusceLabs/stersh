@@ -4,7 +4,6 @@ import HeroCarousel from '../components/HeroCarousel.svelte';
 import MediaRow from '../components/MediaRow.svelte';
 import ContinueWatching from '../components/ContinueWatching.svelte';
 import MyListRow from '../components/MyListRow.svelte';
-import BrandLogo from '../components/BrandLogo.svelte';
 ---
 
 <Layout title="Watchfy | Stream Movies & TV Series" description="Discover and stream trending movies and TV shows for free.">
@@ -15,20 +14,26 @@ import BrandLogo from '../components/BrandLogo.svelte';
     </section>
 
     <section class="relative z-20">
-      <div class="absolute -top-32 left-0 right-0 h-96 bg-gradient-to-b from-transparent via-surface-0/95 to-surface-0 pointer-events-none z-0" aria-hidden="true"></div>
+      <div class="absolute -top-40 left-0 right-0 h-[28rem] bg-gradient-to-b from-transparent via-surface-0/98 to-surface-0 pointer-events-none z-0" aria-hidden="true"></div>
 
-      <div class="relative z-10 max-w-content mx-auto">
+      <div class="relative z-10 w-full">
         <ContinueWatching client:load />
         <MyListRow client:load />
+
+        <div class="my-6 mx-4 md:mx-12 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" aria-hidden="true"></div>
+
         <MediaRow client:load title="Trending Movies" endpoint="trending/movie/week" />
         <MediaRow client:load title="Trending TV Shows" endpoint="trending/tv/week" />
+
+        <div class="my-6 mx-4 md:mx-12 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" aria-hidden="true"></div>
+
         <MediaRow client:load title="Popular Movies" endpoint="movie/popular" />
         <MediaRow client:load title="Popular TV Series" endpoint="tv/popular" />
       </div>
     </section>
 
-    <div class="absolute bottom-1/4 left-[-10%] w-[500px] h-[500px] bg-brand-red/[0.04] rounded-full blur-[150px] pointer-events-none z-0" aria-hidden="true"></div>
-    <div class="absolute bottom-1/3 right-[-10%] w-[600px] h-[600px] bg-brand-purple/[0.04] rounded-full blur-[150px] pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="absolute bottom-1/4 left-[-10%] w-[500px] h-[500px] bg-brand-red/[0.06] rounded-full blur-[150px] pointer-events-none z-0 orb-glow" aria-hidden="true"></div>
+    <div class="absolute bottom-1/3 right-[-10%] w-[600px] h-[600px] bg-brand-purple/[0.06] rounded-full blur-[150px] pointer-events-none z-0 orb-glow" aria-hidden="true" style="animation-delay: -4s;"></div>
 
   </main>
 </Layout>

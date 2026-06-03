@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { api } from '../lib/api';
   import MovieCard from './MovieCard.svelte';
+  import RowSkeleton from './skeletons/RowSkeleton.svelte';
 
   interface MediaItem {
     id: number;
@@ -11,11 +13,15 @@
     release_date?: string;
     first_air_date?: string;
     media_type?: 'movie' | 'tv' | string;
+    _progress?: number;
+    _season?: number;
+    _episode?: number;
   }
 
   let {
     title = '',
     items = [] as MediaItem[],
+    endpoint = '',
     showViewAll = true,
     viewAllHref = '/search',
     showSkeleton = false,
@@ -23,17 +29,39 @@
   }: {
     title?: string;
     items?: MediaItem[];
+    endpoint?: string;
     showViewAll?: boolean;
     viewAllHref?: string;
     showSkeleton?: boolean;
     skeletonCount?: number;
   } = $props();
 
+  let fetchedItems = $state<MediaItem[]>([]);
+  let fetching = $state(false);
+  let fetchError = $state(false);
+
+  let displayItems = $derived(items.length > 0 ? items : fetchedItems);
+  let isLoading = $derived(showSkeleton || (fetching && displayItems.length === 0));
+
+  $effect(() => {
+    if (items.length > 0 || !endpoint) return;
+    fetching = true;
+    fetchError = false;
+    api.get(`/api/tmdb/${endpoint}`)
+      .then((data: any) => {
+        fetchedItems = (data?.results || []).filter((item: MediaItem) => item.poster_path).map((item: MediaItem) => ({
+          ...item,
+          media_type: item.media_type || (endpoint.includes('/tv') ? 'tv' : 'movie'),
+        }));
+      })
+      .catch(() => { fetchError = true; })
+      .finally(() => { fetching = false; });
+  });
+
   let scrollEl: HTMLDivElement | undefined = $state();
   let canScrollLeft = $state(false);
   let canScrollRight = $state(false);
   let scrollProgress = $state(0);
-  let hoveredIndex = $state(-1);
 
   function updateScrollState() {
     if (!scrollEl) return;
@@ -66,12 +94,27 @@
   });
 </script>
 
-{#if showSkeleton || items.length > 0}
+{#if isLoading}
+  <section class="mb-8 sm:mb-10 relative select-none">
+    <div class="flex items-end justify-between mb-4 px-4 md:px-6">
+      <div class="flex items-center gap-3">
+        <div class="w-1 h-6 rounded-full bg-brand-gradient-cta" aria-hidden="true"></div>
+        <h2 class="text-lg md:text-2xl font-black text-ink tracking-tight">{title}</h2>
+      </div>
+    </div>
+    <div>
+      <RowSkeleton count={skeletonCount} />
+    </div>
+  </section>
+{:else if displayItems.length > 0}
   <section class="mb-8 sm:mb-10 relative select-none group/section">
-    <div class="flex items-end justify-between mb-4 px-4 md:px-12">
-      <h2 class="text-lg md:text-2xl font-black text-ink tracking-tight">
-        {title}
-      </h2>
+    <div class="flex items-end justify-between mb-4 px-4 md:px-6">
+      <div class="flex items-center gap-3">
+        <div class="w-1 h-6 rounded-full bg-brand-gradient-cta" aria-hidden="true"></div>
+        <h2 class="text-lg md:text-2xl font-black text-ink tracking-tight">
+          {title}
+        </h2>
+      </div>
       <div class="flex items-center gap-3">
         {#if canScrollLeft || canScrollRight}
           <div class="hidden md:flex items-center gap-1">
@@ -100,7 +143,7 @@
             <div class="h-full bg-brand-gradient-cta rounded-full transition-all duration-300 ease-exo-out" style="width: {scrollProgress * 100}%"></div>
           </div>
         {/if}
-        {#if showViewAll && items.length > 0 && !showSkeleton}
+        {#if showViewAll && displayItems.length > 0 && !showSkeleton}
           <a
             href={viewAllHref}
             class="text-[11px] sm:text-xs font-bold tracking-wider uppercase text-ink-muted hover:text-ink-secondary transition-colors duration-200 flex items-center gap-1 group/link"
@@ -114,13 +157,13 @@
       </div>
     </div>
 
-    <div class="relative px-4 md:px-12 group/track">
+    <div class="relative group/track">
       {#if canScrollLeft && !showSkeleton}
         <button
           type="button"
           onclick={() => scrollSide('left')}
           aria-label={`Scroll ${title} left`}
-          class="absolute left-1 md:left-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full glass-strong text-ink hover:bg-brand-red/15 hover:text-ink flex items-center justify-center opacity-0 group-hover/track:opacity-100 focus-visible:opacity-100 transition-all duration-300 ease-exo-out transform -translate-x-2 group-hover/track:translate-x-0 shadow-4 hover:scale-110 active:scale-95"
+          class="absolute left-0 md:left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full glass-strong text-ink hover:bg-brand-red/15 hover:text-ink flex items-center justify-center opacity-0 group-hover/track:opacity-100 focus-visible:opacity-100 transition-all duration-300 ease-exo-out transform -translate-x-2 group-hover/track:translate-x-0 shadow-4 hover:scale-110 active:scale-95"
         >
           <svg class="w-5 h-5 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -133,7 +176,7 @@
           type="button"
           onclick={() => scrollSide('right')}
           aria-label={`Scroll ${title} right`}
-          class="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full glass-strong text-ink hover:bg-brand-red/15 hover:text-ink flex items-center justify-center opacity-0 group-hover/track:opacity-100 focus-visible:opacity-100 transition-all duration-300 ease-exo-out transform translate-x-2 group-hover/track:translate-x-0 shadow-4 hover:scale-110 active:scale-95"
+          class="absolute right-0 md:right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full glass-strong text-ink hover:bg-brand-red/15 hover:text-ink flex items-center justify-center opacity-0 group-hover/track:opacity-100 focus-visible:opacity-100 transition-all duration-300 ease-exo-out transform translate-x-2 group-hover/track:translate-x-0 shadow-4 hover:scale-110 active:scale-95"
         >
           <svg class="w-5 h-5 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
@@ -141,8 +184,8 @@
         </button>
       {/if}
 
-      <div class="absolute inset-y-0 left-0 w-12 md:w-20 bg-gradient-to-r from-surface-0 via-surface-0/80 to-transparent z-20 pointer-events-none" aria-hidden="true"></div>
-      <div class="absolute inset-y-0 right-0 w-12 md:w-20 bg-gradient-to-l from-surface-0 via-surface-0/80 to-transparent z-20 pointer-events-none" aria-hidden="true"></div>
+      <div class="absolute inset-y-0 left-0 w-8 md:w-16 bg-gradient-to-r from-surface-0 via-surface-0/80 to-transparent z-20 pointer-events-none" aria-hidden="true"></div>
+      <div class="absolute inset-y-0 right-0 w-8 md:w-16 bg-gradient-to-l from-surface-0 via-surface-0/80 to-transparent z-20 pointer-events-none" aria-hidden="true"></div>
 
       <div
         bind:this={scrollEl}
@@ -150,34 +193,21 @@
         role="list"
         aria-label={title}
       >
-        {#if showSkeleton}
-          {#each Array(skeletonCount) as _}
-            <div class="flex-shrink-0 w-[140px] sm:w-[170px] space-y-3" role="presentation">
-              <div class="skeleton aspect-[2/3] rounded-2xl border border-white/[0.04]"></div>
-              <div class="space-y-2 px-1">
-                <div class="skeleton h-3.5 rounded w-5/6"></div>
-                <div class="skeleton h-2.5 rounded w-1/2"></div>
-              </div>
-            </div>
-          {/each}
-        {:else}
-          {#each items as item, i (item.id)}
-            <div
-              class="flex-shrink-0 w-[140px] sm:w-[170px] snap-start rise-in"
-              style="animation-delay: {Math.min(i * 40, 280)}ms"
-              role="listitem"
-              onmouseenter={() => hoveredIndex = i}
-              onmouseleave={() => hoveredIndex = -1}
-            >
-              <div
-                class="transition-transform duration-500 ease-exo-out"
-                style="transform: scale({hoveredIndex === i ? 1.04 : 1});"
-              >
-                <MovieCard movie={item} type={item.media_type === 'tv' ? 'tv' : 'movie'} />
-              </div>
-            </div>
-          {/each}
-        {/if}
+        {#each displayItems as item, i (item.id)}
+          <div
+            class="flex-shrink-0 w-[140px] sm:w-[170px] snap-start rise-in"
+            style="animation-delay: {Math.min(i * 40, 280)}ms"
+            role="listitem"
+          >
+            <MovieCard
+              movie={item}
+              type={item.media_type === 'tv' ? 'tv' : 'movie'}
+              progress={item._progress}
+              season={item._season}
+              episode={item._episode}
+            />
+          </div>
+        {/each}
       </div>
 
       <div class="md:hidden px-1 pt-1 flex items-center gap-1">

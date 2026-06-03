@@ -82,4 +82,20 @@
     items={items}
     showViewAll={false}
   />
+{:else}
+  <section class="mb-8 sm:mb-10">
+    <div class="flex items-center gap-3 mb-4 px-4 md:px-6">
+      <div class="w-1 h-6 rounded-full bg-brand-gradient-cta" aria-hidden="true"></div>
+      <h2 class="text-lg md:text-2xl font-black text-ink tracking-tight">Continue Watching</h2>
+    </div>
+    <div class="flex items-center justify-center py-10 mx-4 md:mx-6 rounded-2xl border border-white/[0.04] bg-white/[0.01]">
+      <div class="text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.25" stroke="currentColor" class="w-8 h-8 mx-auto text-ink-faint mb-3" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z" />
+        </svg>
+        <p class="text-xs font-bold text-ink-muted tracking-wider uppercase">Start watching to see your history</p>
+      </div>
+    </div>
+  </section>
 {/if}

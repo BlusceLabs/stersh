@@ -39,7 +39,7 @@
     {#if hasPoster}
       <img
         src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-        alt=""
+        alt={title}
         class="w-full h-full object-cover transition-all duration-700 ease-exo-out group-hover/card:scale-[1.08] group-hover/card:brightness-110"
         loading="lazy"
         decoding="async"
