@@ -46,11 +46,14 @@
   <div class="p-4 bg-white/[0.04] border-b border-white/[0.06] flex flex-col gap-3 shrink-0">
     <div class="flex items-center justify-between">
       <div class="min-w-0">
-        <h3 class="text-base font-display font-black text-ink truncate leading-snug">
+        <h3 class="text-base font-display font-black text-ink truncate leading-snug group/season">
           {selectedSeason > 0 ? `Season ${selectedSeason}` : 'Episodes Feed'}
         </h3>
-        <p class="text-xs text-ink-muted mt-0.5 font-medium">
+        <p class="text-xs text-ink-muted mt-0.5 font-medium flex items-center gap-1.5">
           {episodes.length} episodes
+          {#if episodes.length > 0}
+            <span class="inline-block w-1 h-1 rounded-full bg-brand-red/40 live-dot" aria-hidden="true"></span>
+          {/if}
         </p>
       </div>
 
@@ -60,7 +63,7 @@
             aria-label="Select season"
             bind:value={selected}
             onchange={() => onSeasonChange(selected)}
-            class="appearance-none bg-white/[0.08] hover:bg-white/[0.12] text-xs font-bold px-3 py-1.5 pr-8 rounded-lg border border-white/[0.08] transition-colors cursor-pointer text-ink focus:outline-none focus:ring-2 focus:ring-brand-red/30"
+            class="appearance-none bg-white/[0.08] hover:bg-white/[0.12] text-xs font-bold px-3 py-1.5 pr-8 rounded-lg border border-white/[0.08] transition-all duration-200 cursor-pointer text-ink-secondary hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-red/30"
           >
             {#each seasons as s}
               <option value={s.season_number} class="bg-surface-0 text-ink">
@@ -68,7 +71,7 @@
               </option>
             {/each}
           </select>
-          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink shrink-0">
+          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-subtle transition-colors duration-200 group-hover/season:text-brand-red shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
               <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
             </svg>
@@ -89,7 +92,7 @@
           aria-current={isCurrent ? 'true' : undefined}
           aria-label={`Episode ${ep.episode_number}${ep.name ? `, ${ep.name}` : ''}${ep.runtime ? `, ${formatDuration(ep.runtime)}` : ''}`}
           class="w-full flex items-center gap-3 p-2 rounded-xl transition-all duration-300 ease-exo-out text-left relative group
-            {isCurrent ? 'bg-brand-red/[0.08] ring-1 ring-brand-red/25' : 'hover:bg-white/[0.04]'}"
+            {isCurrent ? 'bg-brand-gradient-cta/10 ring-1 ring-brand-red/30' : 'hover:bg-white/[0.06]'}"
         >
 
           <div class="w-6 flex items-center justify-center shrink-0">
@@ -101,15 +104,15 @@
               </div>
             {:else}
               <span class="text-xs font-medium text-ink-subtle group-hover:hidden">{index + 1}</span>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 text-ink hidden group-hover:block">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 text-ink hidden group-hover:block transition-transform duration-300 group-hover:scale-110">
                 <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.218-2.779-1.643V5.653Z" clip-rule="evenodd" />
               </svg>
             {/if}
           </div>
 
-          <div class="relative shrink-0 w-[112px] aspect-video rounded-lg overflow-hidden bg-surface-1 border border-white/[0.05]">
+          <div class="relative shrink-0 w-[112px] aspect-video rounded-lg overflow-hidden bg-surface-1 border border-white/[0.05] transition-transform duration-300 group-hover:scale-105">
             {#if ep.still_path}
-              <img src={tmdbImg(ep.still_path, 'w185')} alt={ep.name} class="w-full h-full object-cover" loading="lazy" />
+              <img src={tmdbImg(ep.still_path, 'w185')} alt={ep.name} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
             {:else}
               <div class="w-full h-full flex items-center justify-center bg-surface-1">
                 <span class="text-ink-faint text-[10px] font-bold">E{String(ep.episode_number).padStart(2, '0')}</span>

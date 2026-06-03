@@ -12,9 +12,10 @@
     release_date?: string;
     first_air_date?: string;
     media_type?: string;
+    genre_ids?: number[];
   }
 
-  const ROTATE_MS = 6500;
+  const ROTATE_MS = 7000;
   const FADE_MS = 700;
 
   let items = $state<Item[]>([]);
@@ -107,6 +108,7 @@
       rating: m.vote_average || 0,
       year: (m.release_date || m.first_air_date || '').slice(0, 4),
       type: m.title ? 'movie' : 'tv',
+      genreIds: m.genre_ids || [],
     };
   }
 </script>
@@ -121,15 +123,15 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-  bind:this={containerEl}
-  class="relative w-full h-[80vh] min-h-[550px] max-h-[850px] bg-surface-0 overflow-hidden group select-none"
-  onmouseenter={() => hovering = true}
-  onmouseleave={() => hovering = false}
-  onkeydown={onKey}
-  tabindex="0"
-  role="group"
-  aria-roledescription="carousel"
-  aria-label="Featured content slider"
+   bind:this={containerEl}
+   class="relative w-full h-screen min-h-screen bg-surface-0 overflow-hidden group select-none"
+   onmouseenter={() => hovering = true}
+   onmouseleave={() => hovering = false}
+   onkeydown={onKey}
+   tabindex="0"
+   role="group"
+   aria-roledescription="carousel"
+   aria-label="Featured content slider"
 >
   {#if !loaded}
     <div class="absolute inset-0 bg-surface-0">
@@ -172,12 +174,12 @@
           style="transform: {i === idx ? 'scale(1)' : 'scale(1.05)'}; transition: transform 9s linear;"
           aria-hidden="true"
         >
-          <img
-            src={m.backdrop}
-            alt=""
-            class="w-full h-full object-cover brightness-[0.45]"
-            loading={i === 0 ? 'eager' : 'lazy'}
-          />
+<img
+              src={m.backdrop}
+              alt=""
+              class="w-full h-full object-cover brightness-[0.45] transition-all duration-1000 ease-exo-out motion-safe:animate-[kenburns_25s_ease-out_infinite]"
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
         </div>
         <div class="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/40 to-transparent" aria-hidden="true"></div>
         <div class="absolute inset-0 bg-gradient-to-r from-surface-0/95 via-surface-0/30 to-transparent" aria-hidden="true"></div>
@@ -185,15 +187,15 @@
       </a>
     {/each}
 
-    {@const cur = meta(items[idx])}
-    <div class="absolute bottom-0 left-0 right-0 p-8 md:p-16 lg:px-24 pb-20 md:pb-28 z-10 pointer-events-none">
-      <div class="max-w-3xl pointer-events-auto" aria-live="polite">
+{@const cur = meta(items[idx])}
+    <div class="absolute inset-0 flex items-end justify-center lg:justify-start lg:items-center p-8 md:p-16 lg:px-24 pointer-events-none">
+      <div class="max-w-3xl pointer-events-auto lg:max-w-2xl" aria-live="polite">
 
         <div class="flex items-center gap-2 text-xs md:text-sm font-bold mb-4 text-ink-secondary">
           {#if cur.rating > 0}
             <span class="flex items-center gap-1.5 glass-strong text-accent-warm px-2.5 py-1 rounded-md">
               <svg class="w-3.5 h-3.5 fill-accent-warm" viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.589 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.589-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
               </svg>
               {cur.rating.toFixed(1)}
             </span>
@@ -206,7 +208,7 @@
           </span>
         </div>
 
-        <h2 class="text-4xl md:text-6xl font-display font-black text-ink mb-4 tracking-tighter leading-[1.05] text-cinematic-lg">
+        <h2 class="text-4xl md:text-6xl lg:text-7xl font-display font-black text-ink mb-4 tracking-tighter leading-[1.05] text-cinematic-lg">
           {cur.title}
         </h2>
 
@@ -217,27 +219,45 @@
         <div class="flex flex-wrap items-center gap-3">
           <a
             href={`/watch/${cur.type}/${cur.id}`}
-            class="inline-flex items-center gap-2.5 px-7 py-3.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all duration-300 ease-exo-out shadow-glow-red"
+            class="inline-flex items-center gap-2.5 px-7 py-3.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all duration-300 ease-exo-out shadow-glow-red transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            <svg class="w-5 h-5 fill-white" viewBox="0 0 20 20" aria-hidden="true">
+            <svg class="w-5 h-5 fill-white transition-transform duration-300 group-hover/play:translate-x-0.5" viewBox="0 0 20 20" aria-hidden="true">
               <path d="M6.423 4.167A1 1 0 005 5.035v9.93a1 1 0 001.423.868l8.5-4.965a1 1 0 000-1.736l-8.5-4.965z"/>
             </svg>
             Play Now
           </a>
           <a
             href={`/${cur.type}/${cur.id}`}
-            class="inline-flex items-center gap-2.5 px-6 py-3.5 glass-strong text-ink font-semibold rounded-xl hover:bg-white/[0.08] transition-all duration-300 ease-exo-out active:scale-95"
+            class="inline-flex items-center gap-2.5 px-6 py-3.5 glass-strong text-ink font-semibold rounded-xl hover:bg-white/[0.08] transition-all duration-300 ease-exo-out active:scale-95 transform hover:scale-[1.02] active:scale-[0.98]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
             </svg>
             More Info
           </a>
+          <button
+            type="button"
+            onclick={() => {
+              const key = `watchfy:mylist:${cur.type}:${cur.id}`;
+              const existing = localStorage.getItem(key);
+              if (existing) {
+                localStorage.removeItem(key);
+              } else {
+                localStorage.setItem(key, JSON.stringify({ tmdbId: cur.id, mediaType: cur.type }));
+              }
+            }}
+            class="inline-flex items-center justify-center w-11 h-11 rounded-xl glass-strong text-ink-muted hover:text-ink transition-all duration-300 ease-exo-out transform hover:scale-110 active:scale-95"
+            aria-label="Add to My List"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
         </div>
-      </div>
+</div>
     </div>
 
-    <div class="absolute bottom-6 right-6 md:right-12 lg:right-20 z-20 flex items-center gap-2 glass-strong px-3 py-2.5 rounded-full" role="tablist" aria-label="Featured content slides">
+    <div class="absolute bottom-6 right-6 md:right-12 lg:right-24 z-20 flex items-center gap-2 glass-strong px-3 py-2.5 rounded-full" role="tablist" aria-label="Featured content slides">
       {#each items as _, mIndex (mIndex)}
         <button
           type="button"
@@ -245,13 +265,13 @@
           role="tab"
           aria-label={`Go to slide ${mIndex + 1} of ${items.length}`}
           aria-current={mIndex === idx ? 'true' : undefined}
-          class="group/dot relative h-1.5 rounded-full overflow-hidden transition-all duration-500 ease-exo-out cursor-pointer
-            {mIndex === idx ? 'w-12 bg-white/20' : 'w-1.5 bg-white/30 hover:bg-white/50'}"
+          class="group/dot relative h-1.5 rounded-full overflow-hidden transition-all duration-500 ease-exo-out cursor-pointer transform hover:scale-y-125 hover:bg-white/50
+            {mIndex === idx ? 'w-12 bg-white/20' : 'w-1.5 bg-white/30'}"
         >
           {#if mIndex === idx}
             <span
               class="absolute inset-y-0 left-0 bg-brand-gradient-cta rounded-full"
-              style="width: {progress * 100}%; transition: width 100ms linear;"
+              style="width: {progress * 100}%; transition: width 50ms linear;"
               aria-hidden="true"
             ></span>
           {/if}
@@ -263,10 +283,10 @@
       type="button"
       onclick={prev}
       aria-label="Previous featured slide"
-      class="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full glass-strong text-ink hover:bg-white/[0.08] flex items-center justify-center transition-all duration-300 ease-exo-out hover:scale-110 active:scale-95
+      class="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full glass-strong text-ink hover:bg-brand-red/15 hover:text-ink flex items-center justify-center transition-all duration-300 ease-exo-out hover:scale-110 active:scale-95 hover:-translate-x-0.5
         {hovering ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+      <svg class="w-5 h-5 transition-transform duration-300 group-hover/dot:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
       </svg>
     </button>
@@ -275,10 +295,10 @@
       type="button"
       onclick={next}
       aria-label="Next featured slide"
-      class="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full glass-strong text-ink hover:bg-white/[0.08] flex items-center justify-center transition-all duration-300 ease-exo-out hover:scale-110 active:scale-95
+      class="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full glass-strong text-ink hover:bg-brand-red/15 hover:text-ink flex items-center justify-center transition-all duration-300 ease-exo-out hover:scale-110 active:scale-95 hover:translate-x-0.5
         {hovering ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'}"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+      <svg class="w-5 h-5 transition-transform duration-300 group-hover/dot:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
       </svg>
     </button>

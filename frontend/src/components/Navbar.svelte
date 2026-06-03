@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
 
   let currentPath = $state('/');
+  let pressing = $state('');
 
   onMount(() => {
     currentPath = window.location.pathname;
@@ -48,9 +49,9 @@
   aria-label="Primary navigation"
 >
   <div
-    class="mx-auto rounded-2xl flex items-center justify-around h-14 sm:h-16 px-2 sm:px-3
+    class="mx-auto rounded-2xl flex items-center justify-around h-16 sm:h-[68px] px-2 sm:px-4
       glass-strong shadow-4
-      pointer-events-auto transition-all duration-300 max-w-lg sm:max-w-xl"
+      pointer-events-auto transition-all duration-300 max-w-lg sm:max-w-xl border-t border-white/[0.06]"
   >
     {#each navItems as item}
       {@const active = checkActiveStatus(item.href, currentPath)}
@@ -58,27 +59,42 @@
         href={item.href}
         aria-current={active ? 'page' : undefined}
         aria-label={item.label}
-        class="relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-5 py-2 rounded-xl transition-all duration-300 min-w-0 select-none group
+        class="relative flex flex-col items-center justify-center gap-0.5 px-3 sm:px-5 py-2 rounded-xl transition-all duration-300 ease-exo-out min-w-0 select-none group
           {active
             ? 'text-ink'
             : 'text-ink-subtle hover:text-ink-secondary'}"
+        onpointerdown={() => pressing = item.href}
+        onpointerup={() => pressing = ''}
+        onpointerleave={() => pressing = ''}
       >
         {#if active}
-          <span class="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-brand-gradient-cta" aria-hidden="true"></span>
+          <span class="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-brand-gradient-cta shadow-glow-red" aria-hidden="true"></span>
         {/if}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width={active ? 2.5 : 1.75}
-          stroke="currentColor"
-          class="w-5 h-5 transition-all duration-200"
-          aria-hidden="true"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d={item.icon} />
-        </svg>
 
-        <span class="text-[10px] sm:text-[11px] font-bold tracking-wide leading-none whitespace-nowrap mt-0.5 opacity-90">
+        <div
+          class="relative p-1.5 rounded-xl transition-all duration-300 ease-exo-out
+            {active ? 'bg-white/[0.08]' : ''}"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width={active ? 2.5 : 1.75}
+            stroke="currentColor"
+            class="w-5 h-5 sm:w-[22px] sm:h-[22px] transition-all duration-300 group-hover:scale-105
+              {active ? 'text-white' : ''}"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d={item.icon} />
+          </svg>
+
+          {#if active}
+            <span class="absolute inset-0 rounded-xl bg-brand-red/10 animate-pulse-glow" aria-hidden="true"></span>
+          {/if}
+        </div>
+
+        <span class="text-[10px] sm:text-[11px] font-bold tracking-wide leading-none whitespace-nowrap mt-0.5 transition-all duration-300
+          {active ? 'opacity-100' : 'opacity-70 group-hover:opacity-90 group-hover:scale-105'}">
           {item.label}
         </span>
       </a>

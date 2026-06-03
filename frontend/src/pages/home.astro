@@ -4,16 +4,17 @@ import HeroCarousel from '../components/HeroCarousel.svelte';
 import MediaRow from '../components/MediaRow.svelte';
 import ContinueWatching from '../components/ContinueWatching.svelte';
 import MyListRow from '../components/MyListRow.svelte';
+import BrandLogo from '../components/BrandLogo.svelte';
 ---
 
 <Layout title="Watchfy | Stream Movies & TV Series" description="Discover and stream trending movies and TV shows for free.">
-  <main class="bg-surface-0 text-ink min-h-screen pb-32 lg:pb-12 relative">
+  <main class="bg-surface-0 text-ink min-h-screen pb-32 lg:pb-12 relative overflow-hidden">
 
     <section class="w-full relative z-10">
       <HeroCarousel client:load />
     </section>
 
-    <section class="relative z-20 -mt-12 md:-mt-20 lg:-mt-28">
+    <section class="relative z-20">
       <div class="absolute -top-32 left-0 right-0 h-96 bg-gradient-to-b from-transparent via-surface-0/95 to-surface-0 pointer-events-none z-0" aria-hidden="true"></div>
 
       <div class="relative z-10 max-w-content mx-auto">

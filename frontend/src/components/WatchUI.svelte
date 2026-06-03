@@ -389,12 +389,16 @@
                 saveProgressToBackend(data.currentTime, data.duration);
               }}
             />
-          {:else}
-            <div class="aspect-video w-full flex flex-col items-center justify-center bg-surface-0 text-sm font-medium text-ink-muted">
-              <div class="w-10 h-10 rounded-2xl border-2 border-white/[0.08] border-t-brand-red animate-spin mb-3"></div>
-              Preparing playback…
-            </div>
-          {/if}
+{:else}
+             <div class="aspect-video w-full flex flex-col items-center justify-center bg-surface-0 text-sm font-medium">
+               <div class="relative mb-4">
+                 <div class="w-12 h-12 rounded-full border-2 border-brand-red/20 border-t-brand-red animate-spin"></div>
+                 <div class="absolute inset-0 w-12 h-12 rounded-full border-2 border-purple-500/20 border-b-purple-500 animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+               </div>
+               <span class="text-ink-secondary font-semibold tracking-wide">Preparing playback</span>
+               <span class="text-xs text-ink-muted mt-1">Loading stream from {showDetails?.title || showDetails?.name || 'Watchfy'}</span>
+             </div>
+           {/if}
         </div>
 
         <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
@@ -420,24 +424,27 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-            <div class="inline-flex rounded-xl border border-white/[0.06] bg-white/[0.04] p-1">
-              {#each servers as option}
-                <button
-                  onclick={() => switchServer(option.id)}
-                  class="h-9 rounded-lg px-3 text-xs font-bold transition-all duration-200 ease-exo-out {activeServer === option.id ? 'bg-ink text-surface-0 shadow-2' : 'text-ink-muted hover:bg-white/[0.06] hover:text-ink'}"
-                  aria-pressed={activeServer === option.id}
-                >
-                  {option.label}
-                </button>
-              {/each}
-            </div>
+<div class="inline-flex rounded-xl border border-white/[0.06] bg-white/[0.04] p-1 shadow-2">
+               {#each servers as option}
+                 <button
+                   onclick={() => switchServer(option.id)}
+                   class="h-9 rounded-lg px-3 text-xs font-bold transition-all duration-200 ease-exo-out transform hover:scale-105 active:scale-95
+                     {activeServer === option.id
+                      ? 'bg-brand-gradient-cta text-white shadow-glow-red'
+                      : 'text-ink-secondary hover:bg-white/[0.08] hover:text-ink'}"
+                   aria-pressed={activeServer === option.id}
+                 >
+                   {option.label}
+                 </button>
+               {/each}
+             </div>
 
-            <button onclick={shareCurrentWatch} class="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.04] px-4 text-sm font-bold text-ink transition-all duration-200 ease-exo-out hover:bg-white/[0.08] hover:border-white/10 active:scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314" />
-              </svg>
-              {shareCopied ? 'Copied' : 'Share'}
-            </button>
+<button onclick={shareCurrentWatch} class="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.04] px-4 text-sm font-bold text-ink-secondary transition-all duration-200 ease-exo-out hover:bg-white/[0.08] hover:border-white/10 hover:text-ink active:scale-95 transform hover:scale-105">
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4 transition-transform duration-300 group-hover/share:translate-x-0.5">
+                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314" />
+               </svg>
+               {shareCopied ? 'Copied!' : 'Share'}
+             </button>
           </div>
         </div>
 

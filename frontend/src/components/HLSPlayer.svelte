@@ -562,20 +562,20 @@
 
 <div
   bind:this={containerEl}
-  class="relative w-full bg-zinc-950 select-none group/player cursor-default overflow-hidden rounded-2xl border border-zinc-900/80 shadow-2xl transition-all duration-300"
+  class="relative w-full bg-gradient-to-br from-black to-surface-1 select-none group/player cursor-default overflow-hidden rounded-2xl border border-zinc-900/80 shadow-glow-red transition-all duration-300 hover:shadow-4"
   class:fullscreen={isFullscreen}
   role="application"
   aria-label="Premium Video Player"
 >
   <div 
-    class="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center"
+    class="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center transition-all duration-500"
     onmouseleave={() => { if (!isScrubbing) showSettings = false; }}
     role="presentation"
   >
     <video
       bind:this={videoEl}
       autoplay={autoPlay}
-      class="w-full h-full object-contain bg-black cursor-pointer transition-opacity duration-300"
+      class="w-full h-full object-contain bg-black cursor-pointer transition-opacity duration-300 ease-exo-out"
       class:opacity-40={loading || error}
       title={title}
       playsinline
@@ -586,45 +586,45 @@
       <p class="text-zinc-500 text-center p-4 text-sm">Your browser does not support internal streaming layers.</p>
     </video>
 
-    <div class="pointer-events-none absolute left-0 right-0 top-0 z-20 bg-gradient-to-b from-black/75 via-black/25 to-transparent px-4 pb-12 pt-4 transition-opacity duration-300 {showControls || !playing ? 'opacity-100' : 'opacity-0'}">
+    <div class="pointer-events-none absolute left-0 right-0 top-0 z-20 bg-gradient-to-b from-black/75 via-black/35 to-transparent px-4 pb-12 pt-4 transition-opacity duration-300 {showControls || !playing ? 'opacity-100' : 'opacity-0'}">
       <p class="max-w-[80%] truncate text-sm font-bold text-white drop-shadow-md sm:text-base">{title}</p>
       <p class="mt-1 text-xs font-medium text-zinc-400">{activeQualityLabel} • {formatTime(currentTime)} elapsed</p>
     </div>
 
-    {#if loading}
-      <div class="absolute inset-0 flex items-center justify-center bg-zinc-950/20 backdrop-blur-md z-20 pointer-events-none">
-        <div class="flex flex-col items-center gap-4">
-          <div class="relative w-14 h-14 flex items-center justify-center">
-            <div class="w-14 h-14 border-[3px] border-zinc-800/60 rounded-full absolute"></div>
-            <div class="w-14 h-14 border-[3px] border-t-red-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin absolute"></div>
-          </div>
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Opening stream</p>
-        </div>
-      </div>
-    {/if}
+{#if loading}
+       <div class="absolute inset-0 flex items-center justify-center bg-surface-0/20 backdrop-blur-md z-20 pointer-events-none">
+         <div class="flex flex-col items-center gap-4">
+           <div class="relative w-14 h-14 flex items-center justify-center">
+             <div class="w-14 h-14 border-[3px] border-white/[0.08] rounded-full absolute"></div>
+             <div class="w-14 h-14 border-[3px] border-t-brand-red border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin absolute"></div>
+           </div>
+           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-ink-muted">Opening stream</p>
+         </div>
+       </div>
+     {/if}
 
-    {#if error}
-      <div class="absolute inset-0 flex items-center justify-center bg-zinc-950/90 backdrop-blur-xl p-6 z-20 animate-fade-in">
-        <div class="text-center max-w-sm">
-          <div class="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mx-auto mb-4 shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" color="currentColor" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" />
-              <path d="M12 7V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              <circle cx="12" cy="17" r="1" fill="currentColor" />
-            </svg>
-          </div>
-          <p class="text-zinc-200 text-sm font-medium tracking-wide leading-relaxed px-4">{error}</p>
-          {#if src}
-            <button
-              onclick={(e) => { e.stopPropagation(); hlsRetries = 0; fetchKey++; }}
-              class="mt-4 px-5 py-2 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold uppercase tracking-wider hover:bg-red-500/25 hover:border-red-500/50 transition-all duration-200 active:scale-95"
-            >
-              Retry Stream
-            </button>
-          {/if}
-        </div>
-      </div>
-    {/if}
+     {#if error}
+       <div class="absolute inset-0 flex items-center justify-center bg-surface-0/95 backdrop-blur-xl p-6 z-20 animate-fade-in">
+         <div class="text-center max-w-sm">
+           <div class="w-12 h-12 rounded-2xl bg-brand-red/[0.06] border border-brand-red/20 flex items-center justify-center text-brand-red mx-auto mb-4 shadow-4">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" color="currentColor" fill="none">
+               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" />
+               <path d="M12 7V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+               <circle cx="12" cy="17" r="1" fill="currentColor" />
+             </svg>
+           </div>
+           <p class="text-ink-secondary text-sm font-medium tracking-wide leading-relaxed px-4">{error}</p>
+           {#if src}
+             <button
+               onclick={(e) => { e.stopPropagation(); hlsRetries = 0; fetchKey++; }}
+               class="mt-4 px-5 py-2 rounded-lg bg-brand-red/[0.08] border border-brand-red/20 text-brand-red text-xs font-semibold uppercase tracking-wider hover:bg-brand-red/[0.15] hover:border-brand-red/40 transition-all duration-200 active:scale-95 transform hover:scale-105"
+             >
+               Retry Stream
+             </button>
+           {/if}
+         </div>
+       </div>
+     {/if}
 
     {#if !playing && !loading && !error}
       <div
@@ -675,67 +675,67 @@
       </div>
     {/if}
 
-    {#if showSettings}
-      <div class="absolute bottom-20 right-4 w-64 bg-zinc-900/95 border border-zinc-800/80 rounded-2xl shadow-2xl backdrop-blur-xl z-30 p-2 text-zinc-200 text-xs font-medium animate-fade-in" onmouseenter={showControlsTemp} role="presentation">
-        {#if currentMenuTab === 'main'}
-          <div class="flex flex-col">
-            {#if qualities.length > 0}
-              <button onclick={() => currentMenuTab = 'quality'} class="flex items-center justify-between p-2.5 hover:bg-zinc-800 rounded-xl transition-colors">
-                <span class="text-zinc-400">Quality</span>
-                <span class="flex items-center gap-1 text-white">{activeQualityLabel} <span class="text-zinc-600">›</span></span>
-              </button>
-            {/if}
-            <button onclick={() => currentMenuTab = 'speed'} class="flex items-center justify-between p-2.5 hover:bg-zinc-800 rounded-xl transition-colors">
-              <span class="text-zinc-400">Speed</span>
-              <span class="flex items-center gap-1 text-white">{playbackRate === 1 ? 'Normal' : playbackRate + 'x'} <span class="text-zinc-600">›</span></span>
-            </button>
-            {#if captions.length > 0}
-              <button onclick={() => currentMenuTab = 'captions'} class="flex items-center justify-between p-2.5 hover:bg-zinc-800 rounded-xl transition-colors">
-                <span class="text-zinc-400">Captions</span>
-                <span class="flex items-center gap-1 text-white">{activeCaptionLabel} <span class="text-zinc-600">›</span></span>
-              </button>
-            {/if}
-          </div>
-        {:else}
-          <div class="flex flex-col max-h-56 overflow-y-auto">
-            <button onclick={() => currentMenuTab = 'main'} class="flex items-center gap-2 p-2 mb-1 font-semibold text-zinc-400 border-b border-zinc-800/60 pb-2 hover:text-white transition-colors">
-              <span>‹</span> Back
-            </button>
-            
-            {#if currentMenuTab === 'quality'}
-              <button onclick={() => changeQuality(-1)} class="flex items-center justify-between p-2 hover:bg-zinc-800 rounded-lg text-left {currentQualityIndex === -1 ? 'text-red-400' : ''}">
-                <span>Auto Adaptive</span>
-                {#if currentQualityIndex === -1}<span>✓</span>{/if}
-              </button>
-              {#each qualities as q}
-                <button onclick={() => changeQuality(q.index)} class="flex items-center justify-between p-2 hover:bg-zinc-800 rounded-lg text-left {currentQualityIndex === q.index ? 'text-red-400' : ''}">
-                  <span>{q.label}</span>
-                  {#if currentQualityIndex === q.index}<span>✓</span>{/if}
-                </button>
-              {/each}
-            {:else if currentMenuTab === 'speed'}
-              {#each speedOptions as speed}
-                <button onclick={() => changeSpeed(speed)} class="flex items-center justify-between p-2 hover:bg-zinc-800 rounded-lg text-left {playbackRate === speed ? 'text-red-400' : ''}">
-                  <span>{speed === 1 ? 'Normal' : speed + 'x'}</span>
-                  {#if playbackRate === speed}<span>✓</span>{/if}
-                </button>
-              {/each}
-            {:else if currentMenuTab === 'captions'}
-              <button onclick={() => changeCaption(-1)} class="flex items-center justify-between p-2 hover:bg-zinc-800 rounded-lg text-left {currentCaptionIndex === -1 ? 'text-red-400' : ''}">
-                <span>Off</span>
-                {#if currentCaptionIndex === -1}<span>✓</span>{/if}
-              </button>
-              {#each captions as cap}
-                <button onclick={() => changeCaption(cap.index)} class="flex items-center justify-between p-2 hover:bg-zinc-800 rounded-lg text-left {currentCaptionIndex === cap.index ? 'text-red-400' : ''}">
-                  <span>{cap.label}</span>
-                  {#if currentCaptionIndex === cap.index}<span>✓</span>{/if}
-                </button>
-              {/each}
-            {/if}
-          </div>
-        {/if}
-      </div>
-    {/if}
+{#if showSettings}
+       <div class="absolute bottom-20 right-4 w-64 bg-surface-1/95 border border-white/[0.08] rounded-2xl shadow-4 backdrop-blur-xl z-30 p-2 text-ink-secondary text-xs font-medium animate-fade-in" onmouseenter={showControlsTemp} role="presentation">
+         {#if currentMenuTab === 'main'}
+           <div class="flex flex-col">
+             {#if qualities.length > 0}
+               <button onclick={() => currentMenuTab = 'quality'} class="flex items-center justify-between p-2.5 hover:bg-white/[0.06] rounded-xl transition-all duration-200">
+                 <span class="text-ink-muted">Quality</span>
+                 <span class="flex items-center gap-1 text-ink-secondary">{activeQualityLabel} <span class="text-ink-subtle">›</span></span>
+               </button>
+             {/if}
+             <button onclick={() => currentMenuTab = 'speed'} class="flex items-center justify-between p-2.5 hover:bg-white/[0.06] rounded-xl transition-all duration-200">
+               <span class="text-ink-muted">Speed</span>
+               <span class="flex items-center gap-1 text-ink-secondary">{playbackRate === 1 ? 'Normal' : playbackRate + 'x'} <span class="text-ink-subtle">›</span></span>
+             </button>
+             {#if captions.length > 0}
+               <button onclick={() => currentMenuTab = 'captions'} class="flex items-center justify-between p-2.5 hover:bg-white/[0.06] rounded-xl transition-all duration-200">
+                 <span class="text-ink-muted">Captions</span>
+                 <span class="flex items-center gap-1 text-ink-secondary">{activeCaptionLabel} <span class="text-ink-subtle">›</span></span>
+               </button>
+             {/if}
+           </div>
+         {:else}
+           <div class="flex flex-col max-h-56 overflow-y-auto">
+             <button onclick={() => currentMenuTab = 'main'} class="flex items-center gap-2 p-2 mb-1 font-semibold text-ink-muted border-b border-white/[0.08] pb-2 hover:text-ink-secondary transition-colors duration-200">
+               <span>‹</span> Back
+             </button>
+             
+             {#if currentMenuTab === 'quality'}
+               <button onclick={() => changeQuality(-1)} class="flex items-center justify-between p-2 hover:bg-white/[0.06] rounded-lg text-left {currentQualityIndex === -1 ? 'text-brand-red' : ''} transition-colors duration-200">
+                 <span>Auto Adaptive</span>
+                 {#if currentQualityIndex === -1}<span class="text-brand-red font-bold">✓</span>{/if}
+               </button>
+               {#each qualities as q}
+                 <button onclick={() => changeQuality(q.index)} class="flex items-center justify-between p-2 hover:bg-white/[0.06] rounded-lg text-left {currentQualityIndex === q.index ? 'text-brand-red' : ''} transition-colors duration-200">
+                   <span>{q.label}</span>
+                   {#if currentQualityIndex === q.index}<span class="text-brand-red font-bold">✓</span>{/if}
+                 </button>
+               {/each}
+             {:else if currentMenuTab === 'speed'}
+               {#each speedOptions as speed}
+                 <button onclick={() => changeSpeed(speed)} class="flex items-center justify-between p-2 hover:bg-white/[0.06] rounded-lg text-left {playbackRate === speed ? 'text-brand-red' : ''} transition-colors duration-200">
+                   <span>{speed === 1 ? 'Normal' : speed + 'x'}</span>
+                   {#if playbackRate === speed}<span class="text-brand-red font-bold">✓</span>{/if}
+                 </button>
+               {/each}
+             {:else if currentMenuTab === 'captions'}
+               <button onclick={() => changeCaption(-1)} class="flex items-center justify-between p-2 hover:bg-white/[0.06] rounded-lg text-left {currentCaptionIndex === -1 ? 'text-brand-red' : ''} transition-colors duration-200">
+                 <span>Off</span>
+                 {#if currentCaptionIndex === -1}<span class="text-brand-red font-bold">✓</span>{/if}
+               </button>
+               {#each captions as cap}
+                 <button onclick={() => changeCaption(cap.index)} class="flex items-center justify-between p-2 hover:bg-white/[0.06] rounded-lg text-left {currentCaptionIndex === cap.index ? 'text-brand-red' : ''} transition-colors duration-200">
+                   <span>{cap.label}</span>
+                   {#if currentCaptionIndex === cap.index}<span class="text-brand-red font-bold">✓</span>{/if}
+                 </button>
+               {/each}
+             {/if}
+           </div>
+         {/if}
+       </div>
+     {/if}
 
     <div 
       class="absolute bottom-0 left-0 right-0 z-20 transition-all duration-300 ease-out flex flex-col justify-end px-4 pb-4 pt-24 bg-gradient-to-t from-black/90 via-black/40 to-transparent
@@ -745,62 +745,62 @@
     >
       <div class="w-full flex flex-col gap-4 px-2">
         
-        <div
-          bind:this={progressBar}
-          class="relative w-full h-3 group/progress cursor-pointer flex items-center"
-          onmousedown={handleTimelineMouseDown}
-          onmousemove={handleTimelineMouseMove}
-          ontouchstart={handleTimelineTouch}
-          ontouchmove={handleTimelineTouch}
-          ontouchend={() => { isScrubbing = false; showPreview = false; showControlsTemp(); }}
-          onmouseleave={() => showPreview = false}
-          onkeydown={handleTimelineKeydown}
-          role="slider"
-          aria-label="Seek"
-          aria-valuemin="0"
-          aria-valuemax={Math.max(duration, 0)}
-          aria-valuenow={Math.min(currentTime, duration || currentTime)}
-          tabindex="0"
-        >
-          <div class="absolute left-0 right-0 h-1 bg-zinc-600/50 rounded-full transition-all group-hover/progress:h-1.5"></div>
-          <div class="absolute h-1 bg-zinc-400/50 rounded-full transition-all group-hover/progress:h-1.5" style="width: {bufferedPct}%"></div>
-          <div class="absolute h-1 bg-red-500 rounded-full transition-all group-hover/progress:h-1.5 shadow-[0_0_12px_rgba(239,68,68,0.4)]" style="width: {progressPct}%"></div>
-          
-          <div 
-            class="absolute w-3 h-3 bg-white rounded-full shadow-2xl opacity-0 group-hover/progress:opacity-100 transition-all duration-150 pointer-events-none scale-75 group-hover/progress:scale-100" 
-            style="left: calc({progressPct}% - 6px)"
-          ></div>
+<div
+           bind:this={progressBar}
+           class="relative w-full h-3 group/progress cursor-pointer flex items-center transition-all duration-200"
+           onmousedown={handleTimelineMouseDown}
+           onmousemove={handleTimelineMouseMove}
+           ontouchstart={handleTimelineTouch}
+           ontouchmove={handleTimelineTouch}
+           ontouchend={() => { isScrubbing = false; showPreview = false; showControlsTemp(); }}
+           onmouseleave={() => showPreview = false}
+           onkeydown={handleTimelineKeydown}
+           role="slider"
+           aria-label="Seek"
+           aria-valuemin="0"
+           aria-valuemax={Math.max(duration, 0)}
+           aria-valuenow={Math.min(currentTime, duration || currentTime)}
+           tabindex="0"
+         >
+           <div class="absolute left-0 right-0 h-1 bg-zinc-600/50 rounded-full transition-all duration-200 group-hover/progress:h-1.5 group-hover/progress:bg-zinc-500/70"></div>
+           <div class="absolute h-1 bg-zinc-400/50 rounded-full transition-all duration-200 group-hover/progress:h-1.5" style="width: {bufferedPct}%"></div>
+           <div class="absolute h-1 bg-brand-gradient-cta rounded-full transition-all duration-200 group-hover/progress:h-1.5 shadow-[0_0_12px_rgba(239,68,68,0.4)]" style="width: {progressPct}%"></div>
+           
+           <div 
+             class="absolute w-3 h-3 bg-white rounded-full shadow-2xl opacity-0 group-hover/progress:opacity-100 transition-all duration-200 pointer-events-none scale-75 group-hover/progress:scale-100" 
+             style="left: calc({progressPct}% - 6px)"
+           ></div>
 
-          {#if showPreview && duration}
-            <div 
-              class="absolute bottom-6 -translate-x-1/2 bg-zinc-900/95 backdrop-blur border border-zinc-800 text-[11px] font-semibold px-2 py-0.5 rounded-lg shadow-2xl text-zinc-100 transition-all pointer-events-none whitespace-nowrap tracking-wider animate-fade-in"
-              style="left: {seekPos}%"
-            >
-              {formatTime(seekPreview)}
-            </div>
-          {/if}
-        </div>
+           {#if showPreview && duration}
+             <div 
+               class="absolute bottom-6 -translate-x-1/2 bg-surface-0/95 backdrop-blur border border-white/[0.08] text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-glow-red text-ink-secondary transition-all pointer-events-none whitespace-nowrap tracking-wider animate-fade-in"
+               style="left: {seekPos}%"
+             >
+               {formatTime(seekPreview)}
+             </div>
+           {/if}
+         </div>
 
         <div class="flex items-center justify-between gap-4 text-white">
           
-          <div class="flex items-center gap-1">
+<div class="flex items-center gap-1">
             
             {#if onPrev}
-              <button onclick={onPrev} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" aria-label="Previous Episode">
+              <button onclick={onPrev} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" aria-label="Previous Episode">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
                   <path d="M4 5V19M20 5L10 12L20 19V5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
                 </svg>
               </button>
             {/if}
 
-            <button onclick={() => skip(-10)} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" aria-label="Rewind 10 Seconds">
+            <button onclick={() => skip(-10)} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" aria-label="Rewind 10 Seconds">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
                 <path d="M14 5L5 12L14 19V5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
                 <path d="M20 6L13 12L20 18V6Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
               </svg>
             </button>
 
-            <button onclick={togglePlay} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-100 hover:text-white" aria-label={playing ? 'Pause' : 'Play'}>
+            <button onclick={togglePlay} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink hover:text-white duration-200 transform hover:scale-105" aria-label={playing ? 'Pause' : 'Play'}>
               {#if playing}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
                   <path d="M7 4V20M17 4V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -812,7 +812,7 @@
               {/if}
             </button>
 
-            <button onclick={() => skip(10)} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" aria-label="Forward 10 Seconds">
+            <button onclick={() => skip(10)} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" aria-label="Forward 10 Seconds">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
                 <path d="M10 19L19 12L10 5V19Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
                 <path d="M4 18L11 12L4 6V18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
@@ -820,18 +820,18 @@
             </button>
 
             {#if onNext}
-              <button onclick={onNext} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" aria-label="Next Episode">
+              <button onclick={onNext} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" aria-label="Next Episode">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
                   <path d="M20 5V19M4 5L14 12L4 19V5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor" />
                 </svg>
               </button>
             {/if}
 
-            <span class="text-[12px] font-medium text-zinc-300 tracking-wider tabular-nums ml-3 drop-shadow-md">
-              {formatTime(currentTime)} <span class="text-zinc-500 font-normal px-1">/</span> {formatTime(duration)}
+            <span class="text-[12px] font-medium text-ink-secondary tracking-wider tabular-nums ml-3 drop-shadow-md">
+              {formatTime(currentTime)} <span class="text-ink-subtle font-normal px-1">/</span> {formatTime(duration)}
             </span>
             {#if remainingTime > 0}
-              <span class="hidden text-[12px] font-medium text-zinc-500 tabular-nums sm:inline">
+              <span class="hidden text-[12px] font-medium text-ink-subtle tabular-nums sm:inline">
                 -{formatTime(remainingTime)}
               </span>
             {/if}
@@ -839,50 +839,50 @@
 
           <div class="flex items-center gap-1">
             
-            <div class="flex items-center gap-0.5 group/volume">
-              <button onclick={toggleMute} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" aria-label={muted ? 'Unmute' : 'Mute'}>
-                {#if muted || volume === 0}
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
-                    <path d="M2 9V15H6L11 20V4L6 9H2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                    <path d="M16 10L20 14M20 10L16 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                {:else}
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
-                    <path d="M2 9V15H6L11 20V4L6 9H2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                    <path d="M15.5 8.5C16.5 9.5 16.5 11.5 15.5 12.5M18.5 6C20.5 8 20.5 14 18.5 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                  </svg>
-                {/if}
-              </button>
+<div class="flex items-center gap-0.5 group/volume">
+               <button onclick={toggleMute} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" aria-label={muted ? 'Unmute' : 'Mute'}>
+                 {#if muted || volume === 0}
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
+                     <path d="M2 9V15H6L11 20V4L6 9H2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                     <path d="M16 10L20 14M20 10L16 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                   </svg>
+                 {:else}
+                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
+                     <path d="M2 9V15H6L11 20V4L6 9H2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                     <path d="M15.5 8.5C16.5 9.5 16.5 11.5 15.5 12.5M18.5 6C20.5 8 20.5 14 18.5 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                   </svg>
+                 {/if}
+               </button>
 
-              <div class="w-0 overflow-hidden group-hover/player:w-16 group-hover/volume:w-16 transition-all duration-300 ease-out flex items-center pr-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={volPct}
-                  oninput={(e) => { if (videoEl) { videoEl.volume = Number(e.currentTarget.value) / 100; videoEl.muted = videoEl.volume === 0; } }}
-                  class="w-full h-1 appearance-none bg-zinc-600/60 rounded-full cursor-pointer accent-white focus:outline-none"
-                />
-              </div>
-            </div>
+               <div class="w-0 overflow-hidden group-hover/player:w-16 group-hover/volume:w-16 transition-all duration-300 ease-out flex items-center pr-2">
+                 <input
+                   type="range"
+                   min="0"
+                   max="100"
+                   value={volPct}
+                   oninput={(e) => { if (videoEl) { videoEl.volume = Number(e.currentTarget.value) / 100; videoEl.muted = videoEl.volume === 0; } }}
+                   class="w-full h-1 appearance-none bg-white/[0.15] rounded-full cursor-pointer accent-brand-red focus:outline-none transition-all duration-200"
+                 />
+               </div>
+             </div>
 
-            <button onclick={() => showSettings = !showSettings} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" class:text-white={showSettings} aria-label="Player Settings">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
-                <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                <path d="M19.6196 9.77124C19.8243 10.5181 20 11.2372 20 12C20 12.7628 19.8243 13.4819 19.6196 14.2288C19.5005 14.6633 19.441 14.8805 19.4891 15.0934C19.5372 15.3063 19.6841 15.4741 19.9778 15.8098C20.5516 16.4659 20.8385 16.794 20.8037 17.164C20.7688 17.534 20.4187 17.8841 19.7186 18.5843L18.5843 19.7186C17.8841 20.4187 17.534 20.7688 17.164 20.8037C16.794 20.8385 16.4659 20.5516 15.8098 19.9778C15.4741 19.6841 15.3063 19.5372 15.0934 19.4891C14.8805 19.441 14.6633 19.5005 14.2288 19.6196C13.4819 19.8243 12.7628 20 12 20C11.2372 20 10.5181 19.8243 9.77124 19.6196C9.33671 19.5005 9.11945 19.441 8.90656 19.4891C8.69366 19.5372 8.52589 19.6841 8.19017 19.9778C7.53406 20.5516 7.20601 20.8385 6.83603 20.8037C6.46604 20.7688 6.11593 20.4187 5.41571 19.7186L4.28138 18.5843C3.58116 17.8841 3.23105 17.534 3.19622 17.164C3.16139 16.794 3.44836 16.4659 4.02221 15.8098C4.31593 15.4741 4.46279 15.3063 4.51089 15.0934C4.55899 14.8805 4.49947 14.6633 4.38043 14.2288C4.17572 13.4819 4 12.7628 4 12C4 11.2372 4.17572 10.5181 4.38043 9.77124C4.49947 9.33671 4.55899 9.11945 4.51089 8.90656C4.46279 8.69366 4.31593 8.52589 4.02221 8.19017C3.44836 7.53406 3.16139 7.20601 3.19622 6.83603C3.23105 6.46604 3.58116 6.11593 4.28138 5.41571L5.41571 4.28138C6.11593 3.58116 6.46604 3.23105 6.83603 3.19622C7.20601 3.16139 7.53406 3.44836 8.19017 4.02221C8.52589 4.31593 8.69366 4.46279 8.90656 4.51089C9.11945 4.55899 9.33671 4.49947 9.77124 4.38043C10.5181 4.17572 11.2372 4 12 4C12.7628 4 13.4819 4.17572 14.2288 4.38043C14.6633 4.48126 14.8805 4.53167 15.0934 4.48358C15.3063 4.43548 15.4741 4.29367 15.8098 4.01005C16.4659 3.45607 16.794 3.17908 17.164 3.21271C17.534 3.24635 17.8841 3.58434 18.5843 4.26033L19.7186 5.35824C20.4187 6.03423 20.7688 6.37222 20.8037 6.72945C20.8385 7.08668 20.5516 7.40334 19.9778 8.03666C19.6841 8.36142 19.5372 8.52379 19.4891 8.72932C19.441 8.93484 19.5005 9.14457 19.6196 9.77124Z" stroke="currentColor" stroke-width="1.5" />
-              </svg>
-            </button>
+             <button onclick={() => showSettings = !showSettings} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" class:text-white={showSettings} aria-label="Player Settings">
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
+                 <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                 <path d="M19.6196 9.77124C19.8243 10.5181 20 11.2372 20 12C20 12.7628 19.8243 13.4819 19.6196 14.2288C19.5005 14.6633 19.441 14.8805 19.4891 15.0934C19.5372 15.3063 19.6841 15.4741 19.9778 15.8098C20.5516 16.4659 20.8385 16.794 20.8037 17.164C20.7688 17.534 20.4187 17.8841 19.7186 18.5843L18.5843 19.7186C17.8841 20.4187 17.534 20.7688 17.164 20.8037C16.794 20.8385 16.4659 20.5516 15.8098 19.9778C15.4741 19.6841 15.3063 19.5372 15.0934 19.4891C14.8805 19.441 14.6633 19.5005 14.2288 19.6196C13.4819 19.8243 12.7628 20 12 20C11.2372 20 10.5181 19.8243 9.77124 19.6196C9.33671 19.5005 9.11945 19.441 8.90656 19.4891C8.69366 19.5372 8.52589 19.6841 8.19017 19.9778C7.53406 20.5516 7.20601 20.8385 6.83603 20.8037C6.46604 20.7688 6.11593 20.4187 5.41571 19.7186L4.28138 18.5843C3.58116 17.8841 3.23105 17.534 3.19622 17.164C3.16139 16.794 3.44836 16.4659 4.02221 15.8098C4.31593 15.4741 4.46279 15.3063 4.51089 15.0934C4.55899 14.8805 4.49947 14.6633 4.38043 14.2288C4.17572 13.4819 4 12.7628 4 12C4 11.2372 4.17572 10.5181 4.38043 9.77124C4.49947 9.33671 4.55899 9.11945 4.51089 8.90656C4.46279 8.69366 4.31593 8.52589 4.02221 8.19017C3.44836 7.53406 3.16139 7.20601 3.19622 6.83603C3.23105 6.46604 3.58116 6.11593 4.28138 5.41571L5.41571 4.28138C6.11593 3.58116 6.46604 3.23105 6.83603 3.19622C7.20601 3.16139 7.53406 3.44836 8.19017 4.02221C8.52589 4.31593 8.69366 4.46279 8.90656 4.51089C9.11945 4.55899 9.33671 4.49947 9.77124 4.38043C10.5181 4.17572 11.23724 4 12 4C12.7628 4 13.4819 4.17572 14.2288 4.38043C14.6633 4.48126 14.8805 4.53167 15.0934 4.48358C15.3063 4.43548 15.4741 4.29367 15.8098 4.01005C16.4659 3.45607 16.794 3.17908 17.164 3.21271C17.534 3.24635 17.8841 3.58434 18.5843 4.26033L19.7186 5.35824C20.4187 6.03423 20.7688 6.37222 20.8037 6.72945C20.8385 7.08668 20.5516 7.40334 19.9778 8.03666C19.6841 8.36142 19.5372 8.52379 19.4891 8.72932C19.441 8.93484 19.5005 9.14457 19.6196 9.77124Z" stroke="currentColor" stroke-width="1.5" />
+               </svg>
+             </button>
 
-            {#if supportsPiP}
-              <button onclick={togglePiP} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" class:text-red-400={isPiP} aria-label="Picture-in-Picture">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
-                  <path d="M3 5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V13C21 14.1046 20.1046 15 19 15H13V19C13 20.1046 12.1046 21 11 21H5C3.89543 21 3 20.1046 3 19V5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                  <rect x="13" y="13" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.1" />
-                </svg>
-              </button>
-            {/if}
+             {#if supportsPiP}
+               <button onclick={togglePiP} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" class:text-brand-red={isPiP} aria-label="Picture-in-Picture">
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
+                   <path d="M3 5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V13C21 14.1046 20.1046 15 19 15H13V19C13 20.1046 12.1046 21 11 21H5C3.89543 21 3 20.1046 3 19V5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                   <rect x="13" y="13" width="8" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.1" />
+                 </svg>
+               </button>
+             {/if}
 
-            <button onclick={toggleFullscreen} class="w-9 h-9 flex items-center justify-center hover:bg-zinc-800/60 rounded-xl transition-all active:scale-95 text-zinc-300 hover:text-white" aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+            <button onclick={toggleFullscreen} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
               {#if isFullscreen}
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
                   <path d="M4 14H10M10 14V20M10 14L3 21M20 10H14M14 10V4M14 10L21 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />

@@ -111,7 +111,7 @@ html {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(39, 39, 42, 0.5);
+  background: linear-gradient(90deg, rgba(39, 39, 42, 0.7) 0%, rgba(63, 63, 70, 0.5) 50%, rgba(39, 39, 42, 0.7) 100%);
 }
 .skeleton::after {
   content: "";
@@ -120,10 +120,11 @@ html {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.04) 50%,
+    rgba(239, 68, 68, 0.06) 50%,
+    rgba(168, 85, 247, 0.06) 50%,
     transparent 100%
   );
-  animation: watchfy-shimmer 1.8s var(--ease-standard) infinite;
+  animation: watchfy-shimmer 2s var(--ease-standard) infinite;
 }
 
 /* Stagger fade-in for list children */
@@ -192,4 +193,144 @@ html {
 ::selection {
   background: rgba(239, 68, 68, 0.35);
   color: #fff;
+}
+
+/* Ken Burns animation for hero backdrops */
+@keyframes kenburns {
+  0% {
+    transform: scale(1.05) translate(0, 0);
+  }
+  25% {
+    transform: scale(1.12) translate(-2%, -1%);
+  }
+  50% {
+    transform: scale(1.15) translate(1%, 0.5%);
+  }
+  75% {
+    transform: scale(1.12) translate(-1%, 1%);
+  }
+  100% {
+    transform: scale(1.05) translate(0, 0);
+  }
+}
+
+/* Gradient orb ambient glow */
+@keyframes watchfy-orb {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.2);
+    opacity: 0.8;
+  }
+  66% {
+    transform: translate(-20px, 15px) scale(0.9);
+    opacity: 0.5;
+  }
+}
+.orb-glow {
+  animation: watchfy-orb 8s var(--ease-standard) infinite;
+}
+
+/* Pulse glow for active elements */
+@keyframes watchfy-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.3);
+  }
+}
+.animate-pulse-glow {
+  animation: watchfy-pulse-glow 2s var(--ease-standard) infinite;
+}
+
+/* Debounced focus ring */
+.focus-ring {
+  transition: box-shadow var(--duration-quick) var(--ease-exo-out);
+}
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+/* Gradient border effect */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--brand-gradient);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Glassmorphism card variant */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl);
+}
+
+/* Premium shimmer overlay for cards */
+.premium-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.premium-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(239, 68, 68, 0.03) 50%,
+    rgba(168, 85, 247, 0.03) 55%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  transition: transform 600ms var(--ease-exo-out);
+  pointer-events: none;
+  z-index: 2;
+}
+.premium-shimmer:hover::before {
+  transform: translateX(100%);
+}
+
+/* Radial vignette overlay for cinematic backdrop sections */
+.bg-radial-vignette {
+  background: radial-gradient(ellipse at 30% 40%, transparent 0%, rgba(9, 9, 11, 0.3) 50%, rgba(9, 9, 11, 0.75) 100%);
+}
+
+/* Scrollbar styling for detail pages */
+.premium-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+.premium-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.premium-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+.premium-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
