@@ -1,6 +1,5 @@
 ---
 import Navbar from '../components/Navbar.svelte';
-import Header from '../components/Header.svelte';
 import '../styles/tokens.css';
 import '../styles/global.css';
 
@@ -38,7 +37,6 @@ const formattedTitle = title.includes('Watchfy') ? title : `${title} | Watchfy`;
 
     <a href="#main-content" class="skip-link">Skip to content</a>
 
-    <Header client:load />
     <Navbar client:load />
 
     <div id="main-content" class="relative w-full flex-grow">
