@@ -42,12 +42,13 @@ from fastapi.responses import Response
 
 DEFAULT_CSP: Final[str] = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.youtube.com; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "img-src 'self' data: https:; "
     "font-src 'self' https://fonts.gstatic.com data:; "
-    "connect-src 'self'; "
+    "connect-src 'self' https:; "
     "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; "
+    "media-src 'self' https: data:; "
     "object-src 'none'; "
     "base-uri 'self'; "
     "form-action 'self'; "

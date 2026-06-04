@@ -22,8 +22,8 @@ import MyListRow from '../components/MyListRow.svelte';
 
         <div class="my-6 mx-4 md:mx-12 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" aria-hidden="true"></div>
 
-        <MediaRow client:visible title="Now Playing in Theaters" endpoint="movie/now_playing" />
-        <MediaRow client:visible title="Trending Movies" endpoint="trending/movie/week" />
+        <MediaRow client:load title="Now Playing in Theaters" endpoint="movie/now_playing" />
+        <MediaRow client:load title="Trending Movies" endpoint="trending/movie/week" />
         <MediaRow client:visible title="Trending TV Shows" endpoint="trending/tv/week" />
 
         <div class="my-6 mx-4 md:mx-12 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" aria-hidden="true"></div>
