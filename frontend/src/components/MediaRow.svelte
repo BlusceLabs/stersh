@@ -26,6 +26,7 @@
     viewAllHref = '/search',
     showSkeleton = false,
     skeletonCount = 7,
+    variant = 'poster',
   }: {
     title?: string;
     items?: MediaItem[];
@@ -34,6 +35,7 @@
     viewAllHref?: string;
     showSkeleton?: boolean;
     skeletonCount?: number;
+    variant?: 'full' | 'poster' | 'minimal';
   } = $props();
 
   let fetchedItems = $state<MediaItem[]>([]);
@@ -205,6 +207,7 @@
               progress={item._progress}
               season={item._season}
               episode={item._episode}
+              {variant}
             />
           </div>
         {/each}

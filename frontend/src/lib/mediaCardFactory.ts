@@ -84,9 +84,9 @@ export function createMediaCardElement(item: MediaCardData): HTMLAnchorElement {
 
   const posterWrap = document.createElement('div');
   posterWrap.className =
-    'relative aspect-[2/3] rounded-2xl overflow-hidden bg-surface-1 border border-white/[0.04] ' +
-    'shadow-2 transition-all duration-500 ease-exo-out transform ' +
-    'group-hover:-translate-y-1.5 group-hover:border-white/10 group-hover:shadow-4 ' +
+    'relative aspect-[2/3] rounded-2xl overflow-hidden bg-surface-1 ' +
+    'transition-all duration-500 ease-exo-out transform ' +
+    'group-hover:-translate-y-1 group-hover:scale-[1.03] ' +
     'focus-visible:ring-2 focus-visible:ring-brand-red/50';
 
   if (hasPoster) {

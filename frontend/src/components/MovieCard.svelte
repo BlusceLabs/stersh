@@ -5,12 +5,14 @@
     progress = undefined,
     season = undefined,
     episode = undefined,
+    variant = 'full',
   }: {
     movie: any;
     type?: 'movie' | 'tv' | string;
     progress?: number;
     season?: number;
     episode?: number;
+    variant?: 'full' | 'poster' | 'minimal';
   } = $props();
 
   let mediaType = $derived(
@@ -26,15 +28,22 @@
   let year = $derived((movie.release_date || movie.first_air_date || '').split('-')[0] || '');
   let rating = $derived(movie.vote_average || 0);
   let hasPoster = $derived(Boolean(movie.poster_path));
+
+  let showMetadata = $derived(variant === 'full');
+  let showBorder = $derived(variant === 'full');
+  let showShadow = $derived(variant === 'full');
+  let hoverScale = $derived(variant === 'minimal' ? 'group-hover/card:scale-[1.05]' : 'group-hover/card:scale-[1.08]');
+  let hoverTranslate = $derived(variant === 'minimal' ? 'group-hover/card:-translate-y-1' : 'group-hover/card:-translate-y-2.5');
+  let hoverShadow = $derived(variant === 'full' ? 'group-hover/card:shadow-glow-red' : 'group-hover/card:shadow-4');
 </script>
 
 <a
   href={watchHref}
-  class="group/card block focus:outline-none rounded-2xl"
+  class="group/card block focus:outline-none {showMetadata ? 'rounded-2xl' : ''}"
   aria-label={`View details for ${title}`}
 >
   <div
-    class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-surface-1 border border-white/[0.04] shadow-2 transition-all duration-500 ease-exo-out transform group-hover/card:-translate-y-2.5 group-hover/card:border-white/15 group-hover/card:shadow-glow-red focus-visible:ring-2 focus-visible:ring-brand-red/50"
+    class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-surface-1 transition-all duration-500 ease-exo-out transform {hoverScale} {hoverTranslate} focus-visible:ring-2 focus-visible:ring-brand-red/50 {showBorder ? 'border border-white/[0.04]' : ''} {showShadow ? 'shadow-2' : ''} {hoverShadow}"
   >
     {#if hasPoster}
       <img
@@ -42,7 +51,7 @@
         srcset={`https://image.tmdb.org/t/p/w185${movie.poster_path} 185w, https://image.tmdb.org/t/p/w342${movie.poster_path} 342w, https://image.tmdb.org/t/p/w500${movie.poster_path} 500w`}
         sizes="(max-width: 640px) 140px, (max-width: 1024px) 170px, 200px"
         alt={title}
-        class="w-full h-full object-cover transition-all duration-700 ease-exo-out group-hover/card:scale-[1.08] group-hover/card:brightness-110"
+        class="w-full h-full object-cover transition-all duration-700 ease-exo-out {hoverScale} group-hover/card:brightness-110"
         loading="lazy"
         decoding="async"
       />
@@ -107,18 +116,20 @@
     {/if}
   </div>
 
-  <div class="mt-2.5 px-0.5">
-    <h3 class="font-semibold text-ink-secondary group-hover/card:text-ink text-sm tracking-tight line-clamp-1 transition-colors duration-200">
-      {title}
-    </h3>
-    <div class="flex items-center gap-2 mt-1 text-[11px] font-medium text-ink-subtle group-hover/card:text-ink-muted transition-colors duration-200">
-      {#if year}
-        <span>{year}</span>
-        <span class="w-1 h-1 rounded-full bg-ink-faint" aria-hidden="true"></span>
-      {/if}
-      <span class="uppercase tracking-wider text-[10px] font-bold text-ink-faint group-hover/card:text-brand-red/80 transition-colors duration-200">
-        {mediaType === 'tv' ? 'TV Series' : 'Movie'}
-      </span>
+  {#if showMetadata}
+    <div class="mt-2.5 px-0.5">
+      <h3 class="font-semibold text-ink-secondary group-hover/card:text-ink text-sm tracking-tight line-clamp-1 transition-colors duration-200">
+        {title}
+      </h3>
+      <div class="flex items-center gap-2 mt-1 text-[11px] font-medium text-ink-subtle group-hover/card:text-ink-muted transition-colors duration-200">
+        {#if year}
+          <span>{year}</span>
+          <span class="w-1 h-1 rounded-full bg-ink-faint" aria-hidden="true"></span>
+        {/if}
+        <span class="uppercase tracking-wider text-[10px] font-bold text-ink-faint group-hover/card:text-brand-red/80 transition-colors duration-200">
+          {mediaType === 'tv' ? 'TV Series' : 'Movie'}
+        </span>
+      </div>
     </div>
-  </div>
+  {/if}
 </a>
