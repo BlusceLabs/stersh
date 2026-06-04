@@ -3,6 +3,7 @@
   import HLSPlayer from './HLSPlayer.svelte';
   import EpisodeSidebar from './EpisodeSidebar.svelte';
   import { tmdbApi, api } from '../lib/api';
+  import { getToken, authFetch } from '../lib/auth';
 
   let { media = 'movie', id = '0', server = 'white' } = $props();
 
@@ -198,14 +199,13 @@
 
   async function saveProgressToBackend(currentTime: number, duration: number) {
     try {
-      const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+      const token = getToken();
       if (!token) return;
       const now = Date.now();
-      if (now - _lastPostTs < 5000) return; // debounce 5s
+      if (now - _lastPostTs < 5000) return;
       _lastPostTs = now;
-      await fetch('/continue-watching/', {
+      await authFetch('/continue-watching/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           tmdb_id: Number(id),
           media_type: mediaType,
@@ -247,12 +247,9 @@
       // First: check backend continue-watching for saved season/episode
       try {
         const hasExplicitEpisode = params.has('season') || params.has('episode');
-        const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+        const token = getToken();
         if (token) {
-          const res = await fetch('/continue-watching/', {
-            headers: { 'Authorization': `Bearer ${token}` },
-            signal,
-          });
+          const res = await authFetch('/continue-watching/', { signal });
           if (res.ok) {
             const items = await res.json();
             const match = items.find((i: any) => i.tmdb_id === Number(id));

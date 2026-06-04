@@ -2,13 +2,14 @@
   import { onMount } from 'svelte';
   import MediaRow from './MediaRow.svelte';
   import RowSkeleton from './skeletons/RowSkeleton.svelte';
+  import { getToken } from '../lib/auth';
 
   let items = $state<any[]>([]);
   let loaded = $state(false);
 
   async function loadFromAPI() {
     try {
-      const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+      const token = getToken();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/continue-watching/', { headers });

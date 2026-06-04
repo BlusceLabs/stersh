@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getToken, authFetch } from '../lib/auth';
   import { tmdbApi } from '../lib/api';
   import DetailSkeleton from './skeletons/DetailSkeleton.svelte';
   import EmptyState from './EmptyState.svelte';
@@ -44,9 +45,9 @@
   $effect(() => {
     (async () => {
       try {
-        const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+        const token = getToken();
         if (token) {
-          const res = await fetch(`/user/watchlist/${mediaType}/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+          const res = await authFetch(`/user/watchlist/${mediaType}/${id}`);
           if (res.ok) { myListFlag = true; return; }
         }
       } catch {}
@@ -57,12 +58,12 @@
 
   async function toggleMyList() {
     const key = `watchfy:mylist:${mediaType}:${id}`;
-    const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+    const token = getToken();
     if (token) {
       try {
         const url = `/user/watchlist/${mediaType}/${id}`;
-        if (myListFlag) { await fetch(url, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } }); myListFlag = false; }
-        else { await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }); myListFlag = true; }
+        if (myListFlag) { await authFetch(url, { method: 'DELETE' }); myListFlag = false; }
+        else { await authFetch(url, { method: 'POST' }); myListFlag = true; }
         return;
       } catch {}
     }
@@ -119,21 +120,20 @@
   }
 
   async function loadUserRating() {
-    const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) return;
     try {
-      const res = await fetch(`/user/ratings/${mediaType}/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await authFetch(`/user/ratings/${mediaType}/${id}`);
       if (res.ok) { const data = await res.json(); userRating = data.rating || 0; }
     } catch {}
   }
 
   async function submitRating(rating: number) {
-    const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) return;
     try {
-      await fetch(`/user/ratings/${mediaType}/${id}`, {
+      await authFetch(`/user/ratings/${mediaType}/${id}`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating }),
       });
       userRating = rating;

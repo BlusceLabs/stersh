@@ -72,13 +72,14 @@ import FilterChips from '../components/FilterChips.svelte';
 
 <script>
   import { tmdbApi } from '../lib/api';
+  import { getToken, authFetch } from '../lib/auth';
 
   type FilterType = 'all' | 'movies' | 'tv';
   let currentFilter: FilterType = 'all';
   let historyData: { movies: any[]; tv_shows: any[] } = { movies: [], tv_shows: [] };
 
   function getAuthToken(): string | null {
-    return localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
+    return getToken();
   }
 
   function setActiveChip() {
@@ -233,9 +234,7 @@ import FilterChips from '../components/FilterChips.svelte';
     }
 
     try {
-      const response = await fetch('/user/history', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authFetch('/user/history');
       if (!response.ok) throw new Error('Failed to fetch history');
       const data = await response.json();
       historyData = { movies: data.movies || [], tv_shows: data.tv_shows || [] };

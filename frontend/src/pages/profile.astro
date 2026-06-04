@@ -92,9 +92,7 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-  function getAuthToken(): string | null {
-    return localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
-  }
+  import { getToken, authFetch, updateProfile } from '../lib/auth';
 
   function showMessage(id: string, text: string, ok: boolean) {
     const el = document.getElementById(id);
@@ -106,7 +104,7 @@ import Layout from '../layouts/Layout.astro';
   }
 
   async function loadProfile() {
-    const token = getAuthToken();
+    const token = getToken();
     const authRequired = document.getElementById('auth-required');
     if (!token) {
       authRequired?.classList.remove('hidden');
@@ -114,7 +112,7 @@ import Layout from '../layouts/Layout.astro';
     }
 
     try {
-      const response = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+      const response = await authFetch('/api/auth/me');
       if (!response.ok) throw new Error('Failed to load profile');
       const user = await response.json();
 
@@ -139,9 +137,9 @@ import Layout from '../layouts/Layout.astro';
   async function loadStats(token: string) {
     try {
       const [favRes, wlRes, histRes] = await Promise.all([
-        fetch('/user/favorites', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/user/watchlist', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/user/history', { headers: { 'Authorization': `Bearer ${token}` } }),
+        authFetch('/user/favorites'),
+        authFetch('/user/watchlist'),
+        authFetch('/user/history'),
       ]);
       const favData = favRes.ok ? await favRes.json() : { total: 0 };
       const wlData = wlRes.ok ? await wlRes.json() : { total: 0 };
@@ -160,17 +158,14 @@ import Layout from '../layouts/Layout.astro';
     if (!form) return;
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const token = getAuthToken();
-      if (!token) return;
+      if (!getToken()) return;
       const usernameInput = document.getElementById('username') as HTMLInputElement;
       const emailInput = document.getElementById('email') as HTMLInputElement;
       try {
-        const response = await fetch('/api/auth/me', {
-          method: 'PATCH',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: usernameInput?.value, email: emailInput?.value }),
+        await updateProfile({
+          username: usernameInput?.value || undefined,
+          email: emailInput?.value || undefined,
         });
-        if (!response.ok) throw new Error('Failed to update');
         showMessage('profile-message', 'Profile updated', true);
         loadProfile();
       } catch {

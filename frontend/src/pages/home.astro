@@ -92,7 +92,7 @@ const chipHrefMap: Record<string, string> = {
   // Show the welcome banner only when no auth token is present.
   // (Has to run on every page load because the page is SSR.)
   try {
-    const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
-    if (!token) document.getElementById('welcome-banner')?.classList.remove('hidden');
+    const { isAuthenticated } = await import('../lib/auth');
+    if (!isAuthenticated()) document.getElementById('welcome-banner')?.classList.remove('hidden');
   } catch {}
 </script>

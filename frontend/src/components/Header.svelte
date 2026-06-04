@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BrandLogo from './BrandLogo.svelte';
+  import { getToken, getUser, logout as authLogout, onAuthChange } from '../lib/auth';
 
   let currentPath = $state('/');
   let searchQuery = $state('');
@@ -86,8 +87,7 @@
   }
 
   function signOut() {
-    localStorage.removeItem('watchfy_token');
-    localStorage.removeItem('watchfy_user');
+    authLogout();
     isAuthenticated = false;
     userMenuOpen = false;
     window.location.href = '/';
@@ -95,15 +95,12 @@
 
   function loadAuth() {
     try {
-      const token = localStorage.getItem('watchfy_token');
+      const token = getToken();
       isAuthenticated = !!token;
-      const userRaw = localStorage.getItem('watchfy_user');
-      if (userRaw) {
-        const user = JSON.parse(userRaw);
-        userName = user.username || user.name || 'You';
-        userAvatar = user.avatar || user.profile_path
-          ? `https://image.tmdb.org/t/p/w185${user.profile_path}`
-          : null;
+      const user = getUser();
+      if (user) {
+        userName = user.username || 'You';
+        userAvatar = null;
       }
     } catch { isAuthenticated = false; }
   }
@@ -130,13 +127,14 @@
     document.addEventListener('keydown', onKey);
     document.addEventListener('click', onDocClick);
     loadAuth();
-    document.addEventListener('astro:page-load', loadAuth);
+    const unsub = onAuthChange((authed) => { isAuthenticated = authed; loadAuth(); });
 
     return () => {
       window.removeEventListener('popstate', sync);
       document.removeEventListener('astro:page-load', sync);
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('click', onDocClick);
+      unsub();
     };
   });
 </script>

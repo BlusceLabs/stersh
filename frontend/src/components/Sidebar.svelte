@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getToken, getUser, onAuthChange } from '../lib/auth';
 
   let currentPath = $state('/');
   let collapsed = $state(false);
@@ -33,16 +34,13 @@
     const onResize = () => { /* keep current state; Layout switches to mobile bar at lg breakpoint */ };
 
     try {
-      const token = localStorage.getItem('watchfy_token');
+      const token = getToken();
       isAuthenticated = !!token;
       if (isAuthenticated) {
-        const userRaw = localStorage.getItem('watchfy_user');
-        if (userRaw) {
-          const user = JSON.parse(userRaw);
-          userName = user.username || user.name || 'User';
-          userAvatar = user.avatar || user.profile_path
-            ? `https://image.tmdb.org/t/p/w185${user.profile_path}`
-            : null;
+        const user = getUser();
+        if (user) {
+          userName = user.username || 'User';
+          userAvatar = null;
         }
       }
     } catch {}
@@ -51,11 +49,13 @@
     document.addEventListener('astro:page-load', onAstro);
     window.addEventListener('watchfy:toggle-sidebar', onToggle as EventListener);
     window.addEventListener('resize', onResize);
+    const unsub = onAuthChange((authed) => { isAuthenticated = authed; });
     return () => {
       window.removeEventListener('popstate', onPop);
       document.removeEventListener('astro:page-load', onAstro);
       window.removeEventListener('watchfy:toggle-sidebar', onToggle as EventListener);
       window.removeEventListener('resize', onResize);
+      unsub();
     };
   });
 

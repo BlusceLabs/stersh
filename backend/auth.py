@@ -293,3 +293,29 @@ async def refresh_token(body: TokenRefreshRequest, db=Depends(get_db)) -> Token:
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_active_user)) -> UserOut:
     return _user_out(current_user)
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+
+
+@router.patch("/me", response_model=UserOut)
+async def update_me(
+    body: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db=Depends(get_db),
+) -> UserOut:
+    updates: Dict[str, Any] = {}
+    if body.username is not None:
+        if db.query(User).filter(User.username == body.username, User.id != current_user.id).first():
+            raise HTTPException(status_code=409, detail="Username already taken")
+        updates["username"] = body.username
+    if body.email is not None:
+        if db.query(User).filter(User.email == body.email, User.id != current_user.id).first():
+            raise HTTPException(status_code=409, detail="Email already registered")
+        updates["email"] = body.email
+    if not updates:
+        return _user_out(current_user)
+    updated = update_user(db, current_user.id, updates)
+    return _user_out(updated)
