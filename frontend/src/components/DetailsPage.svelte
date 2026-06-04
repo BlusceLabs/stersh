@@ -134,6 +134,80 @@
     if (!amount) return '';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
   }
+
+  async function shareContent() {
+    const shareUrl = window.location.href;
+    const shareTitle = title || 'Check this out on Watchfy';
+
+    // Try native Web Share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: `Watch ${title} on Watchfy`,
+          url: shareUrl,
+        });
+        return;
+      } catch (e) {
+        // User cancelled or share failed, fall through to clipboard
+      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      // Show a brief toast-like feedback
+      const btn = document.querySelector('[onclick="shareContent"]') as HTMLButtonElement;
+      if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> Copied!';
+        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+      }
+    } catch {
+      // Final fallback: open share dialog
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Watch ${title} on Watchfy`)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+    }
+  }
+
+  // User rating state
+  let userRating = $state(0);
+  let showRatingUI = $state(false);
+
+  async function loadUserRating() {
+    const token = localStorage.getItem('watchfy_token');
+    if (!token) return;
+    try {
+      const res = await fetch(`/user/ratings/${mediaType}/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        userRating = data.rating || 0;
+      }
+    } catch {}
+  }
+
+  async function submitRating(rating: number) {
+    const token = localStorage.getItem('watchfy_token');
+    if (!token) return;
+    try {
+      await fetch(`/user/ratings/${mediaType}/${id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rating }),
+      });
+      userRating = rating;
+      showRatingUI = false;
+    } catch {}
+  }
+
+  // Load user rating on mount
+  $effect(() => {
+    if (id && mediaType) loadUserRating();
+  });
 </script>
 
 <svelte:head>
@@ -260,6 +334,32 @@
                   Trailer
                 </button>
               {/if}
+              <button onclick={shareContent} class="inline-flex items-center gap-2 px-6 py-4 glass-strong text-ink-secondary hover:text-ink text-sm font-semibold rounded-xl border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.06] transition-all duration-300 ease-exo-out active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" /></svg>
+                Share
+              </button>
+              <div class="relative">
+                <button onclick={() => showRatingUI = !showRatingUI} class="inline-flex items-center gap-2 px-6 py-4 glass-strong text-ink-secondary hover:text-ink text-sm font-semibold rounded-xl border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.06] transition-all duration-300 ease-exo-out active:scale-95">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill={userRating > 0 ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 {userRating > 0 ? 'text-accent-warm' : ''}">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                  </svg>
+                  {userRating > 0 ? `Rated ${userRating}/5` : 'Rate'}
+                </button>
+                {#if showRatingUI}
+                  <div class="absolute bottom-full left-0 mb-2 bg-surface-1/95 border border-white/[0.08] rounded-2xl shadow-4 p-3 flex gap-1 z-50">
+                    {#each [1, 2, 3, 4, 5] as star}
+                      <button
+                        onclick={() => submitRating(star)}
+                        class="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-white/[0.06] transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill={star <= userRating ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 {star <= userRating ? 'text-accent-warm' : 'text-ink-subtle'}">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                        </svg>
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
             </div>
 
             <!-- Overview -->
