@@ -67,6 +67,9 @@
   let seekPos = $state(0);
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Keyboard shortcuts overlay
+  let showShortcuts = $state(false);
+
   // Auto-advance countdown state
   let countdown = $state(0);
   let countdownTimer: ReturnType<typeof setInterval> | null = null;
@@ -122,6 +125,46 @@
   // Playback Rate Options
   const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
+  // Playback Preferences Persistence
+  const PREFS_KEY = 'watchfy_playback_prefs';
+
+  type PlaybackPrefs = {
+    playbackRate?: number;
+    qualityIndex?: number;  // -1 for auto
+    volume?: number;
+    muted?: boolean;
+  };
+
+  function loadPrefs(): PlaybackPrefs {
+    try {
+      const stored = localStorage.getItem(PREFS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {};
+  }
+
+  function savePrefs(prefs: PlaybackPrefs) {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {}
+  }
+
+  function applySavedPrefs() {
+    const prefs = loadPrefs();
+    if (prefs.playbackRate && prefs.playbackRate !== 1) {
+      playbackRate = prefs.playbackRate;
+      if (videoEl) videoEl.playbackRate = prefs.playbackRate;
+    }
+    if (prefs.volume !== undefined && prefs.volume >= 0 && prefs.volume <= 1) {
+      volume = prefs.volume;
+      if (videoEl) videoEl.volume = prefs.volume;
+    }
+    if (prefs.muted !== undefined) {
+      muted = prefs.muted;
+      if (videoEl) videoEl.muted = prefs.muted;
+    }
+  }
+
   // Helper: Format seconds into clean strings
   function formatTime(t: number): string {
     if (!t || !isFinite(t)) return '0:00';
@@ -165,6 +208,7 @@
   function toggleMute() {
     if (!videoEl) return;
     videoEl.muted = !videoEl.muted;
+    savePrefs({ ...loadPrefs(), muted: videoEl.muted });
   }
 
   async function togglePiP() {
@@ -185,6 +229,7 @@
     playbackRate = rate;
     if (videoEl) videoEl.playbackRate = rate;
     showSettings = false;
+    savePrefs({ ...loadPrefs(), playbackRate: rate });
   }
 
   function changeQuality(index: number) {
@@ -193,6 +238,7 @@
       hlsInstance.currentLevel = index; // -1 triggers adaptive auto resolution streaming logic
     }
     showSettings = false;
+    savePrefs({ ...loadPrefs(), qualityIndex: index });
   }
 
   function changeCaption(index: number) {
@@ -269,7 +315,21 @@
   // Accessibility Global Hotkeys
   function handleKeydown(e: KeyboardEvent) {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    
+
+    // Toggle shortcuts overlay with '?'
+    if (e.key === '?') {
+      e.preventDefault();
+      showShortcuts = !showShortcuts;
+      return;
+    }
+
+    // Close shortcuts overlay with Escape
+    if (e.key === 'Escape' && showShortcuts) {
+      e.preventDefault();
+      showShortcuts = false;
+      return;
+    }
+
     const keyActions: Record<string, () => void> = {
       ' ': () => { e.preventDefault(); togglePlay(); },
       'k': () => { e.preventDefault(); togglePlay(); },
@@ -353,6 +413,9 @@
     v.addEventListener('enterpictureinpicture', onEnterPiP);
     v.addEventListener('leavepictureinpicture', onLeavePiP);
     v.textTracks.addEventListener('addtrack', parseTracks);
+
+    // Apply saved playback preferences
+    applySavedPrefs();
     
     v.addEventListener('progress', () => {
       if (v.buffered.length > 0) buffered = v.buffered.end(v.buffered.length - 1);
@@ -860,18 +923,22 @@
                    min="0"
                    max="100"
                    value={volPct}
-                   oninput={(e) => { if (videoEl) { videoEl.volume = Number(e.currentTarget.value) / 100; videoEl.muted = videoEl.volume === 0; } }}
+                    oninput={(e) => { if (videoEl) { const v = Number(e.currentTarget.value) / 100; videoEl.volume = v; videoEl.muted = v === 0; savePrefs({ ...loadPrefs(), volume: v, muted: v === 0 }); } }}
                    class="w-full h-1 appearance-none bg-white/[0.15] rounded-full cursor-pointer accent-brand-red focus:outline-none transition-all duration-200"
                  />
                </div>
              </div>
 
-             <button onclick={() => showSettings = !showSettings} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" class:text-white={showSettings} aria-label="Player Settings">
-               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
-                 <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                 <path d="M19.6196 9.77124C19.8243 10.5181 20 11.2372 20 12C20 12.7628 19.8243 13.4819 19.6196 14.2288C19.5005 14.6633 19.441 14.8805 19.4891 15.0934C19.5372 15.3063 19.6841 15.4741 19.9778 15.8098C20.5516 16.4659 20.8385 16.794 20.8037 17.164C20.7688 17.534 20.4187 17.8841 19.7186 18.5843L18.5843 19.7186C17.8841 20.4187 17.534 20.7688 17.164 20.8037C16.794 20.8385 16.4659 20.5516 15.8098 19.9778C15.4741 19.6841 15.3063 19.5372 15.0934 19.4891C14.8805 19.441 14.6633 19.5005 14.2288 19.6196C13.4819 19.8243 12.7628 20 12 20C11.2372 20 10.5181 19.8243 9.77124 19.6196C9.33671 19.5005 9.11945 19.441 8.90656 19.4891C8.69366 19.5372 8.52589 19.6841 8.19017 19.9778C7.53406 20.5516 7.20601 20.8385 6.83603 20.8037C6.46604 20.7688 6.11593 20.4187 5.41571 19.7186L4.28138 18.5843C3.58116 17.8841 3.23105 17.534 3.19622 17.164C3.16139 16.794 3.44836 16.4659 4.02221 15.8098C4.31593 15.4741 4.46279 15.3063 4.51089 15.0934C4.55899 14.8805 4.49947 14.6633 4.38043 14.2288C4.17572 13.4819 4 12.7628 4 12C4 11.2372 4.17572 10.5181 4.38043 9.77124C4.49947 9.33671 4.55899 9.11945 4.51089 8.90656C4.46279 8.69366 4.31593 8.52589 4.02221 8.19017C3.44836 7.53406 3.16139 7.20601 3.19622 6.83603C3.23105 6.46604 3.58116 6.11593 4.28138 5.41571L5.41571 4.28138C6.11593 3.58116 6.46604 3.23105 6.83603 3.19622C7.20601 3.16139 7.53406 3.44836 8.19017 4.02221C8.52589 4.31593 8.69366 4.46279 8.90656 4.51089C9.11945 4.55899 9.33671 4.49947 9.77124 4.38043C10.5181 4.17572 11.23724 4 12 4C12.7628 4 13.4819 4.17572 14.2288 4.38043C14.6633 4.48126 14.8805 4.53167 15.0934 4.48358C15.3063 4.43548 15.4741 4.29367 15.8098 4.01005C16.4659 3.45607 16.794 3.17908 17.164 3.21271C17.534 3.24635 17.8841 3.58434 18.5843 4.26033L19.7186 5.35824C20.4187 6.03423 20.7688 6.37222 20.8037 6.72945C20.8385 7.08668 20.5516 7.40334 19.9778 8.03666C19.6841 8.36142 19.5372 8.52379 19.4891 8.72932C19.441 8.93484 19.5005 9.14457 19.6196 9.77124Z" stroke="currentColor" stroke-width="1.5" />
-               </svg>
-             </button>
+              <button onclick={() => showSettings = !showSettings} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" class:text-white={showSettings} aria-label="Player Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
+                  <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                  <path d="M19.6196 9.77124C19.8243 10.5181 20 11.2372 20 12C20 12.7628 19.8243 13.4819 19.6196 14.2288C19.5005 14.6633 19.441 14.8805 19.4891 15.0934C19.5372 15.3063 19.6841 15.4741 19.9778 15.8098C20.5516 16.4659 20.8385 16.794 20.8037 17.164C20.7688 17.534 20.4187 17.8841 19.7186 18.5843L18.5843 19.7186C17.8841 20.4187 17.534 20.7688 17.164 20.8037C16.794 20.8385 16.4659 20.5516 15.8098 19.9778C15.4741 19.6841 15.3063 19.5372 15.0934 19.4891C14.8805 19.441 14.6633 19.5005 14.2288 19.6196C13.4819 19.8243 12.7628 20 12 20C11.2372 20 10.5181 19.8243 9.77124 19.6196C9.33671 19.5005 9.11945 19.441 8.90656 19.4891C8.69366 19.5372 8.52589 19.6841 8.19017 19.9778C7.53406 20.5516 7.20601 20.8385 6.83603 20.8037C6.46604 20.7688 6.11593 20.4187 5.41571 19.7186L4.28138 18.5843C3.58116 17.8841 3.23105 17.534 3.19622 17.164C3.16139 16.794 3.44836 16.4659 4.02221 15.8098C4.31593 15.4741 4.46279 15.3063 4.51089 15.0934C4.55899 14.8805 4.49947 14.6633 4.38043 14.2288C4.17572 13.4819 4 12.7628 4 12C4 11.2372 4.17572 10.5181 4.38043 9.77124C4.49947 9.33671 4.55899 9.11945 4.51089 8.90656C4.46279 8.69366 4.31593 8.52589 4.02221 8.19017C3.44836 7.53406 3.16139 7.20601 3.19622 6.83603C3.23105 6.46604 3.58116 6.11593 4.28138 5.41571L5.41571 4.28138C6.11593 3.58116 6.46604 3.23105 6.83603 3.19622C7.20601 3.16139 7.53406 3.44836 8.19017 4.02221C8.52589 4.31593 8.69366 4.46279 8.90656 4.51089C9.11945 4.55899 9.33671 4.49947 9.77124 4.38043C10.5181 4.17572 11.23724 4 12 4C12.7628 4 13.4819 4.17572 14.2288 4.38043C14.6633 4.48126 14.8805 4.53167 15.0934 4.48358C15.3063 4.43548 15.4741 4.29367 15.8098 4.01005C16.4659 3.45607 16.794 3.17908 17.164 3.21271C17.534 3.24635 17.8841 3.58434 18.5843 4.26033L19.7186 5.35824C20.4187 6.03423 20.7688 6.37222 20.8037 6.72945C20.8385 7.08668 20.5516 7.40334 19.9778 8.03666C19.6841 8.36142 19.5372 8.52379 19.4891 8.72932C19.441 8.93484 19.5005 9.14457 19.6196 9.77124Z" stroke="currentColor" stroke-width="1.5" />
+                </svg>
+              </button>
+
+              <button onclick={() => showShortcuts = !showShortcuts} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" aria-label="Keyboard shortcuts">
+                <span class="text-xs font-bold">?</span>
+              </button>
 
              {#if supportsPiP}
                <button onclick={togglePiP} class="w-9 h-9 flex items-center justify-center hover:bg-white/[0.08] rounded-xl transition-all active:scale-95 text-ink-secondary hover:text-ink duration-200 transform hover:scale-105" class:text-brand-red={isPiP} aria-label="Picture-in-Picture">
@@ -901,6 +968,39 @@
 
   </div>
 </div>
+
+<!-- Keyboard Shortcuts Overlay -->
+{#if showShortcuts}
+  <div class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-sm" onclick={() => showShortcuts = false} role="dialog" aria-label="Keyboard Shortcuts" aria-modal="true">
+    <div class="bg-surface-1/95 border border-white/[0.08] rounded-2xl shadow-4 p-6 max-w-md w-full mx-4" onclick={(e) => e.stopPropagation()}>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-ink">Keyboard Shortcuts</h2>
+        <button onclick={() => showShortcuts = false} class="w-8 h-8 flex items-center justify-center hover:bg-white/[0.08] rounded-lg text-ink-subtle hover:text-ink transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" color="currentColor" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <div class="space-y-3">
+        {#each [
+          { key: 'Space / K', action: 'Play / Pause' },
+          { key: 'F', action: 'Toggle fullscreen' },
+          { key: 'M', action: 'Toggle mute' },
+          { key: '← / →', action: 'Seek ±10 seconds' },
+          { key: 'N', action: 'Next episode' },
+          { key: 'P', action: 'Previous episode / PiP' },
+          { key: '?', action: 'Toggle this help' },
+          { key: 'Esc', action: 'Close overlay' },
+        ] as shortcut}
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-ink-muted">{shortcut.action}</span>
+            <kbd class="px-2 py-1 bg-surface-2/60 border border-white/[0.06] rounded-lg text-xs font-mono font-bold text-ink-secondary">{shortcut.key}</kbd>
+          </div>
+        {/each}
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .fullscreen {

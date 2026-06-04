@@ -1,0 +1,252 @@
+---
+import Layout from '../layouts/Layout.astro';
+import EmptyState from '../components/EmptyState.svelte';
+---
+
+<Layout title="My List | Watchfy">
+  <main class="min-h-screen bg-surface-0 text-ink pt-8 sm:pt-12 pb-32 lg:pb-28 select-none relative overflow-x-hidden">
+    <div class="absolute top-0 left-1/4 w-[500px] h-[350px] bg-brand-red/[0.04] rounded-full blur-[120px] pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="absolute top-1/3 right-1/4 w-[400px] h-[300px] bg-brand-purple/[0.04] rounded-full blur-[140px] pointer-events-none z-0" aria-hidden="true"></div>
+
+    <div class="relative z-10 max-w-content mx-auto px-4 sm:px-6 lg:px-8">
+
+      <header class="border-b border-white/[0.06] pb-5 mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.3em] font-bold text-brand-red mb-1.5">Personal</p>
+          <h1 class="text-2xl sm:text-4xl lg:text-display-lg font-display font-black text-ink tracking-tighter">
+            My List
+          </h1>
+          <p class="text-xs sm:text-sm text-ink-muted mt-1 font-medium">Your saved movies and TV shows.</p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <div class="bg-surface-1/60 border border-white/[0.06] rounded-xl px-3.5 py-2 backdrop-blur-md">
+            <span class="text-[11px] font-bold text-ink-secondary tracking-wider uppercase">
+              <span id="list-count" class="text-ink">0</span> items
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Filter tabs -->
+      <div class="flex items-center gap-2 mb-8">
+        <button id="filter-all" class="filter-tab active px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200">
+          All
+        </button>
+        <button id="filter-movies" class="filter-tab px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200">
+          Movies
+        </button>
+        <button id="filter-tv" class="filter-tab px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200">
+          TV Shows
+        </button>
+      </div>
+
+      <!-- Content grid -->
+      <div id="list-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 opacity-0 transition-opacity duration-500"></div>
+
+      <!-- Loading skeleton -->
+      <div id="grid-skeleton" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div class="space-y-3" style="animation-delay: {Math.min(i * 50, 300)}ms">
+            <div class="skeleton aspect-[2/3] rounded-2xl rise-in"></div>
+            <div class="space-y-2 px-1">
+              <div class="skeleton h-3.5 rounded w-5/6"></div>
+              <div class="skeleton h-2.5 rounded w-1/2"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="hidden">
+        <div class="surface-elevated rounded-2xl p-8 text-center max-w-md mx-auto">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-2/60 border border-white/[0.06] flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-ink-subtle">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-ink mb-2">Your list is empty</h3>
+          <p class="text-sm text-ink-muted mb-6">Save movies and TV shows to watch later by clicking the bookmark icon.</p>
+          <a href="/movies" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 transition-all duration-300 text-sm">
+            Browse Movies
+          </a>
+        </div>
+      </div>
+
+      <!-- Auth required state -->
+      <div id="auth-required" class="hidden">
+        <div class="surface-elevated rounded-2xl p-8 text-center max-w-md mx-auto">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-2/60 border border-white/[0.06] flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-ink-subtle">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-ink mb-2">Sign in required</h3>
+          <p class="text-sm text-ink-muted mb-6">Sign in to create and manage your personal watchlist.</p>
+          <a href="/auth" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 transition-all duration-300 text-sm">
+            Sign In
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .filter-tab {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--color-ink-subtle);
+  }
+  .filter-tab:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-ink-secondary);
+  }
+  .filter-tab.active {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: var(--color-brand-red);
+  }
+</style>
+
+<script>
+  import { tmdbApi } from '../lib/api';
+  import { createMediaCardElement } from '../lib/mediaCardFactory';
+
+  type FilterType = 'all' | 'movies' | 'tv';
+
+  let currentFilter: FilterType = 'all';
+  let watchlistData: { movies: any[]; tv_shows: any[] } = { movies: [], tv_shows: [] };
+
+  function getAuthToken(): string | null {
+    return localStorage.getItem('access_token');
+  }
+
+  function getAllItems() {
+    const items: any[] = [];
+    watchlistData.movies.forEach(m => items.push({ ...m, media_type: 'movie' }));
+    watchlistData.tv_shows.forEach(t => items.push({ ...t, media_type: 'tv' }));
+    return items;
+  }
+
+  function getFilteredItems() {
+    const all = getAllItems();
+    if (currentFilter === 'movies') return all.filter(i => i.media_type === 'movie');
+    if (currentFilter === 'tv') return all.filter(i => i.media_type === 'tv');
+    return all;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('list-grid');
+    const skeleton = document.getElementById('grid-skeleton');
+    const emptyState = document.getElementById('empty-state');
+    const countEl = document.getElementById('list-count');
+
+    if (!grid || !skeleton || !emptyState) return;
+
+    skeleton.style.display = 'none';
+    grid.classList.add('opacity-0');
+    grid.replaceChildren();
+
+    const items = getFilteredItems();
+
+    if (countEl) countEl.textContent = String(items.length);
+
+    if (items.length === 0) {
+      grid.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    grid.classList.remove('hidden');
+
+    const fragment = document.createDocumentFragment();
+    items.forEach((item: any) => {
+      fragment.appendChild(createMediaCardElement(item));
+    });
+    grid.appendChild(fragment);
+
+    requestAnimationFrame(() => {
+      grid.classList.remove('opacity-0');
+    });
+  }
+
+  async function fetchWatchlist() {
+    const token = getAuthToken();
+    const authRequired = document.getElementById('auth-required');
+    const skeleton = document.getElementById('grid-skeleton');
+
+    if (!token) {
+      if (skeleton) skeleton.style.display = 'none';
+      if (authRequired) authRequired.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      const response = await fetch('/user/watchlist', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch watchlist');
+      }
+
+      const data = await response.json();
+      watchlistData = {
+        movies: data.movies || [],
+        tv_shows: data.tv_shows || []
+      };
+
+      // Fetch TMDB details for each item
+      const allItems = getAllItems();
+      const detailsPromises = allItems.map(async (item) => {
+        try {
+          const details = await tmdbApi.details(item.media_type, item.tmdb_id);
+          return { ...item, ...details };
+        } catch {
+          return item;
+        }
+      });
+
+      const enrichedItems = await Promise.all(detailsPromises);
+
+      // Update watchlist data with enriched items
+      watchlistData.movies = enrichedItems.filter(i => i.media_type === 'movie');
+      watchlistData.tv_shows = enrichedItems.filter(i => i.media_type === 'tv');
+
+      renderGrid();
+    } catch (e) {
+      console.error('Watchlist fetch error:', e);
+      if (skeleton) skeleton.style.display = 'none';
+    }
+  }
+
+  function setupFilters() {
+    const filters: { id: string; type: FilterType }[] = [
+      { id: 'filter-all', type: 'all' },
+      { id: 'filter-movies', type: 'movies' },
+      { id: 'filter-tv', type: 'tv' },
+    ];
+
+    filters.forEach(({ id, type }) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+
+      btn.addEventListener('click', () => {
+        currentFilter = type;
+        filters.forEach(f => {
+          const el = document.getElementById(f.id);
+          if (el) el.classList.toggle('active', f.type === type);
+        });
+        renderGrid();
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupFilters();
+    fetchWatchlist();
+  });
+</script>

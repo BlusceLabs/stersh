@@ -18,17 +18,23 @@ import MyListRow from '../components/MyListRow.svelte';
 
       <div class="relative z-10 w-full">
         <ContinueWatching client:load />
-        <MyListRow client:load />
+        <MyListRow client:idle />
 
         <div class="my-6 mx-4 md:mx-12 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" aria-hidden="true"></div>
 
-        <MediaRow client:load title="Trending Movies" endpoint="trending/movie/week" />
-        <MediaRow client:load title="Trending TV Shows" endpoint="trending/tv/week" />
+        <MediaRow client:visible title="Now Playing in Theaters" endpoint="movie/now_playing" />
+        <MediaRow client:visible title="Trending Movies" endpoint="trending/movie/week" />
+        <MediaRow client:visible title="Trending TV Shows" endpoint="trending/tv/week" />
 
         <div class="my-6 mx-4 md:mx-12 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" aria-hidden="true"></div>
 
-        <MediaRow client:load title="Popular Movies" endpoint="movie/popular" />
-        <MediaRow client:load title="Popular TV Series" endpoint="tv/popular" />
+        <MediaRow client:visible title="Upcoming Movies" endpoint="movie/upcoming" />
+        <MediaRow client:visible title="Airing Today" endpoint="tv/airing_today" />
+
+        <div class="my-6 mx-4 md:mx-12 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" aria-hidden="true"></div>
+
+        <MediaRow client:visible title="Popular Movies" endpoint="movie/popular" />
+        <MediaRow client:visible title="Popular TV Series" endpoint="tv/popular" />
       </div>
     </section>
 

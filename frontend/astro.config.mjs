@@ -19,7 +19,7 @@ export default defineConfig({
   ],
 
   prefetch: {
-    prefetchAll: true,
+    prefetchAll: false,
     defaultStrategy: 'hover'
   },
 
@@ -67,6 +67,7 @@ export default defineConfig({
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (id.includes('svelte')) return 'vendor-svelte';
+              if (id.includes('hls.js')) return 'vendor-hls';
               return 'vendor-core';
             }
           }

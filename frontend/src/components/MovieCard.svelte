@@ -39,6 +39,8 @@
     {#if hasPoster}
       <img
         src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+        srcset={`https://image.tmdb.org/t/p/w185${movie.poster_path} 185w, https://image.tmdb.org/t/p/w342${movie.poster_path} 342w, https://image.tmdb.org/t/p/w500${movie.poster_path} 500w`}
+        sizes="(max-width: 640px) 140px, (max-width: 1024px) 170px, 200px"
         alt={title}
         class="w-full h-full object-cover transition-all duration-700 ease-exo-out group-hover/card:scale-[1.08] group-hover/card:brightness-110"
         loading="lazy"

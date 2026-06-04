@@ -4,7 +4,7 @@ import '@watchfy/design-tokens/styles';
 import '../styles/tokens.css';
 import '../styles/global.css';
 
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.BACKEND_URL || '';
 
 let trendingMovies: any[] = [];
 let initialBackdrop = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925';

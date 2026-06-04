@@ -1,0 +1,331 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Watch History | Watchfy">
+  <main class="min-h-screen bg-surface-0 text-ink pt-8 sm:pt-12 pb-32 lg:pb-28 select-none relative overflow-x-hidden">
+    <div class="absolute top-0 left-1/4 w-[500px] h-[350px] bg-brand-red/[0.04] rounded-full blur-[120px] pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="absolute top-1/3 right-1/4 w-[400px] h-[300px] bg-brand-purple/[0.04] rounded-full blur-[140px] pointer-events-none z-0" aria-hidden="true"></div>
+
+    <div class="relative z-10 max-w-content mx-auto px-4 sm:px-6 lg:px-8">
+
+      <header class="border-b border-white/[0.06] pb-5 mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.3em] font-bold text-brand-red mb-1.5">Activity</p>
+          <h1 class="text-2xl sm:text-4xl lg:text-display-lg font-display font-black text-ink tracking-tighter">
+            Watch History
+          </h1>
+          <p class="text-xs sm:text-sm text-ink-muted mt-1 font-medium">Your viewing activity and progress.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="clear-history" class="hidden px-4 py-2 bg-surface-1/60 border border-white/[0.06] text-ink-subtle text-xs font-bold rounded-xl hover:bg-brand-red/[0.08] hover:text-brand-red hover:border-brand-red/25 transition-all duration-200">
+            Clear All
+          </button>
+          <div class="bg-surface-1/60 border border-white/[0.06] rounded-xl px-3.5 py-2 backdrop-blur-md">
+            <span class="text-[11px] font-bold text-ink-secondary tracking-wider uppercase">
+              <span id="history-count" class="text-ink">0</span> items
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Filter tabs -->
+      <div class="flex items-center gap-2 mb-8">
+        <button id="filter-all" class="filter-tab active px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200">
+          All
+        </button>
+        <button id="filter-movies" class="filter-tab px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200">
+          Movies
+        </button>
+        <button id="filter-tv" class="filter-tab px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200">
+          TV Shows
+        </button>
+      </div>
+
+      <!-- History list -->
+      <div id="history-list" class="space-y-3 opacity-0 transition-opacity duration-500"></div>
+
+      <!-- Loading skeleton -->
+      <div id="list-skeleton" class="space-y-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div class="flex items-center gap-4 p-4 rounded-2xl bg-surface-1/30 border border-white/[0.04]" style="animation-delay: {Math.min(i * 50, 300)}ms">
+            <div class="skeleton w-16 h-24 rounded-xl flex-shrink-0"></div>
+            <div class="flex-1 space-y-2">
+              <div class="skeleton h-4 rounded w-2/3"></div>
+              <div class="skeleton h-3 rounded w-1/3"></div>
+              <div class="skeleton h-2 rounded w-full mt-2"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="hidden">
+        <div class="surface-elevated rounded-2xl p-8 text-center max-w-md mx-auto">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-2/60 border border-white/[0.06] flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-ink-subtle">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-ink mb-2">No watch history</h3>
+          <p class="text-sm text-ink-muted mb-6">Start watching movies and TV shows to build your history.</p>
+          <a href="/movies" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 transition-all duration-300 text-sm">
+            Browse Movies
+          </a>
+        </div>
+      </div>
+
+      <!-- Auth required state -->
+      <div id="auth-required" class="hidden">
+        <div class="surface-elevated rounded-2xl p-8 text-center max-w-md mx-auto">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-2/60 border border-white/[0.06] flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-ink-subtle">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-ink mb-2">Sign in required</h3>
+          <p class="text-sm text-ink-muted mb-6">Sign in to view your watch history.</p>
+          <a href="/auth" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 transition-all duration-300 text-sm">
+            Sign In
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .filter-tab {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--color-ink-subtle);
+  }
+  .filter-tab:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-ink-secondary);
+  }
+  .filter-tab.active {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: var(--color-brand-red);
+  }
+</style>
+
+<script>
+  import { tmdbApi } from '../lib/api';
+
+  type FilterType = 'all' | 'movies' | 'tv';
+
+  let currentFilter: FilterType = 'all';
+  let historyData: { movies: any[]; tv_shows: any[] } = { movies: [], tv_shows: [] };
+
+  function getAuthToken(): string | null {
+    return localStorage.getItem('access_token');
+  }
+
+  function getAllItems() {
+    const items: any[] = [];
+    historyData.movies.forEach(m => items.push({ ...m, media_type: 'movie' }));
+    historyData.tv_shows.forEach(t => items.push({ ...t, media_type: 'tv' }));
+    return items;
+  }
+
+  function getFilteredItems() {
+    const all = getAllItems();
+    if (currentFilter === 'movies') return all.filter(i => i.media_type === 'movie');
+    if (currentFilter === 'tv') return all.filter(i => i.media_type === 'tv');
+    return all;
+  }
+
+  function formatDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function formatTime(seconds: number): string {
+    if (!seconds) return '0:00';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function renderList() {
+    const list = document.getElementById('history-list');
+    const skeleton = document.getElementById('list-skeleton');
+    const emptyState = document.getElementById('empty-state');
+    const countEl = document.getElementById('history-count');
+    const clearBtn = document.getElementById('clear-history');
+
+    if (!list || !skeleton || !emptyState) return;
+
+    skeleton.style.display = 'none';
+    list.classList.add('opacity-0');
+    list.replaceChildren();
+
+    const items = getFilteredItems();
+
+    if (countEl) countEl.textContent = String(items.length);
+    if (clearBtn) clearBtn.classList.toggle('hidden', items.length === 0);
+
+    if (items.length === 0) {
+      list.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    list.classList.remove('hidden');
+
+    items.forEach((item: any) => {
+      const el = document.createElement('div');
+      el.className = 'flex items-center gap-4 p-4 rounded-2xl bg-surface-1/30 border border-white/[0.04] hover:bg-surface-1/50 hover:border-white/[0.08] transition-all duration-200 cursor-pointer group';
+
+      const href = item.media_type === 'tv' && item.season && item.episode
+        ? `/watch/${item.media_type}/${item.tmdb_id}?season=${item.season}&episode=${item.episode}`
+        : `/watch/${item.media_type}/${item.tmdb_id}`;
+
+      const title = item.title || item.name || 'Untitled';
+      const year = (item.release_date || item.first_air_date || '').split('-')[0];
+      const progressPct = item.progress_pct || 0;
+
+      el.innerHTML = `
+        <a href="${href}" class="flex-shrink-0">
+          <div class="w-16 h-24 rounded-xl overflow-hidden bg-surface-2">
+            ${item.poster_path
+              ? `<img src="https://image.tmdb.org/t/p/w92${item.poster_path}" alt="${title}" class="w-full h-full object-cover" loading="lazy" />`
+              : `<div class="w-full h-full flex items-center justify-center text-ink-faint">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5" />
+                  </svg>
+                </div>`
+            }
+          </div>
+        </a>
+        <div class="flex-1 min-w-0">
+          <a href="${href}" class="block">
+            <h3 class="font-semibold text-ink-secondary group-hover:text-ink text-sm tracking-tight line-clamp-1 transition-colors duration-200">
+              ${title}
+            </h3>
+            <div class="flex items-center gap-2 mt-1 text-[11px] font-medium text-ink-subtle">
+              ${year ? `<span>${year}</span><span class="w-1 h-1 rounded-full bg-ink-faint"></span>` : ''}
+              <span class="uppercase tracking-wider text-[10px] font-bold text-ink-faint">
+                ${item.media_type === 'tv' ? 'TV Series' : 'Movie'}
+              </span>
+              ${item.season && item.episode ? `
+                <span class="w-1 h-1 rounded-full bg-ink-faint"></span>
+                <span class="text-[10px]">S${item.season} E${item.episode}</span>
+              ` : ''}
+            </div>
+            <div class="flex items-center gap-3 mt-2">
+              <div class="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div class="h-full bg-brand-gradient-cta rounded-full transition-all duration-300" style="width: ${Math.min(progressPct, 100)}%"></div>
+              </div>
+              <span class="text-[10px] font-bold text-ink-faint">${formatTime(item.current_time)} / ${formatTime(item.duration)}</span>
+            </div>
+          </a>
+        </div>
+        <div class="flex-shrink-0 text-right">
+          <span class="text-[10px] font-medium text-ink-faint">${formatDate(item.updated_at)}</span>
+        </div>
+      `;
+
+      list.appendChild(el);
+    });
+
+    requestAnimationFrame(() => {
+      list.classList.remove('opacity-0');
+    });
+  }
+
+  async function fetchHistory() {
+    const token = getAuthToken();
+    const authRequired = document.getElementById('auth-required');
+    const skeleton = document.getElementById('list-skeleton');
+
+    if (!token) {
+      if (skeleton) skeleton.style.display = 'none';
+      if (authRequired) authRequired.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      const response = await fetch('/user/history', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch history');
+      }
+
+      const data = await response.json();
+      historyData = {
+        movies: data.movies || [],
+        tv_shows: data.tv_shows || []
+      };
+
+      // Fetch TMDB details for each item
+      const allItems = getAllItems();
+      const detailsPromises = allItems.map(async (item) => {
+        try {
+          const details = await tmdbApi.details(item.media_type, item.tmdb_id);
+          return { ...item, ...details };
+        } catch {
+          return item;
+        }
+      });
+
+      const enrichedItems = await Promise.all(detailsPromises);
+
+      // Update history data with enriched items
+      historyData.movies = enrichedItems.filter(i => i.media_type === 'movie');
+      historyData.tv_shows = enrichedItems.filter(i => i.media_type === 'tv');
+
+      renderList();
+    } catch (e) {
+      console.error('History fetch error:', e);
+      if (skeleton) skeleton.style.display = 'none';
+    }
+  }
+
+  function setupFilters() {
+    const filters: { id: string; type: FilterType }[] = [
+      { id: 'filter-all', type: 'all' },
+      { id: 'filter-movies', type: 'movies' },
+      { id: 'filter-tv', type: 'tv' },
+    ];
+
+    filters.forEach(({ id, type }) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+
+      btn.addEventListener('click', () => {
+        currentFilter = type;
+        filters.forEach(f => {
+          const el = document.getElementById(f.id);
+          if (el) el.classList.toggle('active', f.type === type);
+        });
+        renderList();
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupFilters();
+    fetchHistory();
+  });
+</script>
