@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -117,7 +117,7 @@ async def save_progress(
         row.title = body.title or row.title
         row.poster_path = body.poster_path or row.poster_path
         row.source_server = server or row.source_server
-        row.updated_at = datetime.utcnow()
+        row.updated_at = datetime.now(timezone.utc)
     else:
         row = PlaybackHistory(
             user_id=current_user.id,

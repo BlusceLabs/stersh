@@ -15,6 +15,9 @@ from app.core.extractors.white import extract_sources_legacy
 
 logger = logging.getLogger(__name__)
 
+# Background tasks set to prevent garbage collection
+_background_tasks: set[asyncio.Task] = set()
+
 _ONETOONE_CACHE_TTL = int(os.environ.get("ONETOONE_CACHE_TTL", 15 * 60))
 _ONETOONE_STALE_TTL = int(os.environ.get("ONETOONE_STALE_TTL", 30 * 60))
 _SHORT_TOKEN_LEN = 16
@@ -153,7 +156,7 @@ async def _extract_coalesced(
         if ck in _futures:
             fut = _futures[ck]
         else:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             fut: asyncio.Future = loop.create_future()
             _futures[ck] = fut
 
@@ -172,7 +175,9 @@ async def _extract_coalesced(
                     async with _futures_lock:
                         _futures.pop(ck, None)
 
-            asyncio.get_event_loop().create_task(_run())
+            task = asyncio.create_task(_run())
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
 
     return await asyncio.shield(fut)
 
@@ -203,9 +208,11 @@ async def onetoone_source(
             stale = _is_stale(ck)
             if stale and ck not in _refreshing:
                 _refreshing.add(ck)
-                asyncio.get_event_loop().create_task(
+                task = asyncio.create_task(
                     _bg_refresh(ck, tmdbId, mediaType, season, episode)
                 )
+                _background_tasks.add(task)
+                task.add_done_callback(_background_tasks.discard)
             return {"sources": cached, "cached": True, "stale": stale, "server": "white", "master_url": _master_urls.get(ck, "")}
 
     try:
@@ -394,12 +401,16 @@ async def white_prewarm_popular(
     count = 0
     for item in movies:
         tmdb_id = item["id"]
-        asyncio.get_event_loop().create_task(_warm_and_cache(tmdb_id, "movie", 1, 1))
+        task = asyncio.create_task(_warm_and_cache(tmdb_id, "movie", 1, 1))
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
         count += 1
 
     for item in tv_shows:
         tmdb_id = item["id"]
-        asyncio.get_event_loop().create_task(_warm_and_cache(tmdb_id, "tv", 1, 1))
+        task = asyncio.create_task(_warm_and_cache(tmdb_id, "tv", 1, 1))
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
         count += 1
 
     return {
@@ -418,9 +429,11 @@ async def white_prewarm(
     season: int = Query(default=1),
     episode: int = Query(default=1),
 ) -> dict:
-    asyncio.get_event_loop().create_task(
+    task = asyncio.create_task(
         _warm_and_cache(tmdbId, mediaType, season, episode)
     )
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
     return {"status": "warming", "server": "white"}
 
 

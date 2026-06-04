@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
 from sqlalchemy import (
@@ -35,8 +35,8 @@ class User(Base):
     password_hash = Column(String(512), nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
@@ -60,8 +60,8 @@ class Movie(Base):
     vote_count = Column(Integer, default=0)
     popularity = Column(Float, default=0)
     genre_ids = Column(String(500))  # JSON-serialized list
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
 
 class TVShow(Base):
@@ -81,14 +81,15 @@ class TVShow(Base):
     number_of_seasons = Column(Integer, default=0)
     number_of_episodes = Column(Integer, default=0)
     status = Column(String(50))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
 
 class Favorite(Base):
     __tablename__ = "favorites"
     __table_args__ = (
         UniqueConstraint("user_id", "tmdb_id", "media_type", name="uq_favorite_user_item"),
+        Index("ix_favorite_user", "user_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -97,7 +98,7 @@ class Favorite(Base):
     media_type = Column(String(10), nullable=False)  # 'movie' or 'tv'
     title = Column(String(500))
     poster_path = Column(String(500))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="favorites")
 
@@ -106,6 +107,7 @@ class Watchlist(Base):
     __tablename__ = "watchlist"
     __table_args__ = (
         UniqueConstraint("user_id", "tmdb_id", "media_type", name="uq_watchlist_user_item"),
+        Index("ix_watchlist_user", "user_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -114,7 +116,7 @@ class Watchlist(Base):
     media_type = Column(String(10), nullable=False)  # 'movie' or 'tv'
     title = Column(String(500))
     poster_path = Column(String(500))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="watchlist")
 
@@ -134,8 +136,8 @@ class PlaybackHistory(Base):
     duration = Column(Float, default=0)  # seconds
     progress_pct = Column(Float, default=0)  # 0-100
     source_server = Column(String(50))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="playback_history")
 
@@ -149,6 +151,7 @@ class Rating(Base):
     __tablename__ = "ratings"
     __table_args__ = (
         UniqueConstraint("user_id", "tmdb_id", "media_type", name="uq_rating_user_item"),
+        Index("ix_rating_user", "user_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -157,14 +160,17 @@ class Rating(Base):
     media_type = Column(String(10), nullable=False)  # 'movie' or 'tv'
     rating = Column(Float, nullable=False)  # 0-10
     review = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="ratings")
 
 
 class Ad(Base):
     __tablename__ = "ads"
+    __table_args__ = (
+        Index("ix_ad_placement_active", "placement", "is_active"),
+    )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     title = Column(String(500), nullable=False)
@@ -175,8 +181,8 @@ class Ad(Base):
     is_active = Column(Boolean, default=True)
     impressions = Column(Integer, default=0)
     clicks = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     interactions = relationship("UserAdInteraction", back_populates="ad", cascade="all, delete-orphan")
 
@@ -188,7 +194,7 @@ class UserAdInteraction(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     ad_id = Column(Integer, ForeignKey("ads.id"), nullable=False)
     interaction_type = Column(String(20), nullable=False)  # 'impression', 'click'
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="ad_interactions")
     ad = relationship("Ad", back_populates="interactions")
@@ -196,6 +202,9 @@ class UserAdInteraction(Base):
 
 class AnalyticsEvent(Base):
     __tablename__ = "analytics_events"
+    __table_args__ = (
+        Index("ix_analytics_type_created", "event_type", "created_at"),
+    )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -203,7 +212,7 @@ class AnalyticsEvent(Base):
     event_data = Column(Text)  # JSON blob
     ip_address = Column(String(45))
     user_agent = Column(String(500))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="analytics_events")
 

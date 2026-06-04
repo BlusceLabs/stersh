@@ -1,7 +1,7 @@
 """User features router for favorites, watchlist, history, and ratings."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -234,7 +234,7 @@ async def add_playback_history(
         history.current_time = progress
         history.duration = total_duration or 0
         history.progress_pct = round(progress / total_duration * 100, 2) if total_duration else 0
-        history.updated_at = datetime.utcnow()
+        history.updated_at = datetime.now(timezone.utc)
     else:
         # Create new entry
         history = PlaybackHistory(
@@ -308,7 +308,7 @@ async def add_rating(
         # Update existing rating
         existing.rating = rating
         existing.review = review
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(existing)
         return {"message": "Rating updated", "rating": existing}

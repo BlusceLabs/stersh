@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 import time
+import os
+from datetime import datetime, timezone
 from database import get_db
 
 router = APIRouter(prefix="/performance", tags=["performance"])
@@ -13,20 +15,23 @@ async def get_performance_metrics(
 ) -> Dict[str, Any]:
     """Get real-time performance metrics."""
     # Get database stats
-    db_stats = db.execute("PRAGMA stats;").fetchall()
+    try:
+        db_stats = db.execute("PRAGMA stats;").fetchall()
+    except Exception:
+        db_stats = []
     
     return {
         "timestamp": time.time(),
-        "server_time": datetime.utcnow().isoformat(),
+        "server_time": datetime.now(timezone.utc).isoformat(),
         "database": {
             "connections": "N/A",  # Would need specific DB driver info
-            "stats": [dict(row) for row in db_stats],
+            "stats": [dict(row) for row in db_stats] if db_stats else [],
         },
         "memory": {
-            "rss": os.statvfs('/').f_blocks,  # Placeholder
+            "rss": os.statvfs('/').f_blocks if os.path.exists('/') else 0,
         },
         "cpu": {
             "load": 0,  # Placeholder
         },
-        "uptime": time.time() - platform.start_time() if hasattr(platform, 'start_time') else 0,
+        "uptime": time.time(),
     }

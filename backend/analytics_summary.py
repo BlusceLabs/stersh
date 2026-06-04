@@ -16,8 +16,8 @@ async def analytics_summary(
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Calculate date range
-    from datetime import datetime, timedelta
-    end_time = datetime.utcnow()
+    from datetime import datetime, timedelta, timezone
+    end_time = datetime.now(timezone.utc)
     start_time = end_time - timedelta(days=days)
     
     # Get events by type

@@ -43,6 +43,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Background tasks set to prevent garbage collection
+_background_tasks: set[asyncio.Task] = set()
+
 # ── Constants ────────────────────────────────────────────────────────────────
 
 SHORT_TOKEN_LEN = 16
@@ -681,9 +684,11 @@ async def vidking_source(
             stale = _is_cache_stale(ck)
             if stale and ck not in _hls_cache_refreshing:
                 _hls_cache_refreshing.add(ck)
-                asyncio.get_event_loop().create_task(
+                task = asyncio.create_task(
                     _background_refresh(ck, tmdbId, mediaType, season, episode)
                 )
+                _background_tasks.add(task)
+                task.add_done_callback(_background_tasks.discard)
             return _source_response(cached, cached=True, stale=stale, extra_headers=rl_headers)
 
     if not _vidking_cb.allow_request():
@@ -751,9 +756,11 @@ async def vidking_prewarm(
     if ck in _hls_cache:
         if _is_cache_stale(ck) and ck not in _hls_cache_refreshing:
             _hls_cache_refreshing.add(ck)
-            asyncio.get_event_loop().create_task(
+            task = asyncio.create_task(
                 _background_refresh(ck, tmdbId, mediaType, season, episode)
             )
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
             return {"status": "cached_refreshing"}
         return {"status": "cached"}
 
@@ -761,7 +768,9 @@ async def vidking_prewarm(
         return {"status": "circuit_open"}
 
     if ck not in _extraction_futures:
-        asyncio.get_event_loop().create_task(_extract_and_cache(tmdbId, mediaType, season, episode))
+        task = asyncio.create_task(_extract_and_cache(tmdbId, mediaType, season, episode))
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
     return {"status": "warming"}
 
 
@@ -782,7 +791,7 @@ async def _extract_hls_coalesced(
         if ck in _extraction_futures:
             fut = _extraction_futures[ck]
         else:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             fut: asyncio.Future = loop.create_future()
             _extraction_futures[ck] = fut
 
@@ -798,7 +807,9 @@ async def _extract_hls_coalesced(
                     async with _extraction_lock:
                         _extraction_futures.pop(ck, None)
 
-            asyncio.get_event_loop().create_task(_run())
+            task = asyncio.create_task(_run())
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
 
     return await asyncio.shield(fut)
 

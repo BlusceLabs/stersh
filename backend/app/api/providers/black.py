@@ -27,6 +27,9 @@ from app.core.extractors.black import extract_sources_legacy
 
 logger = logging.getLogger(__name__)
 
+# Background tasks set to prevent garbage collection
+_background_tasks: set[asyncio.Task] = set()
+
 # ── Config ─────────────────────────────────────────────────────────────────────
 
 _BLACK_CACHE_TTL = int(os.environ.get("BLACK_CACHE_TTL", 15 * 60))
@@ -211,7 +214,7 @@ async def _extract_coalesced(
         if ck in _black_futures:
             fut = _black_futures[ck]
         else:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             fut: asyncio.Future = loop.create_future()
             _black_futures[ck] = fut
 
@@ -230,7 +233,9 @@ async def _extract_coalesced(
                     async with _black_futures_lock:
                         _black_futures.pop(ck, None)
 
-            asyncio.get_event_loop().create_task(_run())
+            task = asyncio.create_task(_run())
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
 
     return await asyncio.shield(fut)
 
@@ -271,9 +276,11 @@ async def black_source(
             stale = _is_stale(ck)
             if stale and ck not in _black_refreshing:
                 _black_refreshing.add(ck)
-                asyncio.get_event_loop().create_task(
+                task = asyncio.create_task(
                     _bg_refresh(ck, tmdbId, mediaType, season, episode)
                 )
+                _background_tasks.add(task)
+                task.add_done_callback(_background_tasks.discard)
             return {"sources": cached, "cached": True, "stale": stale, "server": "black"}
 
     try:
@@ -314,15 +321,19 @@ async def black_prewarm(
     if ck in _black_cache:
         if _is_stale(ck) and ck not in _black_refreshing:
             _black_refreshing.add(ck)
-            asyncio.get_event_loop().create_task(
+            task = asyncio.create_task(
                 _bg_refresh(ck, tmdbId, mediaType, season, episode)
             )
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
             return {"status": "cached_refreshing"}
         return {"status": "cached"}
     if ck not in _black_futures:
-        asyncio.get_event_loop().create_task(
+        task = asyncio.create_task(
             _warm_and_cache(tmdbId, mediaType, season, episode)
         )
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
     return {"status": "warming"}
 
 

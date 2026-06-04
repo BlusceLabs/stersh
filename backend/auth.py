@@ -6,7 +6,7 @@ import jwt
 import hashlib
 import secrets
 import hmac
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Security
@@ -103,7 +103,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: Dict[str, Any], expires_in: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
     """Create an access token."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=expires_in)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_in)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return encoded_jwt
@@ -114,7 +114,7 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
         **data,
         "type": "refresh",
         "random": secrets.token_urlsafe(16),
-        "exp": datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     }
     return jwt.encode(refresh_data, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
