@@ -15,14 +15,14 @@
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@astrojs/node": "^8.3.1",
-    "@astrojs/svelte": "^6.0.0",
+    "@astrojs/node": "^9.5.5",
+    "@astrojs/svelte": "^7.2.5",
     "@tailwindcss/vite": "^4.3.0",
     "@watchfy/animations": "file:./packages/animations",
     "@watchfy/design-tokens": "file:./packages/design-tokens",
     "@watchfy/shared-types": "file:./packages/shared-types",
     "@watchfy/ui-primitives": "file:./packages/ui-primitives",
-    "astro": "^4.16.18",
+    "astro": "^5.18.2",
     "framer-motion": "^11.15.0",
     "hls.js": "^1.6.16",
     "svelte": "^5.2.0",
@@ -32,6 +32,6 @@
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.1",
     "svelte-check": "^4.5.0",
-    "vite": "^5.4.21"
+    "vite": "^6.4.3"
   }
 }
