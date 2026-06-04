@@ -25,6 +25,7 @@
     spoken_languages?: any[];
     budget?: number;
     revenue?: number;
+    belongs_to_collection?: { id: number; name: string; poster_path: string; backdrop_path: string } | null;
   }
 
   let data = $state<MediaDetails | null>(null);
@@ -90,6 +91,7 @@
   let companies = $derived(data?.production_companies?.slice(0, 4) || []);
   let keywordsList = $derived(data?.keywords?.keywords?.slice(0, 8) || []);
   let language = $derived(data?.spoken_languages?.[0]?.english_name || '');
+  let collection = $derived(data?.belongs_to_collection || null);
 
   $effect(() => {
     const currentId = Number(id);
@@ -444,6 +446,66 @@
                 <p class="text-[11px] text-ink-faint truncate w-full mt-0.5">{person.character || ''}</p>
               </div>
             {/each}
+          </div>
+        </div>
+      </section>
+    {/if}
+
+    <!-- ===== COLLECTION ===== -->
+    {#if collection}
+      <section class="relative z-10 border-t border-white/[0.04] bg-surface-0/90 backdrop-blur-xl">
+        <div class="px-4 sm:px-6 lg:px-8 py-12">
+          <div class="flex items-end justify-between mb-6">
+            <div>
+              <h3 class="text-lg md:text-xl font-display font-black text-ink tracking-tight">Part of the {collection.name}</h3>
+              <p class="text-xs text-ink-subtle mt-1">Explore the complete collection</p>
+            </div>
+          </div>
+          <div class="relative group/collection rounded-2xl overflow-hidden border border-white/[0.06] bg-surface-1/50">
+            {#if collection.backdrop_path}
+              <div class="aspect-video relative">
+                <img
+                  src={`https://image.tmdb.org/t/p/w780${collection.backdrop_path}`}
+                  alt={collection.name}
+                  class="w-full h-full object-cover brightness-50"
+                  loading="lazy"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-surface-0 via-transparent to-transparent"></div>
+                <div class="absolute bottom-0 left-0 right-0 p-6">
+                  <div class="flex items-center gap-4">
+                    {#if collection.poster_path}
+                      <img
+                        src={`https://image.tmdb.org/t/p/w185${collection.poster_path}`}
+                        alt={collection.name}
+                        class="w-16 h-24 rounded-xl object-cover shadow-4 border border-white/[0.06]"
+                      />
+                    {/if}
+                    <div>
+                      <h4 class="text-xl font-bold text-white">{collection.name}</h4>
+                      <a href={`/search?collection=${collection.id}`} class="text-sm text-brand-red font-bold mt-2 inline-block hover:text-brand-red/80 transition-colors">
+                        Browse Collection →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {:else}
+              <div class="p-6 flex items-center gap-4">
+                {#if collection.poster_path}
+                  <img
+                    src={`https://image.tmdb.org/t/p/w185${collection.poster_path}`}
+                    alt={collection.name}
+                    class="w-16 h-24 rounded-xl object-cover shadow-4 border border-white/[0.06]"
+                  />
+                {/if}
+                <div>
+                  <h4 class="text-lg font-bold text-ink">{collection.name}</h4>
+                  <a href={`/search?collection=${collection.id}`} class="text-sm text-brand-red font-bold mt-2 inline-block hover:text-brand-red/80 transition-colors">
+                    Browse Collection →
+                  </a>
+                </div>
+              </div>
+            {/if}
           </div>
         </div>
       </section>
