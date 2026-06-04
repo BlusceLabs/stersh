@@ -11,11 +11,7 @@ from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
-try:
-    from pydantic import ConfigDict
-except ImportError:  # Pydantic v1
-    ConfigDict = None
+from pydantic import BaseModel, ConfigDict
 
 from database import SessionLocal, User, get_db
 
@@ -61,11 +57,7 @@ class UserOut(BaseModel):
     is_admin: bool
     created_at: datetime
 
-    if ConfigDict is not None:
-        model_config = ConfigDict(from_attributes=True)
-    else:
-        class Config:
-            orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserResponse(BaseModel):
     user: UserOut
@@ -148,9 +140,7 @@ def _issue_tokens(user: User) -> UserResponse:
     )
 
 def _user_out(user: User) -> UserOut:
-    if hasattr(UserOut, "model_validate"):
-        return UserOut.model_validate(user)
-    return UserOut.from_orm(user)
+    return UserOut.model_validate(user)
 
 # Auth dependency
 async def get_current_user(
