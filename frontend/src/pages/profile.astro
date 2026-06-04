@@ -2,200 +2,105 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Profile & Settings | Watchfy">
-  <main class="min-h-screen bg-surface-0 text-ink pt-8 sm:pt-12 pb-32 lg:pb-28 select-none relative overflow-x-hidden">
-    <div class="absolute top-0 left-1/4 w-[500px] h-[350px] bg-brand-red/[0.04] rounded-full blur-[120px] pointer-events-none z-0" aria-hidden="true"></div>
-    <div class="absolute top-1/3 right-1/4 w-[400px] h-[300px] bg-brand-purple/[0.04] rounded-full blur-[140px] pointer-events-none z-0" aria-hidden="true"></div>
+<Layout title="Your account | Watchfy">
+  <main class="min-h-screen bg-base">
+    <div class="max-w-4xl mx-auto px-4 md:px-6 py-6">
+      <h1 class="text-2xl font-bold text-ink mb-6">Your account</h1>
 
-    <div class="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-
-      <header class="border-b border-white/[0.06] pb-5 mb-8">
-        <p class="text-[11px] uppercase tracking-[0.3em] font-bold text-brand-red mb-1.5">Account</p>
-        <h1 class="text-2xl sm:text-4xl font-display font-black text-ink tracking-tighter">
-          Profile & Settings
-        </h1>
-        <p class="text-sm text-ink-muted mt-1 font-medium">Manage your account and preferences.</p>
-      </header>
-
-      <!-- Profile Section -->
-      <section class="mb-10">
-        <h2 class="text-lg font-bold text-ink mb-4 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-brand-red">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-          </svg>
-          Profile
-        </h2>
-
-        <div class="surface-elevated rounded-2xl p-6 border border-white/[0.06]">
-          <div class="flex items-center gap-4 mb-6">
-            <div class="w-16 h-16 rounded-full bg-brand-gradient-cta flex items-center justify-center text-white font-bold text-xl" id="avatar">
-              ?
-            </div>
+      <section class="border-t border-white/10 py-6">
+        <h2 class="text-base font-medium text-ink mb-1">Profile</h2>
+        <div class="flex items-start gap-6 mt-4">
+          <div class="w-24 h-24 rounded-full bg-base-2 flex items-center justify-center text-2xl font-medium text-ink" id="avatar">?</div>
+          <div class="flex-1 min-w-0 space-y-3">
             <div>
-              <h3 class="text-lg font-bold text-ink" id="display-username">Guest</h3>
+              <h3 class="text-base text-ink" id="display-username">Guest</h3>
               <p class="text-sm text-ink-muted" id="display-email">Not signed in</p>
             </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-surface-2/40 rounded-xl p-4 text-center">
-              <p class="text-2xl font-bold text-ink" id="stat-favorites">0</p>
-              <p class="text-xs text-ink-muted mt-1">Favorites</p>
-            </div>
-            <div class="bg-surface-2/40 rounded-xl p-4 text-center">
-              <p class="text-2xl font-bold text-ink" id="stat-watchlist">0</p>
-              <p class="text-xs text-ink-muted mt-1">Watchlist</p>
-            </div>
-            <div class="bg-surface-2/40 rounded-xl p-4 text-center">
-              <p class="text-2xl font-bold text-ink" id="stat-history">0</p>
-              <p class="text-xs text-ink-muted mt-1">Watched</p>
+            <div class="flex flex-wrap gap-2 text-sm">
+              <span class="px-3 py-1 bg-base-2 text-ink-secondary rounded-full"><span id="stat-favorites">0</span> favorites</span>
+              <span class="px-3 py-1 bg-base-2 text-ink-secondary rounded-full"><span id="stat-watchlist">0</span> watchlist</span>
+              <span class="px-3 py-1 bg-base-2 text-ink-secondary rounded-full"><span id="stat-history">0</span> watched</span>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Edit Profile Section -->
-      <section class="mb-10">
-        <h2 class="text-lg font-bold text-ink mb-4 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-brand-red">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-          </svg>
-          Edit Profile
-        </h2>
-
-        <div class="surface-elevated rounded-2xl p-6 border border-white/[0.06]">
-          <form id="profile-form" class="space-y-4">
-            <div>
-              <label for="username" class="block text-sm font-medium text-ink-secondary mb-1.5">Username</label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                class="w-full bg-surface-2/60 border border-white/[0.06] text-ink rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red/30 focus:border-brand-red/30 transition-all"
-                placeholder="Enter username"
-              />
-            </div>
-
-            <div>
-              <label for="email" class="block text-sm font-medium text-ink-secondary mb-1.5">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                class="w-full bg-surface-2/60 border border-white/[0.06] text-ink rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red/30 focus:border-brand-red/30 transition-all"
-                placeholder="Enter email"
-              />
-            </div>
-
-            <div id="profile-message" class="hidden text-sm font-medium px-4 py-3 rounded-xl"></div>
-
-            <button
-              type="submit"
-              class="px-6 py-3 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 transition-all duration-300 text-sm uppercase tracking-wider"
-            >
-              Save Changes
-            </button>
-          </form>
-        </div>
+      <section class="border-t border-white/10 py-6">
+        <h2 class="text-base font-medium text-ink mb-4">Edit profile</h2>
+        <form id="profile-form" class="space-y-4 max-w-md">
+          <div>
+            <label for="username" class="block text-sm text-ink-secondary mb-1">Username</label>
+            <input type="text" id="username" name="username" class="w-full bg-base-2 border border-white/10 text-ink rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yt-blue" placeholder="Username" />
+          </div>
+          <div>
+            <label for="email" class="block text-sm text-ink-secondary mb-1">Email</label>
+            <input type="email" id="email" name="email" class="w-full bg-base-2 border border-white/10 text-ink rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yt-blue" placeholder="Email" />
+          </div>
+          <div id="profile-message" class="hidden text-sm"></div>
+          <div class="flex gap-2">
+            <button type="submit" class="h-9 px-5 border border-yt-blue text-yt-blue rounded-full text-sm font-medium hover:bg-yt-blue/10">Save</button>
+            <button type="button" onclick={() => { (document.getElementById('username') as HTMLInputElement).value=''; (document.getElementById('email') as HTMLInputElement).value=''; }} class="h-9 px-5 text-ink-secondary rounded-full text-sm font-medium hover:bg-base-2">Cancel</button>
+          </div>
+        </form>
       </section>
 
-      <!-- Playback Preferences Section -->
-      <section class="mb-10">
-        <h2 class="text-lg font-bold text-ink mb-4 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-brand-red">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          </svg>
-          Playback Preferences
-        </h2>
-
-        <div class="surface-elevated rounded-2xl p-6 border border-white/[0.06]">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-ink-secondary mb-1.5">Default Playback Speed</label>
-              <div class="flex flex-wrap gap-2" id="speed-options">
-                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
-                  <button
-                    type="button"
-                    data-speed={speed}
-                    class="speed-btn px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 bg-surface-2/40 border border-white/[0.06] text-ink-secondary hover:bg-surface-2/60 hover:text-ink"
-                  >
-                    {speed}x
-                  </button>
-                ))}
-              </div>
+      <section class="border-t border-white/10 py-6">
+        <h2 class="text-base font-medium text-ink mb-4">Playback preferences</h2>
+        <div class="space-y-5 max-w-md">
+          <div>
+            <label class="block text-sm text-ink-secondary mb-2">Default playback speed</label>
+            <div class="flex flex-wrap gap-2" id="speed-options">
+              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                <button type="button" data-speed={speed} class="speed-btn h-9 px-3 bg-base-2 text-ink-secondary rounded-full text-sm font-medium hover:bg-base-3">
+                  {speed}x
+                </button>
+              ))}
             </div>
-
-            <div>
-              <label class="block text-sm font-medium text-ink-secondary mb-1.5">Default Volume</label>
-              <input
-                type="range"
-                id="volume-pref"
-                min="0"
-                max="100"
-                class="w-full h-2 bg-surface-2 rounded-full appearance-none cursor-pointer accent-brand-red"
-              />
-              <div class="flex justify-between text-xs text-ink-muted mt-1">
-                <span>0%</span>
-                <span id="volume-display">100%</span>
-                <span>100%</span>
-              </div>
+          </div>
+          <div>
+            <label class="block text-sm text-ink-secondary mb-2">Default volume</label>
+            <input type="range" id="volume-pref" min="0" max="100" class="w-full h-1 bg-base-3 rounded-full appearance-none cursor-pointer accent-white" />
+            <div class="flex justify-between text-xs text-ink-muted mt-1">
+              <span>0%</span>
+              <span id="volume-display">100%</span>
+              <span>100%</span>
             </div>
-
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-medium text-ink-secondary">Start Videos Muted</label>
-              <button
-                type="button"
-                id="muted-pref"
-                class="relative w-12 h-6 rounded-full bg-surface-2/60 border border-white/[0.06] transition-all duration-200"
-              >
-                <div class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-ink-secondary transition-all duration-200 transform" id="muted-toggle"></div>
-              </button>
-            </div>
-
-            <div id="prefs-message" class="hidden text-sm font-medium px-4 py-3 rounded-xl"></div>
-
-            <button
-              type="button"
-              id="save-prefs"
-              class="px-6 py-3 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 transition-all duration-300 text-sm uppercase tracking-wider"
-            >
-              Save Preferences
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-ink-secondary">Start videos muted</span>
+            <button type="button" id="muted-pref" class="relative w-10 h-6 rounded-full bg-base-3 transition-colors duration-200">
+              <div class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200" id="muted-toggle"></div>
             </button>
           </div>
+          <div id="prefs-message" class="hidden text-sm"></div>
+          <button type="button" id="save-prefs" class="h-9 px-5 border border-yt-blue text-yt-blue rounded-full text-sm font-medium hover:bg-yt-blue/10">Save preferences</button>
         </div>
       </section>
 
-      <!-- Auth Required State -->
-      <div id="auth-required" class="hidden">
-        <div class="surface-elevated rounded-2xl p-8 text-center max-w-md mx-auto">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-2/60 border border-white/[0.06] flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-ink-subtle">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-bold text-ink mb-2">Sign in required</h3>
-          <p class="text-sm text-ink-muted mb-6">Sign in to view and edit your profile.</p>
-          <a href="/auth" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gradient-cta text-white font-bold rounded-xl hover:brightness-110 transition-all duration-300 text-sm">
-            Sign In
-          </a>
+      <div id="auth-required" class="hidden py-20 text-center">
+        <div class="w-16 h-16 rounded-full bg-base-2 mx-auto mb-4 flex items-center justify-center text-ink-muted">
+          <svg viewBox="0 0 24 24" class="w-7 h-7" fill="currentColor" aria-hidden="true">
+            <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-8 1.7-8 5v1h16v-1c0-3.3-4.7-5-8-5z" />
+          </svg>
         </div>
+        <h3 class="text-lg font-bold text-ink mb-2">Sign in required</h3>
+        <p class="text-sm text-ink-muted mb-6">Sign in to view and edit your profile.</p>
+        <a href="/signin" class="inline-flex items-center gap-2 h-9 px-5 border border-yt-blue text-yt-blue rounded-full text-sm font-medium hover:bg-yt-blue/10">Sign in</a>
       </div>
-
     </div>
   </main>
 </Layout>
 
 <script>
   function getAuthToken(): string | null {
-    return localStorage.getItem('access_token');
+    return localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
   }
 
-  function showMessage(elementId: string, text: string, type: 'success' | 'error') {
-    const el = document.getElementById(elementId);
+  function showMessage(id: string, text: string, ok: boolean) {
+    const el = document.getElementById(id);
     if (!el) return;
     el.textContent = text;
-    el.className = `text-sm font-medium px-4 py-3 rounded-xl ${type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-brand-red/10 text-brand-red border border-brand-red/20'}`;
+    el.className = `text-sm ${ok ? 'text-green-400' : 'text-yt-red'}`;
     el.classList.remove('hidden');
     setTimeout(() => el.classList.add('hidden'), 3000);
   }
@@ -203,22 +108,16 @@ import Layout from '../layouts/Layout.astro';
   async function loadProfile() {
     const token = getAuthToken();
     const authRequired = document.getElementById('auth-required');
-
     if (!token) {
-      if (authRequired) authRequired.classList.remove('hidden');
+      authRequired?.classList.remove('hidden');
       return;
     }
 
     try {
-      const response = await fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
+      const response = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
       if (!response.ok) throw new Error('Failed to load profile');
-
       const user = await response.json();
 
-      // Update display
       const avatar = document.getElementById('avatar');
       const displayUsername = document.getElementById('display-username');
       const displayEmail = document.getElementById('display-email');
@@ -231,7 +130,6 @@ import Layout from '../layouts/Layout.astro';
       if (usernameInput) usernameInput.value = user.username || '';
       if (emailInput) emailInput.value = user.email || '';
 
-      // Load stats
       loadStats(token);
     } catch (e) {
       console.error('Profile load error:', e);
@@ -245,75 +143,67 @@ import Layout from '../layouts/Layout.astro';
         fetch('/user/watchlist', { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch('/user/history', { headers: { 'Authorization': `Bearer ${token}` } }),
       ]);
-
       const favData = favRes.ok ? await favRes.json() : { total: 0 };
       const wlData = wlRes.ok ? await wlRes.json() : { total: 0 };
       const histData = histRes.ok ? await histRes.json() : { total: 0 };
-
-      const statFav = document.getElementById('stat-favorites');
-      const statWl = document.getElementById('stat-watchlist');
-      const statHist = document.getElementById('stat-history');
-
-      if (statFav) statFav.textContent = String(favData.total || 0);
-      if (statWl) statWl.textContent = String(wlData.total || 0);
-      if (statHist) statHist.textContent = String(histData.total || 0);
+      const sf = document.getElementById('stat-favorites');
+      const sw = document.getElementById('stat-watchlist');
+      const sh = document.getElementById('stat-history');
+      if (sf) sf.textContent = String(favData.total || 0);
+      if (sw) sw.textContent = String(wlData.total || 0);
+      if (sh) sh.textContent = String(histData.total || 0);
     } catch {}
   }
 
   function setupProfileForm() {
     const form = document.getElementById('profile-form');
     if (!form) return;
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const token = getAuthToken();
       if (!token) return;
-
       const usernameInput = document.getElementById('username') as HTMLInputElement;
       const emailInput = document.getElementById('email') as HTMLInputElement;
-
       try {
         const response = await fetch('/api/auth/me', {
           method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: usernameInput?.value,
-            email: emailInput?.value,
-          }),
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: usernameInput?.value, email: emailInput?.value }),
         });
-
-        if (!response.ok) throw new Error('Failed to update profile');
-
-        showMessage('profile-message', 'Profile updated successfully!', 'success');
-        loadProfile(); // Refresh
-      } catch (e) {
-        showMessage('profile-message', 'Failed to update profile', 'error');
+        if (!response.ok) throw new Error('Failed to update');
+        showMessage('profile-message', 'Profile updated', true);
+        loadProfile();
+      } catch {
+        showMessage('profile-message', 'Failed to update profile', false);
       }
     });
   }
 
+  let isMuted = false;
+
   function loadPlaybackPrefs() {
     const prefsStr = localStorage.getItem('watchfy_playback_prefs');
     const prefs = prefsStr ? JSON.parse(prefsStr) : {};
-
-    // Speed buttons
-    const speedBtns = document.querySelectorAll('.speed-btn');
     const currentSpeed = prefs.playbackRate || 1;
+    const speedBtns = document.querySelectorAll<HTMLElement>('.speed-btn');
     speedBtns.forEach(btn => {
       const speed = parseFloat(btn.getAttribute('data-speed') || '1');
-      if (speed === currentSpeed) {
-        btn.classList.add('bg-brand-red/12', 'border-brand-red/25', 'text-brand-red');
-      }
+      if (speed === currentSpeed) activateSpeed(btn);
       btn.addEventListener('click', () => {
-        speedBtns.forEach(b => b.classList.remove('bg-brand-red/12', 'border-brand-red/25', 'text-brand-red'));
-        btn.classList.add('bg-brand-red/12', 'border-brand-red/25', 'text-brand-red');
+        speedBtns.forEach(b => deactivateSpeed(b));
+        activateSpeed(btn);
       });
     });
 
-    // Volume slider
+    function activateSpeed(b: HTMLElement) {
+      b.classList.add('bg-white', 'text-base');
+      b.classList.remove('bg-base-2', 'text-ink-secondary');
+    }
+    function deactivateSpeed(b: HTMLElement) {
+      b.classList.remove('bg-white', 'text-base');
+      b.classList.add('bg-base-2', 'text-ink-secondary');
+    }
+
     const volumeSlider = document.getElementById('volume-pref') as HTMLInputElement;
     const volumeDisplay = document.getElementById('volume-display');
     if (volumeSlider) {
@@ -325,60 +215,53 @@ import Layout from '../layouts/Layout.astro';
       });
     }
 
-    // Muted toggle
     const mutedPref = document.getElementById('muted-pref');
     const mutedToggle = document.getElementById('muted-toggle');
-    let isMuted = prefs.muted || false;
+    isMuted = prefs.muted || false;
 
     function updateMutedUI() {
       if (!mutedPref || !mutedToggle) return;
       if (isMuted) {
-        mutedPref.classList.add('bg-brand-red/30', 'border-brand-red/40');
-        mutedToggle.classList.add('translate-x-6', 'bg-brand-red');
+        mutedPref.classList.add('bg-white');
+        mutedPref.classList.remove('bg-base-3');
+        (mutedToggle as HTMLElement).style.transform = 'translateX(16px)';
+        (mutedToggle as HTMLElement).classList.add('bg-yt-red');
+        (mutedToggle as HTMLElement).classList.remove('bg-white');
       } else {
-        mutedPref.classList.remove('bg-brand-red/30', 'border-brand-red/40');
-        mutedToggle.classList.remove('translate-x-6', 'bg-brand-red');
+        mutedPref.classList.remove('bg-white');
+        mutedPref.classList.add('bg-base-3');
+        (mutedToggle as HTMLElement).style.transform = 'translateX(0)';
+        (mutedToggle as HTMLElement).classList.remove('bg-yt-red');
+        (mutedToggle as HTMLElement).classList.add('bg-white');
       }
     }
-
     updateMutedUI();
-
     if (mutedPref) {
-      mutedPref.addEventListener('click', () => {
-        isMuted = !isMuted;
-        updateMutedUI();
-      });
+      mutedPref.addEventListener('click', () => { isMuted = !isMuted; updateMutedUI(); });
     }
   }
 
   function setupSavePrefs() {
     const saveBtn = document.getElementById('save-prefs');
     if (!saveBtn) return;
-
     saveBtn.addEventListener('click', () => {
-      const speedBtns = document.querySelectorAll('.speed-btn');
+      const speedBtns = document.querySelectorAll<HTMLElement>('.speed-btn');
       let selectedSpeed = 1;
       speedBtns.forEach(btn => {
-        if (btn.classList.contains('text-brand-red')) {
+        if (btn.classList.contains('bg-white')) {
           selectedSpeed = parseFloat(btn.getAttribute('data-speed') || '1');
         }
       });
-
       const volumeSlider = document.getElementById('volume-pref') as HTMLInputElement;
       const volume = volumeSlider ? parseInt(volumeSlider.value) / 100 : 1;
-
-      const prefs = {
+      localStorage.setItem('watchfy_playback_prefs', JSON.stringify({
         playbackRate: selectedSpeed,
         volume: volume,
         muted: isMuted,
-      };
-
-      localStorage.setItem('watchfy_playback_prefs', JSON.stringify(prefs));
-      showMessage('prefs-message', 'Preferences saved!', 'success');
+      }));
+      showMessage('prefs-message', 'Preferences saved', true);
     });
   }
-
-  let isMuted = false;
 
   document.addEventListener('DOMContentLoaded', () => {
     loadProfile();

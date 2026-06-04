@@ -1,0 +1,132 @@
+---
+import Layout from '../layouts/Layout.astro';
+import FilterChips from '../components/FilterChips.svelte';
+---
+
+<Layout title="Trending | Watchfy">
+  <main class="min-h-screen bg-base">
+    <div class="px-4 md:px-6 pt-2">
+      <div class="flex items-center gap-3 mb-4">
+        <h1 class="text-2xl font-bold text-ink">Trending</h1>
+        <span class="text-sm text-ink-muted">What's popular right now</span>
+      </div>
+
+      <div id="filter-bar" class="mb-6">
+        <FilterChips
+          chips={[
+            { id: 'all', label: 'All' },
+            { id: 'movies', label: 'Movies' },
+            { id: 'tv', label: 'TV Shows' },
+          ]}
+          active="all"
+          hrefBuilder={(id) => '#'}
+        />
+      </div>
+
+      <div id="trending-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6 opacity-0 transition-opacity duration-300"></div>
+
+      <div id="grid-skeleton" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
+        {Array.from({ length: 12 }).map(() => (
+          <div>
+            <div class="skeleton aspect-video rounded-xl"></div>
+            <div class="flex gap-3 mt-3">
+              <div class="skeleton w-9 h-9 rounded-full flex-shrink-0"></div>
+              <div class="flex-1 space-y-2">
+                <div class="skeleton h-3.5 rounded w-5/6"></div>
+                <div class="skeleton h-3 rounded w-3/4"></div>
+                <div class="skeleton h-3 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import { api } from '../lib/api';
+  import { createMediaCardElement } from '../lib/mediaCardFactory';
+
+  type Filter = 'all' | 'movies' | 'tv';
+  let currentFilter: Filter = 'all';
+  let abortCtl: AbortController | null = null;
+
+  function setActiveChip() {
+    const idx = ['all', 'movies', 'tv'].indexOf(currentFilter);
+    document.querySelectorAll('#filter-bar [data-active]').forEach((el, i) => {
+      el.setAttribute('data-active', i === idx ? 'true' : 'false');
+    });
+  }
+
+  async function loadTrending() {
+    const grid = document.getElementById('trending-grid');
+    const skeleton = document.getElementById('grid-skeleton');
+    if (!grid || !skeleton) return;
+
+    abortCtl?.abort();
+    abortCtl = new AbortController();
+    const signal = abortCtl.signal;
+
+    skeleton.style.display = '';
+    grid.classList.add('opacity-0');
+    grid.replaceChildren();
+
+    try {
+      const mediaTypes: ('movie' | 'tv')[] =
+        currentFilter === 'all' ? ['movie', 'tv']
+        : currentFilter === 'movies' ? ['movie']
+        : ['tv'];
+
+      const results = await Promise.all(
+        mediaTypes.map((mt) =>
+          api.get(`/api/tmdb/trending/${mt}/week`).then((data: any) =>
+            (data?.results || [])
+              .filter((it: any) => it.poster_path || it.backdrop_path)
+              .map((it: any) => ({ ...it, media_type: mt }))
+          )
+        )
+      );
+
+      if (signal.aborted) return;
+
+      const items = results.flat();
+      // Sort by TMDB's trending popularity rank (results already in order).
+      // We re-fetch the original order from each media type, then interleave
+      // by index so neither type dominates.
+      const byMedia: Record<string, any[]> = { movie: [], tv: [] };
+      items.forEach((it: any) => byMedia[it.media_type]?.push(it));
+      const interleaved: any[] = [];
+      const max = Math.max(byMedia.movie.length, byMedia.tv.length);
+      for (let i = 0; i < max; i++) {
+        if (byMedia.movie[i]) interleaved.push(byMedia.movie[i]);
+        if (byMedia.tv[i]) interleaved.push(byMedia.tv[i]);
+      }
+
+      const fragment = document.createDocumentFragment();
+      interleaved.forEach((item: any) => {
+        fragment.appendChild(createMediaCardElement(item));
+      });
+      grid.appendChild(fragment);
+
+      skeleton.style.display = 'none';
+      grid.classList.remove('opacity-0');
+    } catch (e) {
+      if ((e as any)?.name === 'AbortError') return;
+      console.error('Trending load error:', e);
+      skeleton.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadTrending();
+    document.querySelectorAll('#filter-bar [data-active]').forEach((el, i) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        currentFilter = ['all', 'movies', 'tv'][i] as Filter;
+        setActiveChip();
+        loadTrending();
+      });
+    });
+  });
+</script>

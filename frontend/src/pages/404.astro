@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Page not found | Watchfy" description="The page you're looking for doesn't exist.">
+  <main class="min-h-screen bg-base flex items-center justify-center px-4">
+    <div class="text-center max-w-md">
+      <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-base-2 flex items-center justify-center">
+        <svg viewBox="0 0 24 24" class="w-10 h-10 text-ink-muted" fill="currentColor" aria-hidden="true">
+          <path d="M3.5 9.5L12 4l8.5 5.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4.5 18.5v-9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+          <path d="M9.5 14.5l5-5M14.5 14.5l-5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-ink mb-2">Page not found</h1>
+      <p class="text-base text-ink-muted mb-6">We can't find what you're looking for. The page may have been moved or never existed.</p>
+      <div class="flex items-center justify-center gap-2">
+        <a href="/home" class="h-9 px-5 bg-white text-base font-medium rounded-full hover:bg-white/90 flex items-center">Go home</a>
+        <a href="/search" class="h-9 px-5 border border-white/10 text-ink rounded-full text-sm font-medium hover:bg-base-2 flex items-center">Search</a>
+      </div>
+    </div>
+  </main>
+</Layout>

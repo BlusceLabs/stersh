@@ -1,52 +1,47 @@
 <script lang="ts">
   /**
-   * Watchfy brand wordmark. Renders the gradient "Watchfy." treatment
-   * with a configurable size and tone (gradient | solid | mono).
+   * Watchfy brand wordmark. YouTube-style: a red play button triangle
+   * followed by the "Watchfy" wordmark in white.
    */
   let {
     size = 'md',
-    tone = 'gradient',
-    showDot = true,
   }: {
     size?: 'sm' | 'md' | 'lg' | 'xl';
-    tone?: 'gradient' | 'solid' | 'mono';
-    showDot?: boolean;
   } = $props();
 
-  const sizeMap = {
-    sm: 'text-lg',
-    md: 'text-2xl',
-    lg: 'text-3xl',
-    xl: 'text-5xl',
+  const textSizeMap = {
+    sm: 'text-[15px]',
+    md: 'text-[20px]',
+    lg: 'text-[28px]',
+    xl: 'text-[48px]',
   } as const;
 
-  const trackingMap = {
-    sm: 'tracking-tight',
-    md: 'tracking-tighter',
-    lg: 'tracking-tighter',
-    xl: 'tracking-tighter',
+  const iconSizeMap = {
+    sm: 'h-4 w-5',
+    md: 'h-5 w-7',
+    lg: 'h-7 w-10',
+    xl: 'h-12 w-16',
   } as const;
 
-  const dotSizeMap = {
-    sm: 'text-base',
-    md: 'text-lg',
-    lg: 'text-xl',
-    xl: 'text-3xl',
+  const gapMap = {
+    sm: 'gap-1.5',
+    md: 'gap-2',
+    lg: 'gap-2.5',
+    xl: 'gap-3',
   } as const;
 </script>
 
 <span
-  class="inline-flex items-baseline font-display font-black {sizeMap[size]} {trackingMap[size]}"
+  class="inline-flex items-center {gapMap[size]} font-sans select-none"
   aria-label="Watchfy"
 >
-  {#if tone === 'gradient'}
-    <span class="text-brand-gradient">Watchfy</span>
-  {:else if tone === 'mono'}
-    <span class="text-ink">Watchfy</span>
-  {:else}
-    <span class="text-ink">Watchfy</span>
-  {/if}
-  {#if showDot}
-    <span class="text-ink {dotSizeMap[size]} font-normal">.</span>
-  {/if}
+  <span class="relative inline-flex items-center justify-center {iconSizeMap[size]}" aria-hidden="true">
+    <svg viewBox="0 0 90 60" class="w-full h-full">
+      <polygon points="0,0 90,30 0,60" fill="#ff0000" />
+      <polygon points="20,12 70,30 20,48" fill="#fff" />
+    </svg>
+  </span>
+  <span class="font-sans {textSizeMap[size]} font-bold tracking-tight leading-none text-white">
+    Watchfy
+  </span>
 </span>

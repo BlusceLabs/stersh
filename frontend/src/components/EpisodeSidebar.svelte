@@ -2,7 +2,6 @@
   import EmptyState from './EmptyState.svelte';
 
   let {
-    id,
     seasons = [],
     selectedSeason = 1,
     episodes = [],
@@ -11,11 +10,10 @@
     onEpisodeClick = (_ep: number) => {},
   } = $props();
 
-  let scrollContainer: HTMLDivElement;
+  let scrollContainer: HTMLDivElement | undefined = $state();
 
   function tmdbImg(path: string, size: string = 'w185'): string {
-    if (!path) return '';
-    return `https://image.tmdb.org/t/p/${size}${path}`;
+    return path ? `https://image.tmdb.org/t/p/${size}${path}` : '';
   }
 
   function formatDuration(minutes: number | undefined | null): string {
@@ -34,118 +32,71 @@
 
   $effect(() => {
     if (!scrollContainer || episodes.length === 0) return;
-    const currentEl = scrollContainer.querySelector<HTMLButtonElement>('[data-current="true"]');
-    if (currentEl) {
-      currentEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
+    const currentEl = scrollContainer.querySelector<HTMLElement>('[data-current="true"]');
+    if (currentEl) currentEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
 </script>
 
-<div class="w-full surface-elevated rounded-2xl overflow-hidden flex flex-col max-h-[75vh] lg:max-h-[calc(100vh-2.5rem)] shadow-4">
-
-  <div class="p-4 bg-white/[0.04] border-b border-white/[0.06] flex flex-col gap-3 shrink-0">
+<div class="w-full bg-base">
+  <div class="p-3 border-b border-white/10 flex flex-col gap-3 shrink-0">
     <div class="flex items-center justify-between">
-      <div class="min-w-0">
-        <h3 class="text-base font-display font-black text-ink truncate leading-snug group/season">
-          {selectedSeason > 0 ? `Season ${selectedSeason}` : 'Episodes Feed'}
-        </h3>
-        <p class="text-xs text-ink-muted mt-0.5 font-medium flex items-center gap-1.5">
-          {episodes.length} episodes
-          {#if episodes.length > 0}
-            <span class="inline-block w-1 h-1 rounded-full bg-brand-red/40 live-dot" aria-hidden="true"></span>
-          {/if}
-        </p>
-      </div>
-
+      <h3 class="text-base font-medium text-ink">
+        {selectedSeason > 0 ? `Season ${selectedSeason}` : 'Episodes'}
+      </h3>
       {#if seasons.length > 1}
-        <div class="relative">
-          <select
-            aria-label="Select season"
-            bind:value={selected}
-            onchange={() => onSeasonChange(selected)}
-            class="appearance-none bg-white/[0.08] hover:bg-white/[0.12] text-xs font-bold px-3 py-1.5 pr-8 rounded-lg border border-white/[0.08] transition-all duration-200 cursor-pointer text-ink-secondary hover:text-ink focus:outline-none focus:ring-2 focus:ring-brand-red/30"
-          >
-            {#each seasons as s}
-              <option value={s.season_number} class="bg-surface-0 text-ink">
-                Season {s.season_number}
-              </option>
-            {/each}
-          </select>
-          <div class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-subtle transition-colors duration-200 group-hover/season:text-brand-red shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
-              <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-            </svg>
-          </div>
-        </div>
+        <select
+          aria-label="Select season"
+          bind:value={selected}
+          onchange={() => onSeasonChange(selected)}
+          class="bg-base-2 border border-white/10 text-sm text-ink rounded-full px-3 py-1.5 focus:outline-none focus:border-yt-blue"
+        >
+          {#each seasons as s}
+            <option value={s.season_number} class="bg-base">Season {s.season_number}</option>
+          {/each}
+        </select>
       {/if}
     </div>
   </div>
 
-  <div bind:this={scrollContainer} class="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1">
+  <div bind:this={scrollContainer} class="overflow-y-auto no-scrollbar p-1 space-y-1 max-h-[calc(100vh-14rem)]">
     {#if episodes.length > 0}
-      {#each episodes as ep, index (ep.episode_number)}
+      {#each episodes as ep (ep.episode_number)}
         {@const isCurrent = ep.episode_number === currentEpisode.episode && selectedSeason === currentEpisode.season}
-
         <button
           onclick={() => onEpisodeClick(ep.episode_number)}
           data-current={isCurrent ? 'true' : undefined}
-          aria-current={isCurrent ? 'true' : undefined}
-          aria-label={`Episode ${ep.episode_number}${ep.name ? `, ${ep.name}` : ''}${ep.runtime ? `, ${formatDuration(ep.runtime)}` : ''}`}
-          class="w-full flex items-center gap-3 p-2 rounded-xl transition-all duration-300 ease-exo-out text-left relative group
-            {isCurrent ? 'bg-brand-gradient-cta/10 ring-1 ring-brand-red/30' : 'hover:bg-white/[0.06]'}"
+          class="w-full flex items-start gap-3 p-2 rounded-lg text-left {isCurrent ? 'bg-base-2' : 'hover:bg-base-2'}"
         >
-
-          <div class="w-6 flex items-center justify-center shrink-0">
-            {#if isCurrent}
-              <div class="flex items-end gap-[2px] h-3 w-3 mb-0.5" aria-hidden="true">
-                <div class="bg-brand-red w-[2px] h-full rounded-sm animate-[bounce_1s_infinite_100ms]"></div>
-                <div class="bg-brand-red w-[2px] h-[60%] rounded-sm animate-[bounce_1s_infinite_300ms]"></div>
-                <div class="bg-brand-red w-[2px] h-[85%] rounded-sm animate-[bounce_1s_infinite_200ms]"></div>
-              </div>
-            {:else}
-              <span class="text-xs font-medium text-ink-subtle group-hover:hidden">{index + 1}</span>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 text-ink hidden group-hover:block transition-transform duration-300 group-hover:scale-110">
-                <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.218-2.779-1.643V5.653Z" clip-rule="evenodd" />
-              </svg>
-            {/if}
+          <div class="flex-shrink-0 w-6 text-center text-xs text-ink-muted pt-1">
+            {isCurrent ? '▶' : ep.episode_number}
           </div>
-
-          <div class="relative shrink-0 w-[112px] aspect-video rounded-lg overflow-hidden bg-surface-1 border border-white/[0.05] transition-transform duration-300 group-hover:scale-105">
+          <div class="flex-shrink-0 w-40 aspect-video rounded-md overflow-hidden bg-base-3">
             {#if ep.still_path}
-              <img src={tmdbImg(ep.still_path, 'w185')} alt={ep.name} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+              <img src={tmdbImg(ep.still_path, 'w185')} alt={ep.name} class="w-full h-full object-cover" loading="lazy" />
             {:else}
-              <div class="w-full h-full flex items-center justify-center bg-surface-1">
-                <span class="text-ink-faint text-[10px] font-bold">E{String(ep.episode_number).padStart(2, '0')}</span>
-              </div>
-            {/if}
-
-            {#if ep.runtime}
-              <div class="absolute bottom-1 right-1 bg-black/80 text-ink text-[10px] font-medium px-1 rounded-[2px] tracking-wide">
-                {formatDuration(ep.runtime)}
-              </div>
+              <div class="w-full h-full flex items-center justify-center text-ink-faint text-[10px]">E{String(ep.episode_number).padStart(2, '0')}</div>
             {/if}
           </div>
-
-          <div class="flex-1 min-w-0 pr-1">
-            <h4 class="text-sm font-bold leading-tight line-clamp-2 transition-colors
-              {isCurrent ? 'text-ink' : 'text-ink-secondary group-hover:text-ink'}"
-            >
-              {ep.name || 'Episode ' + ep.episode_number}
+          <div class="flex-1 min-w-0 py-1">
+            <h4 class="text-sm font-medium leading-tight line-clamp-2 {isCurrent ? 'text-ink' : 'text-ink'}">
+              {ep.name || `Episode ${ep.episode_number}`}
             </h4>
-            <p class="text-xs text-ink-subtle mt-1 truncate font-medium">
-              Episode {ep.episode_number} {#if isCurrent}<span class="text-brand-red"> • Now Playing</span>{/if}
+            <p class="text-xs text-ink-muted mt-1">
+              {#if ep.runtime}{formatDuration(ep.runtime)}{/if}
+              {#if ep.overview}<span class="line-clamp-2 block mt-0.5">{ep.overview}</span>{/if}
             </p>
           </div>
-
         </button>
       {/each}
     {:else}
-      <EmptyState
-        compact
-        icon="episode"
-        title="No episodes found"
-        message="Try a different season."
-      />
+      <div class="p-3">
+        <EmptyState
+          compact
+          icon="episode"
+          title="No episodes found"
+          message="Try a different season."
+        />
+      </div>
     {/if}
   </div>
 </div>

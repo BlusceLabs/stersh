@@ -56,7 +56,42 @@ export const tmdbApi = {
   
   topRated: (mediaType: 'movie' | 'tv', page: number = 1): Promise<any> =>
     api.get(`/api/tmdb/${mediaType}/top_rated?page=${page}`),
-  
+
+  /**
+   * TMDB discover — the proper way to filter by genre/year/runtime.
+   * Pass any discover param via the second arg (e.g. { with_genres: '27', sort_by: 'vote_average.desc' }).
+   * `with_genres` accepts either a comma- or pipe-separated list.
+   */
+  discover: (
+    mediaType: 'movie' | 'tv',
+    params: {
+      with_genres?: string | number | number[];
+      sort_by?: string;
+      primary_release_year?: number;
+      first_air_date_year?: number;
+      vote_count_gte?: number;
+      vote_average_gte?: number;
+      with_original_language?: string;
+      page?: number;
+    } = {},
+  ): Promise<any> => {
+    const query = new URLSearchParams();
+    if (params.with_genres !== undefined) {
+      const g = Array.isArray(params.with_genres)
+        ? params.with_genres.join('|')
+        : String(params.with_genres).replace(/,/g, '|');
+      query.set('with_genres', g);
+    }
+    if (params.sort_by)                       query.set('sort_by', params.sort_by);
+    if (params.primary_release_year)          query.set('primary_release_year', String(params.primary_release_year));
+    if (params.first_air_date_year)           query.set('first_air_date_year', String(params.first_air_date_year));
+    if (params.vote_count_gte !== undefined)  query.set('vote_count.gte', String(params.vote_count_gte));
+    if (params.vote_average_gte !== undefined) query.set('vote_average.gte', String(params.vote_average_gte));
+    if (params.with_original_language)        query.set('with_original_language', params.with_original_language);
+    query.set('page', String(params.page ?? 1));
+    return api.get(`/api/tmdb/${mediaType}/discover?${query.toString()}`);
+  },
+
   search: (query: string, mediaType: 'multi' | 'movie' | 'tv' = 'multi', page: number = 1): Promise<any> => {
     const cleanQuery = encodeURIComponent(query.trim());
     return api.get(`/api/tmdb/search/${mediaType}?query=${cleanQuery}&page=${page}`);

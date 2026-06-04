@@ -1,4 +1,6 @@
 ---
+import Header from '../components/Header.svelte';
+import Sidebar from '../components/Sidebar.svelte';
 import Navbar from '../components/Navbar.svelte';
 import '../styles/global.css';
 
@@ -12,34 +14,39 @@ const {
   description = "Discover, stream, and track your favorite movies and TV shows on Watchfy."
 } = Astro.props;
 
-const formattedTitle = title.includes('Watchfy') ? title : `${title} | Watchfy`;
+const formattedTitle = title.includes('Watchfy') ? title : `${title} - Watchfy`;
 ---
 
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth bg-surface-0">
+<html lang="en" class="bg-base">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#09090b" />
+    <meta name="theme-color" content="#0f0f0f" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{formattedTitle}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   </head>
 
-  <body class="bg-surface-0 text-ink min-h-screen flex flex-col antialiased overflow-x-hidden font-sans">
+  <body class="bg-base text-ink min-h-screen flex flex-col antialiased font-sans">
 
     <a href="#main-content" class="skip-link">Skip to content</a>
 
-    <Navbar client:load />
+    <Header client:load />
 
-    <div id="main-content" class="relative w-full flex-grow">
-      <slot />
+    <div class="flex pt-14 flex-1">
+      <Sidebar client:load />
+      <div id="main-content" class="flex-1 min-w-0 pb-16 lg:pb-0">
+        <slot />
+      </div>
     </div>
+
+    <Navbar client:load />
 
   </body>
 </html>

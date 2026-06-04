@@ -37,13 +37,14 @@
   let showTrailer = $state(false);
   let myListFlag = $state(false);
   let overviewExpanded = $state(false);
-  let logoUrl = $state('');
-  let scrollY = $state(0);
+  let userRating = $state(0);
+  let showRatingUI = $state(false);
+  let descriptionExpanded = $state(false);
 
   $effect(() => {
     (async () => {
       try {
-        const token = localStorage.getItem('watchfy_token');
+        const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
         if (token) {
           const res = await fetch(`/user/watchlist/${mediaType}/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (res.ok) { myListFlag = true; return; }
@@ -56,7 +57,7 @@
 
   async function toggleMyList() {
     const key = `watchfy:mylist:${mediaType}:${id}`;
-    const token = localStorage.getItem('watchfy_token');
+    const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
     if (token) {
       try {
         const url = `/user/watchlist/${mediaType}/${id}`;
@@ -83,32 +84,17 @@
   let backdropUrl = $derived(data?.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : '');
   let posterUrl = $derived(data?.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '');
   let votes = $derived(data?.vote_count || 0);
-  let tagline = $derived(data?.tagline || '');
-  let overviewTruncated = $derived(data?.overview && data.overview.length > 200 ? data.overview.slice(0, 200) + '…' : data?.overview || '');
-  let needsTruncation = $derived(data?.overview && data.overview.length > 200);
-  let director = $derived(data?.credits?.crew?.find((c: any) => c.job === 'Director')?.name || '');
-  let writers = $derived(data?.credits?.crew?.filter((c: any) => c.job === 'Writer' || c.job === 'Screenplay').slice(0, 3).map((c: any) => c.name) || []);
   let companies = $derived(data?.production_companies?.slice(0, 4) || []);
-  let keywordsList = $derived(data?.keywords?.keywords?.slice(0, 8) || []);
-  let language = $derived(data?.spoken_languages?.[0]?.english_name || '');
-  let collection = $derived(data?.belongs_to_collection || null);
 
   $effect(() => {
     const currentId = Number(id);
     if (!currentId) return;
-    loading = true; error = ''; data = null; selectedSeason = 1; seasonEpisodes = []; logoUrl = '';
+    loading = true; error = ''; data = null; selectedSeason = 1; seasonEpisodes = [];
     tmdbApi.details(mediaType, currentId)
       .then((res: any) => {
         data = res;
-        fetch(`/api/tmdb/${mediaType}/${currentId}/images?include_image_language=en,null`)
-          .then(r => r.json())
-          .then((imgData: any) => {
-            const logo = imgData?.logos?.[0];
-            if (logo?.file_path) logoUrl = `https://image.tmdb.org/t/p/original${logo.file_path}`;
-          })
-          .catch(() => {});
         tmdbApi.recommendations(mediaType, currentId)
-          .then((r: any) => { recommendations = (r.results || []).filter((x: any) => x.poster_path).slice(0, 12).map((x: any) => ({ ...x, media_type: x.media_type || mediaType })); })
+          .then((r: any) => { recommendations = (r.results || []).filter((x: any) => x.backdrop_path || x.poster_path).slice(0, 12).map((x: any) => ({ ...x, media_type: x.media_type || mediaType })); })
           .catch(() => {});
       })
       .catch(() => { error = 'Unable to load details.'; })
@@ -132,73 +118,22 @@
     return `/watch/movie/${id}`;
   }
 
-  function formatMoney(amount?: number): string {
-    if (!amount) return '';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
-  }
-
-  async function shareContent() {
-    const shareUrl = window.location.href;
-    const shareTitle = title || 'Check this out on Watchfy';
-
-    // Try native Web Share API first (mobile)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: `Watch ${title} on Watchfy`,
-          url: shareUrl,
-        });
-        return;
-      } catch (e) {
-        // User cancelled or share failed, fall through to clipboard
-      }
-    }
-
-    // Fallback: copy to clipboard
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      // Show a brief toast-like feedback
-      const btn = document.querySelector('[onclick="shareContent"]') as HTMLButtonElement;
-      if (btn) {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> Copied!';
-        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
-      }
-    } catch {
-      // Final fallback: open share dialog
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Watch ${title} on Watchfy`)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
-    }
-  }
-
-  // User rating state
-  let userRating = $state(0);
-  let showRatingUI = $state(false);
-
   async function loadUserRating() {
-    const token = localStorage.getItem('watchfy_token');
+    const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
     if (!token) return;
     try {
-      const res = await fetch(`/user/ratings/${mediaType}/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        userRating = data.rating || 0;
-      }
+      const res = await fetch(`/user/ratings/${mediaType}/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) { const data = await res.json(); userRating = data.rating || 0; }
     } catch {}
   }
 
   async function submitRating(rating: number) {
-    const token = localStorage.getItem('watchfy_token');
+    const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
     if (!token) return;
     try {
       await fetch(`/user/ratings/${mediaType}/${id}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating }),
       });
       userRating = rating;
@@ -206,429 +141,296 @@
     } catch {}
   }
 
-  // Load user rating on mount
-  $effect(() => {
-    if (id && mediaType) loadUserRating();
-  });
+  $effect(() => { if (id && mediaType) loadUserRating(); });
+
+  async function shareContent() {
+    const shareUrl = window.location.href;
+    const shareTitle = title || 'Check this out on Watchfy';
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: `Watch ${title} on Watchfy`, url: shareUrl });
+        return;
+      } catch {}
+    }
+    try { await navigator.clipboard.writeText(shareUrl); } catch {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Watch ${title} on Watchfy`)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+    }
+  }
 </script>
 
 <svelte:head>
-  <title>{title ? `${title} — Watchfy` : 'Loading Details...'}</title>
+  <title>{title ? `${title} - Watchfy` : 'Loading...'}</title>
 </svelte:head>
-
-<svelte:window bind:scrollY={scrollY} />
 
 {#if loading}
   <DetailSkeleton />
 {:else if error}
-  <div class="min-h-screen flex items-center justify-center bg-surface-0 px-4">
+  <div class="min-h-screen flex items-center justify-center bg-base px-4">
     <EmptyState variant="error" icon="alert" title="Something went wrong" message={error} ctaLabel="Try Again" oncTaClick={() => window.location.reload()} />
   </div>
 {:else}
-  <div class="relative min-h-screen bg-surface-0 text-ink overflow-x-hidden">
+  <div class="min-h-screen bg-base text-ink">
 
-    <!-- ===== FULL-BLEED BACKDROP WITH PARALLAX ===== -->
+    <!-- ===== BACKDROP BANNER (subtle) ===== -->
     {#if backdropUrl}
-      <div class="fixed inset-0 z-0 pointer-events-none" style="transform: translateY({scrollY * 0.3}px);">
-        <img src={backdropUrl} alt="" class="w-full h-[120%] object-cover brightness-[0.12] scale-105 motion-safe:animate-[kenburns_25s_ease-out_infinite_alternate]" />
-      </div>
-      <div class="fixed inset-0 z-0 pointer-events-none">
-        <div class="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/80 to-transparent"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-surface-0/50 via-transparent to-transparent"></div>
-        <div class="absolute inset-0 bg-radial-vignette"></div>
+      <div class="relative w-full h-[280px] md:h-[380px] overflow-hidden">
+        <img src={backdropUrl} alt="" class="w-full h-full object-cover opacity-60" loading="eager" />
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-base"></div>
       </div>
     {/if}
 
-    <!-- ===== HERO SECTION (full viewport) ===== -->
-    <section class="relative z-10 min-h-[100dvh] flex items-end">
-      <div class="w-full px-4 sm:px-6 lg:px-8 pb-16 md:pb-24">
-        <div class="flex flex-col md:flex-row gap-8 md:gap-12 items-end md:items-end">
-
-          <!-- Poster (left side, extends below fold) -->
-          <div class="hidden md:block w-[260px] lg:w-[320px] flex-shrink-0 relative group/poster self-end -mb-16">
-            <div class="aspect-[2/3] rounded-2xl overflow-hidden shadow-4 border border-white/[0.06] bg-surface-1 transition-all duration-500 group-hover/poster:border-white/15 group-hover/poster:shadow-glow-red premium-shimmer">
-              {#if posterUrl}
-                <img src={posterUrl} alt={title} class="w-full h-full object-cover select-none transition-transform duration-700 ease-exo-out group-hover/poster:scale-[1.03]" loading="eager" />
-              {:else}
-                <div class="w-full h-full flex flex-col items-center justify-center text-ink-faint gap-3 relative overflow-hidden">
-                  <div class="absolute inset-0 bg-gradient-to-br from-surface-1 via-surface-2 to-surface-0"></div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.25" stroke="currentColor" class="w-12 h-12 relative z-10 opacity-50"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" /></svg>
-                  <span class="text-xs tracking-wider uppercase opacity-50 relative z-10">No Poster</span>
-                </div>
-              {/if}
+    <div class="max-w-[1280px] mx-auto px-4 md:px-6 -mt-24 md:-mt-32 relative z-10">
+      <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+        <!-- Poster -->
+        <div class="flex-shrink-0 w-[160px] md:w-[260px] aspect-[2/3] rounded-xl overflow-hidden bg-base-2 mx-auto md:mx-0">
+          {#if posterUrl}
+            <img src={posterUrl} alt={title} class="w-full h-full object-cover" loading="eager" />
+          {:else}
+            <div class="w-full h-full flex items-center justify-center text-ink-muted">
+              <svg viewBox="0 0 24 24" class="w-12 h-12" fill="currentColor" aria-hidden="true">
+                <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4h-4z" />
+              </svg>
             </div>
-            {#if trailerKey}
-              <button
-                onclick={() => showTrailer = true}
-                class="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/0 group-hover/poster:bg-black/40 transition-all duration-500"
-                aria-label="Play trailer"
-              >
-                <div class="w-16 h-16 rounded-full bg-brand-gradient-cta/90 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-glow-red opacity-0 group-hover/poster:opacity-100 scale-75 group-hover/poster:scale-100 transition-all duration-500 ease-spring">
-                  <svg viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 text-white translate-x-[2px]"><path d="M8 5v14l11-7z"/></svg>
-                </div>
-              </button>
+          {/if}
+        </div>
+
+        <!-- Info column -->
+        <div class="flex-1 min-w-0">
+          <h1 class="text-2xl md:text-4xl font-bold text-ink leading-tight">{title}</h1>
+          {#if data?.tagline}
+            <p class="text-sm text-ink-muted italic mt-1">{data.tagline}</p>
+          {/if}
+
+          <!-- Badges row -->
+          <div class="flex flex-wrap items-center gap-2 mt-3 text-sm text-ink-secondary">
+            {#if year}<span>{year}</span>{/if}
+            {#if rating}
+              <span class="text-ink-muted">·</span>
+              <span class="text-ink">{rating} ★</span>
+              <span class="text-ink-muted">({votes.toLocaleString()})</span>
+            {/if}
+            {#if runtime}
+              <span class="text-ink-muted">·</span>
+              <span>{runtime}</span>
+            {/if}
+            {#if mediaType === 'tv' && data?.number_of_seasons}
+              <span class="text-ink-muted">·</span>
+              <span>{data.number_of_seasons} {data.number_of_seasons === 1 ? 'season' : 'seasons'}</span>
             {/if}
           </div>
 
-          <!-- Info (right side) -->
-          <div class="flex-1 min-w-0 pb-2">
-
-            <!-- Badges row -->
-            <div class="flex flex-wrap items-center gap-2 mb-4">
-              <span class="bg-brand-red/[0.12] border border-brand-red/30 text-brand-red px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-widest">
-                {mediaType === 'tv' ? 'TV Series' : 'Movie'}
-              </span>
-              {#if year}
-                <span class="glass-strong px-2.5 py-0.5 rounded-md text-ink-secondary text-[11px] font-bold">{year}</span>
-              {/if}
-              {#if runtime}
-                <span class="glass-strong px-2.5 py-0.5 rounded-md text-ink-secondary text-[11px] font-bold">{runtime}</span>
-              {/if}
-              {#if mediaType === 'tv' && data?.number_of_seasons}
-                <span class="glass-strong px-2.5 py-0.5 rounded-md text-ink-secondary text-[11px] font-bold">{data.number_of_seasons} {data.number_of_seasons === 1 ? 'Season' : 'Seasons'}</span>
-              {/if}
-              {#if rating}
-                <span class="glass-strong px-2.5 py-0.5 rounded-md flex items-center gap-1 text-accent-warm text-[11px] font-bold">
-                  <svg class="w-3 h-3 fill-accent-warm" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                  {rating}<span class="text-ink-subtle text-[10px] font-medium ml-0.5">({votes.toLocaleString()})</span>
-                </span>
-              {/if}
-            </div>
-
-            <!-- Title / Logo -->
-            {#if logoUrl}
-              <img src={logoUrl} alt={title} class="max-w-xs md:max-w-md lg:max-w-2xl h-auto max-h-[160px] object-contain mb-4 text-cinematic-lg" />
-            {:else}
-              <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-display font-black text-ink tracking-tighter leading-[0.95] text-cinematic-lg mb-2">
-                {title}
-              </h1>
-            {/if}
-
-            {#if tagline}
-              <p class="text-ink-muted text-base md:text-lg font-medium italic mb-5 opacity-80">"{tagline}"</p>
-            {/if}
-
-            <!-- Genres -->
-            <div class="flex flex-wrap items-center gap-2 mb-6">
+          <!-- Genres -->
+          {#if genres.length > 0}
+            <div class="flex flex-wrap gap-2 mt-3">
               {#each genres as genre}
-                <a href="/search?genre={genre.id}" class="text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/[0.06] bg-white/[0.02] text-ink-subtle hover:text-ink hover:bg-white/[0.06] hover:border-white/10 transition-all duration-200">
+                <a href="/search?genre={genre.id}" class="text-xs px-3 py-1 bg-base-2 text-ink-secondary rounded-full hover:bg-base-3">
                   {genre.name}
                 </a>
               {/each}
             </div>
+          {/if}
 
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap items-center gap-3 mb-8">
-              <a href={watchUrl()} class="inline-flex items-center gap-2.5 px-8 py-4 bg-brand-gradient-cta text-white text-sm font-bold rounded-xl hover:brightness-110 active:scale-95 shadow-glow-red transition-all duration-300 ease-exo-out transform hover:scale-[1.02] active:scale-[0.98]">
-                <svg class="w-5 h-5 fill-white" viewBox="0 0 20 20"><path d="M6.423 4.167A1 1 0 005 5.035v9.93a1 1 0 001.423.868l8.5-4.965a1 1 0 000-1.736l-8.5-4.965z"/></svg>
-                {mediaType === 'tv' ? `Play S1:E1` : 'Play Now'}
-              </a>
-              <button onclick={toggleMyList} class="inline-flex items-center gap-2 px-6 py-4 glass-strong text-ink-secondary hover:text-ink text-sm font-semibold rounded-xl border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.06] transition-all duration-300 ease-exo-out active:scale-95 transform hover:scale-[1.02] active:scale-[0.98]">
-                <svg xmlns="http://www.w3.org/2000/svg" fill={myListFlag ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 transition-all duration-300 {myListFlag ? 'text-brand-red' : ''}">
-                  {#if myListFlag}<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  {:else}<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />{/if}
+          <!-- Action bar -->
+          <div class="flex flex-wrap items-center gap-2 mt-5">
+            <a href={watchUrl()} class="inline-flex items-center gap-2 h-10 px-6 bg-white text-base text-sm font-medium rounded-full hover:bg-white/90">
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              {mediaType === 'tv' ? `Play S1:E1` : 'Play'}
+            </a>
+            <button
+              type="button"
+              onclick={toggleMyList}
+              class="inline-flex items-center gap-2 h-10 px-4 bg-base-2 text-ink rounded-full text-sm font-medium hover:bg-base-3"
+              aria-label="Save to My List"
+            >
+              {#if myListFlag}
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M9 16.2l-3.5-3.5L4 14.2l5 5 11-11-1.5-1.5z" />
                 </svg>
-                {myListFlag ? 'In Your List' : 'My List'}
-              </button>
-              {#if trailerKey}
-                <button onclick={() => showTrailer = true} class="inline-flex items-center gap-2 px-6 py-4 glass-strong text-ink-secondary hover:text-ink text-sm font-semibold rounded-xl border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.06] transition-all duration-300 ease-exo-out active:scale-95">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>
-                  Trailer
-                </button>
+                Saved
+              {:else}
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M12 4v16m8-8H4" stroke="currentColor" stroke-width="2" fill="none" />
+                </svg>
               {/if}
-              <button onclick={shareContent} class="inline-flex items-center gap-2 px-6 py-4 glass-strong text-ink-secondary hover:text-ink text-sm font-semibold rounded-xl border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.06] transition-all duration-300 ease-exo-out active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" /></svg>
-                Share
+            </button>
+            {#if trailerKey}
+              <button
+                type="button"
+                onclick={() => showTrailer = true}
+                class="inline-flex items-center gap-2 h-10 px-4 bg-base-2 text-ink rounded-full text-sm font-medium hover:bg-base-3"
+              >
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M4 6h16v12H4z" fill="none" stroke="currentColor" stroke-width="2" />
+                  <path d="M10 9l5 3-5 3z" />
+                </svg>
+                Trailer
               </button>
-              <div class="relative">
-                <button onclick={() => showRatingUI = !showRatingUI} class="inline-flex items-center gap-2 px-6 py-4 glass-strong text-ink-secondary hover:text-ink text-sm font-semibold rounded-xl border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.06] transition-all duration-300 ease-exo-out active:scale-95">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill={userRating > 0 ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 {userRating > 0 ? 'text-accent-warm' : ''}">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-                  </svg>
-                  {userRating > 0 ? `Rated ${userRating}/5` : 'Rate'}
-                </button>
-                {#if showRatingUI}
-                  <div class="absolute bottom-full left-0 mb-2 bg-surface-1/95 border border-white/[0.08] rounded-2xl shadow-4 p-3 flex gap-1 z-50">
-                    {#each [1, 2, 3, 4, 5] as star}
-                      <button
-                        onclick={() => submitRating(star)}
-                        class="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-white/[0.06] transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill={star <= userRating ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 {star <= userRating ? 'text-accent-warm' : 'text-ink-subtle'}">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
-                        </svg>
-                      </button>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
-            </div>
-
-            <!-- Overview -->
-            {#if data?.overview}
-              <div class="max-w-2xl mb-6">
-                <p class="text-ink-secondary text-sm md:text-base leading-relaxed">
-                  {overviewExpanded ? data.overview : overviewTruncated}
-                </p>
-                {#if needsTruncation}
-                  <button onclick={() => overviewExpanded = !overviewExpanded} class="text-brand-red text-xs font-bold mt-2 hover:text-brand-red/80 transition-colors">
-                    {overviewExpanded ? 'Show less' : 'Read more'}
-                  </button>
-                {/if}
-              </div>
             {/if}
-
-            <!-- Metadata Grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl">
-              {#if director}
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-subtle font-bold mb-1">Director</p>
-                  <p class="text-sm text-ink font-semibold">{director}</p>
-                </div>
-              {/if}
-              {#if writers.length > 0}
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-subtle font-bold mb-1">Writers</p>
-                  <p class="text-sm text-ink font-semibold">{writers.join(', ')}</p>
-                </div>
-              {/if}
-              {#if language}
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-subtle font-bold mb-1">Language</p>
-                  <p class="text-sm text-ink font-semibold">{language}</p>
-                </div>
-              {/if}
-              {#if data?.status}
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-subtle font-bold mb-1">Status</p>
-                  <p class="text-sm text-ink font-semibold">{data.status}</p>
-                </div>
-              {/if}
-              {#if data?.budget && data.budget > 0}
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-subtle font-bold mb-1">Budget</p>
-                  <p class="text-sm text-ink font-semibold">{formatMoney(data.budget)}</p>
-                </div>
-              {/if}
-              {#if data?.revenue && data.revenue > 0}
-                <div>
-                  <p class="text-[10px] uppercase tracking-widest text-ink-subtle font-bold mb-1">Revenue</p>
-                  <p class="text-sm text-ink font-semibold">{formatMoney(data.revenue)}</p>
+            <button
+              type="button"
+              onclick={shareContent}
+              class="yt-icon-btn"
+              aria-label="Share"
+              title="Share"
+            >
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                <path d="M15 8a3 3 0 1 0-2.83-4H15L12 1 9 4h.83A3 3 0 0 0 12 10a3 3 0 0 0 3-2zM4 13a3 3 0 0 1 2-2.83V13l-2 1l-1-1H4zm11 4a3 3 0 1 0-2.83 4h.83l-3-3l1-1l1 1v-.83A3 3 0 0 0 15 17zm6-4h-1l-1 1l-2-1v-2.83A3 3 0 0 1 21 13z" />
+              </svg>
+            </button>
+            <div class="relative">
+              <button
+                type="button"
+                onclick={() => showRatingUI = !showRatingUI}
+                class="yt-icon-btn"
+                aria-label="Rate"
+                title="Rate"
+              >
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill={userRating > 0 ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4l-6 4l1.5-7.5L2 9h7z" />
+                </svg>
+              </button>
+              {#if showRatingUI}
+                <div class="absolute top-full mt-2 right-0 bg-base-1 border border-white/10 rounded-lg shadow-2xl p-2 flex gap-1 z-50">
+                  {#each [1, 2, 3, 4, 5] as star}
+                    <button
+                      onclick={() => submitRating(star)}
+                      aria-label={`Rate ${star} out of 5`}
+                      class="w-8 h-8 rounded flex items-center justify-center hover:bg-base-3"
+                    >
+                      <svg viewBox="0 0 24 24" class="w-5 h-5" fill={star <= userRating ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4l-6 4l1.5-7.5L2 9h7z" />
+                      </svg>
+                    </button>
+                  {/each}
                 </div>
               {/if}
             </div>
           </div>
+
+          <!-- Description -->
+          {#if data?.overview}
+            <div class="mt-5 p-3 bg-base-2 rounded-xl text-sm text-ink leading-relaxed max-w-3xl">
+              <p class={descriptionExpanded ? '' : 'line-clamp-3'}>
+                {data.overview}
+              </p>
+              {#if data.overview.length > 200}
+                <button onclick={() => descriptionExpanded = !descriptionExpanded} class="text-ink-secondary hover:text-ink text-sm font-medium mt-1">
+                  {descriptionExpanded ? 'Show less' : '...more'}
+                </button>
+              {/if}
+            </div>
+          {/if}
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- ===== CAST SECTION ===== -->
+    <!-- ===== CAST ===== -->
     {#if cast.length > 0}
-      <section class="relative z-10 border-t border-white/[0.04] bg-surface-0/90 backdrop-blur-xl">
-        <div class="px-4 sm:px-6 lg:px-8 py-12">
-          <div class="flex items-end justify-between mb-6">
-            <div>
-              <h3 class="text-lg md:text-xl font-display font-black text-ink tracking-tight">Cast</h3>
-              <p class="text-xs text-ink-subtle mt-1">{cast.length} actors</p>
-            </div>
-          </div>
-          <div class="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scroll-x-clean select-none -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-            {#each cast as person}
-              <div class="flex-shrink-0 w-[120px] sm:w-[140px] text-center group/cast">
-                <div class="w-[120px] h-[120px] sm:w-[140px] sm:h-[140px] mx-auto rounded-2xl overflow-hidden bg-surface-1 ring-1 ring-white/[0.04] group-hover/cast:ring-brand-red/40 group-hover/cast:scale-105 transition-all duration-300 shadow-2 mb-3">
-                  {#if person.profile_path}
-                    <img src={tmdbImg(person.profile_path, 'w185')} alt={person.name} class="w-full h-full object-cover group-hover/cast:scale-110 transition-transform duration-300" loading="lazy" />
-                  {:else}
-                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-surface-1 to-surface-2 text-ink-subtle text-2xl font-bold">{person.name.charAt(0)}</div>
-                  {/if}
-                </div>
-                <p class="text-sm text-ink font-semibold leading-tight truncate w-full group-hover/cast:text-white transition-colors">{person.name}</p>
-                <p class="text-[11px] text-ink-faint truncate w-full mt-0.5">{person.character || ''}</p>
-              </div>
-            {/each}
-          </div>
-        </div>
-      </section>
-    {/if}
-
-    <!-- ===== COLLECTION ===== -->
-    {#if collection}
-      <section class="relative z-10 border-t border-white/[0.04] bg-surface-0/90 backdrop-blur-xl">
-        <div class="px-4 sm:px-6 lg:px-8 py-12">
-          <div class="flex items-end justify-between mb-6">
-            <div>
-              <h3 class="text-lg md:text-xl font-display font-black text-ink tracking-tight">Part of the {collection.name}</h3>
-              <p class="text-xs text-ink-subtle mt-1">Explore the complete collection</p>
-            </div>
-          </div>
-          <div class="relative group/collection rounded-2xl overflow-hidden border border-white/[0.06] bg-surface-1/50">
-            {#if collection.backdrop_path}
-              <div class="aspect-video relative">
-                <img
-                  src={`https://image.tmdb.org/t/p/w780${collection.backdrop_path}`}
-                  alt={collection.name}
-                  class="w-full h-full object-cover brightness-50"
-                  loading="lazy"
-                />
-                <div class="absolute inset-0 bg-gradient-to-t from-surface-0 via-transparent to-transparent"></div>
-                <div class="absolute bottom-0 left-0 right-0 p-6">
-                  <div class="flex items-center gap-4">
-                    {#if collection.poster_path}
-                      <img
-                        src={`https://image.tmdb.org/t/p/w185${collection.poster_path}`}
-                        alt={collection.name}
-                        class="w-16 h-24 rounded-xl object-cover shadow-4 border border-white/[0.06]"
-                      />
-                    {/if}
-                    <div>
-                      <h4 class="text-xl font-bold text-white">{collection.name}</h4>
-                      <a href={`/search?collection=${collection.id}`} class="text-sm text-brand-red font-bold mt-2 inline-block hover:text-brand-red/80 transition-colors">
-                        Browse Collection →
-                      </a>
-                    </div>
+      <section class="max-w-[1280px] mx-auto px-4 md:px-6 mt-10">
+        <h2 class="text-lg font-medium text-ink mb-3">Cast</h2>
+        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 md:-mx-6 md:px-6">
+          {#each cast as person}
+            <a href="/search?q={encodeURIComponent(person.name)}" class="flex-shrink-0 w-32 text-center group/cast">
+              <div class="w-32 h-32 rounded-full overflow-hidden bg-base-2 mb-2">
+                {#if person.profile_path}
+                  <img src={tmdbImg(person.profile_path, 'w185')} alt={person.name} class="w-full h-full object-cover group-hover/cast:scale-110 transition-transform duration-300" loading="lazy" />
+                {:else}
+                  <div class="w-full h-full flex items-center justify-center bg-base-3 text-ink-secondary text-2xl font-medium">
+                    {person.name.charAt(0)}
                   </div>
-                </div>
-              </div>
-            {:else}
-              <div class="p-6 flex items-center gap-4">
-                {#if collection.poster_path}
-                  <img
-                    src={`https://image.tmdb.org/t/p/w185${collection.poster_path}`}
-                    alt={collection.name}
-                    class="w-16 h-24 rounded-xl object-cover shadow-4 border border-white/[0.06]"
-                  />
                 {/if}
-                <div>
-                  <h4 class="text-lg font-bold text-ink">{collection.name}</h4>
-                  <a href={`/search?collection=${collection.id}`} class="text-sm text-brand-red font-bold mt-2 inline-block hover:text-brand-red/80 transition-colors">
-                    Browse Collection →
-                  </a>
-                </div>
               </div>
-            {/if}
-          </div>
-        </div>
-      </section>
-    {/if}
-
-    <!-- ===== KEYWORDS ===== -->
-    {#if keywordsList.length > 0}
-      <section class="relative z-10 border-t border-white/[0.04]">
-        <div class="px-4 sm:px-6 lg:px-8 py-8">
-          <h3 class="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-subtle mb-3">Keywords</h3>
-          <div class="flex flex-wrap gap-2">
-            {#each keywordsList as kw}
-              <span class="text-[11px] font-medium px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04] text-ink-subtle">{kw.name}</span>
-            {/each}
-          </div>
-        </div>
-      </section>
-    {/if}
-
-    <!-- ===== PRODUCTION COMPANIES ===== -->
-    {#if companies.length > 0}
-      <section class="relative z-10 border-t border-white/[0.04]">
-        <div class="px-4 sm:px-6 lg:px-8 py-8">
-          <h3 class="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-subtle mb-4">Production</h3>
-          <div class="flex flex-wrap gap-6 items-center">
-            {#each companies as company}
-              {#if company.logo_path}
-                <img src={tmdbImg(company.logo_path, 'w92')} alt={company.name} class="h-8 w-auto opacity-60 hover:opacity-100 transition-opacity" loading="lazy" />
-              {:else}
-                <span class="text-xs text-ink-subtle font-medium">{company.name}</span>
+              <p class="text-sm text-ink truncate group-hover/cast:text-white">{person.name}</p>
+              {#if person.character}
+                <p class="text-xs text-ink-muted truncate">{person.character}</p>
               {/if}
-            {/each}
-          </div>
+            </a>
+          {/each}
         </div>
       </section>
     {/if}
 
     <!-- ===== TV EPISODES ===== -->
     {#if mediaType === 'tv' && seasons.length > 0}
-      <section class="relative z-10 border-t border-white/[0.04] bg-surface-0/50">
-        <div class="px-4 sm:px-6 lg:px-8 py-12">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div>
-              <h2 class="text-2xl md:text-3xl font-display font-black text-ink tracking-tight">Episodes</h2>
-              <p class="text-sm text-ink-subtle mt-1">Season {selectedSeason} of {data?.number_of_seasons || seasons.length}</p>
-            </div>
-            <div class="relative min-w-[200px]">
-              <select bind:value={selectedSeason} class="appearance-none w-full glass-strong text-ink text-sm font-bold pl-4 pr-10 py-3 rounded-xl hover:border-white/10 hover:text-ink transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-red/30">
-                {#each seasons as s}
-                  <option value={s.season_number} class="bg-surface-0 text-ink-secondary">Season {s.season_number} ({s.episode_count} eps)</option>
-                {/each}
-              </select>
-              <div class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-muted">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>
+      <section class="max-w-[1280px] mx-auto px-4 md:px-6 mt-10">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-medium text-ink">Episodes</h2>
+          <select bind:value={selectedSeason} class="bg-base-2 border border-white/10 text-ink text-sm rounded-full px-3 py-1.5 focus:outline-none focus:border-yt-blue">
+            {#each seasons as s}
+              <option value={s.season_number} class="bg-base">Season {s.season_number}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {#each seasonEpisodes as ep}
+            <a
+              href={watchUrl(ep.episode_number)}
+              class="group/ep flex gap-3 p-2 rounded-xl hover:bg-base-2 transition-colors duration-100"
+            >
+              <div class="flex-shrink-0 w-44 aspect-video rounded-lg overflow-hidden bg-base-2 relative">
+                {#if ep.still_path}
+                  <img src={tmdbImg(ep.still_path, 'w300')} alt={ep.name} class="w-full h-full object-cover" loading="lazy" />
+                {:else}
+                  <div class="w-full h-full flex items-center justify-center text-ink-muted">E{String(ep.episode_number).padStart(2, '0')}</div>
+                {/if}
               </div>
-            </div>
-          </div>
-
-          {#if seasonEpisodes.length > 0}
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {#each seasonEpisodes as ep}
-                <a
-                  href={watchUrl(ep.episode_number)}
-                  class="group/ep flex gap-4 p-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-white/[0.1] transition-all duration-300"
-                >
-                  <div class="flex-shrink-0 w-36 sm:w-44 aspect-video rounded-xl overflow-hidden bg-surface-1 relative">
-                    {#if ep.still_path}
-                      <img src={tmdbImg(ep.still_path, 'w300')} alt={ep.name} class="w-full h-full object-cover transition-transform duration-500 group-hover/ep:scale-105" loading="lazy" />
-                    {:else}
-                      <div class="w-full h-full flex items-center justify-center bg-surface-0/60">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-ink-faint"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.218-2.779-1.643V5.653Z" clip-rule="evenodd" /></svg>
-                      </div>
-                    {/if}
-                    <div class="absolute inset-0 bg-black/0 group-hover/ep:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover/ep:opacity-100 backdrop-blur-[2px]">
-                      <div class="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center shadow-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white translate-x-[0.5px]"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.218-2.779-1.643V5.653Z" clip-rule="evenodd" /></svg>
-                      </div>
-                    </div>
-                    <div class="absolute bottom-2 left-2 glass-strong text-ink-secondary text-[10px] font-bold px-2 py-1 rounded tracking-wider">E{String(ep.episode_number).padStart(2, '0')}</div>
-                  </div>
-                  <div class="flex-1 min-w-0 py-1">
-                    <p class="text-sm text-ink font-semibold line-clamp-1 group-hover/ep:text-white transition-colors">{ep.name || `Episode ${ep.episode_number}`}</p>
-                    {#if ep.overview}
-                      <p class="text-xs text-ink-muted line-clamp-2 mt-1.5 leading-relaxed">{ep.overview}</p>
-                    {/if}
-                  </div>
-                </a>
-              {/each}
-            </div>
-          {:else}
-            <div class="text-center py-16 glass-strong rounded-2xl">
-              <p class="text-sm text-ink-muted font-medium">Loading episodes...</p>
-            </div>
-          {/if}
+              <div class="flex-1 min-w-0 py-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-ink-muted">{ep.episode_number}</span>
+                  <p class="text-sm font-medium text-ink line-clamp-1">{ep.name || `Episode ${ep.episode_number}`}</p>
+                </div>
+                {#if ep.overview}
+                  <p class="text-xs text-ink-muted line-clamp-2 mt-1 leading-relaxed">{ep.overview}</p>
+                {/if}
+              </div>
+            </a>
+          {/each}
         </div>
       </section>
     {/if}
 
     <!-- ===== RECOMMENDATIONS ===== -->
     {#if recommendations.length > 0}
-      <section class="relative z-10 border-t border-white/[0.04]">
-        <MediaRow title="More Like This" items={recommendations} showViewAll={false} />
+      <section class="max-w-[1280px] mx-auto px-4 md:px-6 mt-10">
+        <h2 class="text-lg font-medium text-ink mb-3">You may also like</h2>
+        <MediaRow title="" items={recommendations} showViewAll={false} />
       </section>
     {/if}
 
-    <div class="h-28"></div>
+    <!-- ===== PRODUCTION COMPANIES ===== -->
+    {#if companies.length > 0}
+      <section class="max-w-[1280px] mx-auto px-4 md:px-6 mt-10 mb-10">
+        <h3 class="text-xs uppercase tracking-widest text-ink-muted font-medium mb-3">Production</h3>
+        <div class="flex flex-wrap gap-6 items-center">
+          {#each companies as company}
+            {#if company.logo_path}
+              <img src={tmdbImg(company.logo_path, 'w92')} alt={company.name} class="h-6 w-auto opacity-60 hover:opacity-100 transition-opacity" loading="lazy" />
+            {:else}
+              <span class="text-sm text-ink-muted">{company.name}</span>
+            {/if}
+          {/each}
+        </div>
+      </section>
+    {/if}
   </div>
 {/if}
 
 {#if showTrailer && trailerKey}
-  <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
     onclick={(event) => { if (event.currentTarget === event.target) showTrailer = false; }}
     role="dialog"
     aria-modal="true"
     aria-label="Trailer"
     tabindex="-1"
-    style="animation: watchfy-rise 400ms var(--ease-exo-out) both;"
   >
-    <div class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden bg-black shadow-4 border border-white/[0.06]" role="document" style="animation: watchfy-rise 500ms var(--ease-spring) both;">
-      <button onclick={() => showTrailer = false} class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 border border-white/10 flex items-center justify-center text-ink transition-all duration-200 hover:scale-110 active:scale-95" aria-label="Close trailer">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+    <div class="relative w-full max-w-5xl aspect-video rounded-xl overflow-hidden bg-black">
+      <button onclick={() => showTrailer = false} class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center text-ink" aria-label="Close trailer">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4z" />
+        </svg>
       </button>
       <iframe src={`https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&rel=0`} class="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="Trailer"></iframe>
     </div>

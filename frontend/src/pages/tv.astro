@@ -1,80 +1,67 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import EmptyState from '../components/EmptyState.svelte';
+import FilterChips from '../components/FilterChips.svelte';
+
+const sortChips = [
+  { id: 'popular', label: 'Popular' },
+  { id: 'top_rated', label: 'Top Rated' },
+  { id: 'airing_today', label: 'Airing Today' },
+  { id: 'on_the_air', label: 'On The Air' },
+];
 ---
 
-<Layout title="Discover TV Series | Watchfy">
-  <main class="min-h-screen bg-surface-0 text-ink pt-8 sm:pt-12 pb-32 lg:pb-28 select-none relative overflow-x-hidden">
-    <div class="absolute top-0 right-1/4 w-[500px] h-[350px] bg-brand-purple/[0.04] rounded-full blur-[120px] pointer-events-none z-0" aria-hidden="true"></div>
-    <div class="absolute top-1/3 left-1/4 w-[400px] h-[300px] bg-brand-red/[0.04] rounded-full blur-[140px] pointer-events-none z-0" aria-hidden="true"></div>
+<Layout title="TV Shows" description="Browse popular, top rated, airing today, and on the air TV shows on Watchfy.">
+  <main class="min-h-screen bg-base">
+    <div class="px-4 md:px-6 pt-2">
+      <div class="flex items-center gap-3 mb-3">
+        <h1 class="text-2xl font-bold text-ink">TV Shows</h1>
+        <span class="text-sm text-ink-muted"><span id="tv-count">—</span> shows</span>
+      </div>
 
-    <div class="relative z-10 max-w-content mx-auto px-4 sm:px-6 lg:px-8">
-
-      <header class="border-b border-white/[0.06] pb-5 mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <p class="text-[11px] uppercase tracking-[0.3em] font-bold text-brand-purple mb-1.5">Series</p>
-          <h1 class="text-2xl sm:text-4xl lg:text-display-lg font-display font-black text-ink tracking-tighter">
-            TV Series
-          </h1>
-          <p class="text-xs sm:text-sm text-ink-muted mt-1 font-medium">Explore trending and classic television series.</p>
-        </div>
-
-        <div class="flex items-center gap-2.5">
-          <div class="bg-brand-red/[0.04] border border-brand-red/20 rounded-xl px-3.5 py-2 backdrop-blur-md">
-            <span class="text-[11px] font-bold text-brand-red tracking-wider uppercase flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-brand-red live-dot"></span>
-              Live Catalog
-            </span>
+      <div id="filter-bar" class="mb-6">
+        <FilterChips
+          chips={sortChips}
+          active="popular"
+          hrefBuilder={(id) => `/tv?sort=${id}`}
+        />
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+          <div class="relative">
+            <select id="genre-filter" class="appearance-none bg-base-2 border border-white/10 text-ink text-sm pl-3 pr-9 py-2 rounded-full focus:outline-none focus:border-yt-blue cursor-pointer hover:bg-base-3">
+              <option value="">All Genres</option>
+            </select>
+            <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
           </div>
-          <div class="bg-surface-1/60 border border-white/[0.06] rounded-xl px-3.5 py-2 backdrop-blur-md">
-            <span class="text-[11px] font-bold text-ink-secondary tracking-wider uppercase">
-              <span id="tv-count" class="text-ink">—</span> shows
-            </span>
+          <div class="flex items-center gap-2 ml-auto">
+            <button id="prev-page" class="flex items-center gap-1 h-9 px-4 bg-base-2 border border-white/10 text-ink text-sm rounded-full hover:bg-base-3 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+              <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor" aria-hidden="true"><path d="M15 6l-6 6 6 6V6z"/></svg>
+              Prev
+            </button>
+            <span id="page-info" class="text-sm text-ink-muted">Page 1</span>
+            <button id="next-page" class="flex items-center gap-1 h-9 px-4 bg-base-2 border border-white/10 text-ink text-sm rounded-full hover:bg-base-3 disabled:opacity-40 disabled:cursor-not-allowed">
+              Next
+              <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor" aria-hidden="true"><path d="M9 6v12l6-6-6-6z"/></svg>
+            </button>
           </div>
-        </div>
-      </header>
-
-      <div id="filter-bar" class="flex flex-wrap items-center gap-2.5 mb-8">
-        <div class="relative">
-          <select id="sort-filter" class="appearance-none bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold pl-3.5 pr-9 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/30 cursor-pointer hover:border-white/10 hover:bg-surface-2/40 transition-all duration-200">
-            <option value="popular">Popular</option>
-            <option value="top_rated">Top Rated</option>
-            <option value="airing_today">Airing Today</option>
-            <option value="on_the_air">On The Air</option>
-          </select>
-          <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-subtle pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-        </div>
-        <div class="relative">
-          <select id="genre-filter" class="appearance-none bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold pl-3.5 pr-9 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/30 cursor-pointer hover:border-white/10 hover:bg-surface-2/40 transition-all duration-200">
-            <option value="">All Genres</option>
-          </select>
-          <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-subtle pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-        </div>
-        <div class="flex items-center gap-2 ml-auto">
-          <button id="prev-page" class="px-3.5 py-2.5 bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold rounded-xl hover:bg-surface-2/60 hover:text-ink transition-all disabled:opacity-30 disabled:cursor-not-allowed transform hover:scale-[1.03] active:scale-95 disabled:hover:scale-100" disabled>
-            Prev
-          </button>
-          <span id="page-info" class="text-xs text-ink-muted font-medium px-1">Page 1</span>
-          <button id="next-page" class="px-3.5 py-2.5 bg-surface-1/60 border border-white/[0.06] text-ink-secondary text-xs font-bold rounded-xl hover:bg-surface-2/60 hover:text-ink transition-all disabled:opacity-30 disabled:cursor-not-allowed transform hover:scale-[1.03] active:scale-95 disabled:hover:scale-100">
-            Next
-          </button>
         </div>
       </div>
 
-      <div id="tv-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8 opacity-0 transition-opacity duration-500"></div>
+      <div id="tv-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6 opacity-0 transition-opacity duration-300"></div>
 
-      <div id="grid-skeleton" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
+      <div id="grid-skeleton" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-6">
         {Array.from({ length: 12 }).map((_, i) => (
-          <div class="space-y-3" style="animation-delay: {Math.min(i * 50, 300)}ms">
-            <div class="skeleton aspect-[2/3] rounded-2xl rise-in"></div>
-            <div class="space-y-2 px-1">
-              <div class="skeleton h-3.5 rounded w-5/6"></div>
-              <div class="skeleton h-2.5 rounded w-1/2"></div>
+          <div style="animation-delay: {Math.min(i * 30, 240)}ms">
+            <div class="skeleton aspect-video rounded-xl"></div>
+            <div class="flex gap-3 mt-3">
+              <div class="skeleton w-9 h-9 rounded-full flex-shrink-0"></div>
+              <div class="flex-1 space-y-2">
+                <div class="skeleton h-3.5 rounded w-5/6"></div>
+                <div class="skeleton h-3 rounded w-3/4"></div>
+                <div class="skeleton h-3 rounded w-1/2"></div>
+              </div>
             </div>
           </div>
         ))}
       </div>
-
     </div>
   </main>
 </Layout>
@@ -85,6 +72,23 @@ import EmptyState from '../components/EmptyState.svelte';
 
   let currentPage = 1;
   let totalPages = 1;
+  let currentSort = 'popular';
+
+  function setActiveChip() {
+    const params = new URLSearchParams(window.location.search);
+    currentSort = params.get('sort') || 'popular';
+    document.querySelectorAll('#filter-bar [data-active]').forEach((el) => {
+      const isActive = el.textContent.trim().toLowerCase().replace(/\s+/g, '_') === currentSort
+        || (currentSort === 'popular' && el.textContent.trim() === 'Popular');
+      el.setAttribute('data-active', isActive ? 'true' : 'false');
+    });
+  }
+
+  function syncUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('sort', currentSort);
+    window.history.replaceState({}, '', url.toString());
+  }
 
   async function loadShows() {
     const grid = document.getElementById('tv-grid');
@@ -98,16 +102,15 @@ import EmptyState from '../components/EmptyState.svelte';
     grid.classList.add('opacity-0');
     grid.replaceChildren();
 
-    const sort = (document.getElementById('sort-filter') as HTMLSelectElement)?.value || 'popular';
     const genreId = (document.getElementById('genre-filter') as HTMLSelectElement)?.value || '';
 
     try {
       let response;
-      if (sort === 'top_rated') {
+      if (currentSort === 'top_rated') {
         response = await tmdbApi.topRated('tv', currentPage);
-      } else if (sort === 'airing_today') {
+      } else if (currentSort === 'airing_today') {
         response = await fetch(`/api/tmdb/tv/airing_today?page=${currentPage}`).then(r => r.json());
-      } else if (sort === 'on_the_air') {
+      } else if (currentSort === 'on_the_air') {
         response = await fetch(`/api/tmdb/tv/on_the_air?page=${currentPage}`).then(r => r.json());
       } else {
         response = await tmdbApi.popular('tv', currentPage);
@@ -139,25 +142,15 @@ import EmptyState from '../components/EmptyState.svelte';
       skeleton.style.display = 'none';
       grid.classList.remove('opacity-0');
       grid.replaceChildren();
-      grid.innerHTML = `
-        <div class="col-span-full">
-          <div class="surface-elevated rounded-2xl p-8 text-center border-brand-red/20 max-w-md mx-auto">
-            <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand-red/[0.06] border border-brand-red/20 flex items-center justify-center text-brand-red">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-              </svg>
-            </div>
-            <h3 class="text-base font-bold text-ink mb-1">Failed to load</h3>
-            <p class="text-sm text-ink-muted">Could not fetch TV catalog.</p>
-          </div>
-        </div>
-      `;
+      const err = document.createElement('div');
+      err.className = 'col-span-full py-16 text-center text-ink-muted';
+      err.textContent = 'Could not load TV shows. Please try again.';
+      grid.appendChild(err);
     }
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  async function loadGenres() {
     const genreFilter = document.getElementById('genre-filter') as HTMLSelectElement;
-
     try {
       const res = await tmdbApi.genres('tv');
       (res.genres || []).forEach((g: any) => {
@@ -167,10 +160,26 @@ import EmptyState from '../components/EmptyState.svelte';
         genreFilter.appendChild(opt);
       });
     } catch {}
+  }
 
+  document.addEventListener('DOMContentLoaded', async () => {
+    setActiveChip();
+    await loadGenres();
     loadShows();
 
-    document.getElementById('sort-filter')?.addEventListener('change', () => { currentPage = 1; loadShows(); });
+    document.querySelectorAll('#filter-bar [data-active]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const chip = e.currentTarget as HTMLElement;
+        const label = chip.textContent.trim().toLowerCase().replace(/\s+/g, '_');
+        currentSort = label;
+        currentPage = 1;
+        syncUrl();
+        setActiveChip();
+        loadShows();
+      });
+    });
+
     document.getElementById('genre-filter')?.addEventListener('change', () => { currentPage = 1; loadShows(); });
     document.getElementById('prev-page')?.addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadShows(); } });
     document.getElementById('next-page')?.addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; loadShows(); } });

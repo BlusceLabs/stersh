@@ -2,7 +2,6 @@
   import { onDestroy, onMount } from 'svelte';
   import HLSPlayer from './HLSPlayer.svelte';
   import EpisodeSidebar from './EpisodeSidebar.svelte';
-  import EmptyState from './EmptyState.svelte';
   import { tmdbApi, api } from '../lib/api';
 
   let { media = 'movie', id = '0', server = 'white' } = $props();
@@ -195,10 +194,11 @@
   let _lastPostTs = 0;
   let _initialized = $state(false);
   let _lastKnownTime = 0;
+  let descriptionExpanded = $state(false);
 
   async function saveProgressToBackend(currentTime: number, duration: number) {
     try {
-      const token = localStorage.getItem('watchfy_token');
+      const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
       if (!token) return;
       const now = Date.now();
       if (now - _lastPostTs < 5000) return; // debounce 5s
@@ -247,7 +247,7 @@
       // First: check backend continue-watching for saved season/episode
       try {
         const hasExplicitEpisode = params.has('season') || params.has('episode');
-        const token = localStorage.getItem('watchfy_token');
+        const token = localStorage.getItem('watchfy_token') || localStorage.getItem('access_token');
         if (token) {
           const res = await fetch('/continue-watching/', {
             headers: { 'Authorization': `Bearer ${token}` },
@@ -348,19 +348,12 @@
   ];
 </script>
 
-<div class="relative min-h-screen overflow-hidden bg-surface-0 text-ink font-sans antialiased">
-  {#if backdropUrl}
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-30">
-      <img src={backdropUrl} alt="" class="h-full w-full object-cover blur-sm scale-105" />
-      <div class="absolute inset-0 bg-gradient-to-b from-surface-0/40 via-surface-0/90 to-surface-0"></div>
-      <div class="absolute inset-0 bg-gradient-to-r from-surface-0 via-transparent to-surface-0"></div>
-    </div>
-  {/if}
-
-  <div class="relative mx-auto max-w-[1800px] px-3 py-4 sm:px-5 lg:px-8 lg:py-6">
-    <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px]">
-      <section class="min-w-0 space-y-5">
-        <div class="overflow-hidden rounded-2xl border border-white/[0.06] bg-black shadow-4">
+<div class="min-h-screen bg-base text-ink font-sans antialiased">
+  <div class="max-w-[1800px] mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_402px]">
+      <section class="min-w-0 space-y-4">
+        <!-- Player -->
+        <div class="overflow-hidden rounded-xl bg-black">
           {#if _initialized}
             <HLSPlayer
               src={streamUrl}
@@ -389,121 +382,113 @@
                 saveProgressToBackend(data.currentTime, data.duration);
               }}
             />
-{:else}
-             <div class="aspect-video w-full flex flex-col items-center justify-center bg-surface-0 text-sm font-medium">
-               <div class="relative mb-4">
-                 <div class="w-12 h-12 rounded-full border-2 border-brand-red/20 border-t-brand-red animate-spin"></div>
-                 <div class="absolute inset-0 w-12 h-12 rounded-full border-2 border-purple-500/20 border-b-purple-500 animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
-               </div>
-               <span class="text-ink-secondary font-semibold tracking-wide">Preparing playback</span>
-               <span class="text-xs text-ink-muted mt-1">Loading stream from {showDetails?.title || showDetails?.name || 'Watchfy'}</span>
-             </div>
-           {/if}
+          {:else}
+            <div class="aspect-video w-full flex flex-col items-center justify-center bg-base text-sm font-medium">
+              <div class="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mb-3"></div>
+              <span class="text-ink">Loading...</span>
+            </div>
+          {/if}
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-          <div class="min-w-0">
-            <div class="mb-3 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+        <!-- Title + actions row -->
+        <div class="flex flex-col gap-3">
+          <h1 class="text-xl md:text-2xl font-bold text-ink leading-tight">
+            {watchHeading}
+          </h1>
+
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
               {#if mediaType === 'tv'}
-                <span class="rounded-md border border-brand-red/25 bg-brand-red/[0.08] px-2 py-1 text-brand-red">{epBadge}</span>
+                <a href={`/${mediaType}/${id}`} class="flex items-center gap-3 min-w-0 group">
+                  <div class="w-10 h-10 rounded-full bg-base-3 flex-shrink-0 flex items-center justify-center text-sm font-medium text-ink">
+                    {title.charAt(0).toUpperCase()}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-ink group-hover:text-white truncate">{title}</p>
+                    <p class="text-xs text-ink-muted">{epBadge} · {matchLabel}</p>
+                  </div>
+                </a>
+              {:else}
+                <div>
+                  <p class="text-sm text-ink-muted">{matchLabel} · {year || ''} {runtimeLabel ? `· ${runtimeLabel}` : ''}</p>
+                </div>
               {/if}
-              <span class="rounded-md border border-white/[0.06] bg-white/[0.04] px-2 py-1 text-ink-secondary">{matchLabel}</span>
-              {#if year}<span class="rounded-md border border-white/[0.06] bg-white/[0.04] px-2 py-1 text-ink-secondary">{year}</span>{/if}
-              {#if runtimeLabel}<span class="rounded-md border border-white/[0.06] bg-white/[0.04] px-2 py-1 text-ink-secondary">{runtimeLabel}</span>{/if}
             </div>
 
-            <h1 class="text-2xl font-display font-black tracking-tighter text-ink sm:text-3xl lg:text-4xl">
-              {watchHeading}
-            </h1>
-
-            {#if mediaType === 'tv'}
-              <a href={`/${mediaType}/${id}`} class="mt-2 inline-flex max-w-full text-sm font-semibold text-ink-muted hover:text-ink transition-colors">
-                <span class="truncate">{title}</span>
-              </a>
-            {/if}
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2 lg:justify-end">
-<div class="inline-flex rounded-xl border border-white/[0.06] bg-white/[0.04] p-1 shadow-2">
-               {#each servers as option}
-                 <button
-                   onclick={() => switchServer(option.id)}
-                   class="h-9 rounded-lg px-3 text-xs font-bold transition-all duration-200 ease-exo-out transform hover:scale-105 active:scale-95
-                     {activeServer === option.id
-                      ? 'bg-brand-gradient-cta text-white shadow-glow-red'
-                      : 'text-ink-secondary hover:bg-white/[0.08] hover:text-ink'}"
-                   aria-pressed={activeServer === option.id}
-                 >
-                   {option.label}
-                 </button>
-               {/each}
-             </div>
-
-<button onclick={shareCurrentWatch} class="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.04] px-4 text-sm font-bold text-ink-secondary transition-all duration-200 ease-exo-out hover:bg-white/[0.08] hover:border-white/10 hover:text-ink active:scale-95 transform hover:scale-105">
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4 transition-transform duration-300 group-hover/share:translate-x-0.5">
-                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314" />
-               </svg>
-               {shareCopied ? 'Copied!' : 'Share'}
-             </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="inline-flex bg-base-2 rounded-full p-0.5">
+                {#each servers as option}
+                  <button
+                    onclick={() => switchServer(option.id)}
+                    class="h-8 rounded-full px-3 text-xs font-medium transition-colors duration-100
+                      {activeServer === option.id
+                        ? 'bg-white text-base'
+                        : 'text-ink-secondary hover:text-ink'}"
+                    aria-pressed={activeServer === option.id}
+                  >
+                    {option.label}
+                  </button>
+                {/each}
+              </div>
+              <button onclick={shareCurrentWatch} class="yt-icon-btn" aria-label="Share" title="Share">
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M15 8a3 3 0 1 0-2.83-4H15L12 1 9 4h.83A3 3 0 0 0 12 10a3 3 0 0 0 3-2zM4 13a3 3 0 0 1 2-2.83V13l-2 1l-1-1H4zm11 4a3 3 0 1 0-2.83 4h.83l-3-3l1-1l1 1v-.83A3 3 0 0 0 15 17zm6-4h-1l-1 1l-2-1v-2.83A3 3 0 0 1 21 13z" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-md p-4 sm:p-5">
-          <p class="max-w-4xl text-sm leading-6 text-ink-secondary">
+        <!-- Description -->
+        <div class="p-3 bg-base-2 rounded-xl text-sm text-ink leading-relaxed">
+          <p class={descriptionExpanded ? '' : 'line-clamp-3'}>
             {currentEpisodeData?.overview || showDetails?.overview || 'No description available.'}
           </p>
+          {#if (currentEpisodeData?.overview || showDetails?.overview || '').length > 200}
+            <button onclick={() => descriptionExpanded = !descriptionExpanded} class="text-ink-secondary hover:text-ink text-sm font-medium mt-1">
+              {descriptionExpanded ? 'Show less' : '...more'}
+            </button>
+          {/if}
         </div>
       </section>
 
-      <aside class="min-w-0 xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)]">
+      <aside class="min-w-0">
         {#if mediaType === 'tv'}
-          <EpisodeSidebar
-            {id}
-            seasons={seasonsList}
-            selectedSeason={season}
-            episodes={seasonEpisodes}
-            currentEpisode={{ season, episode }}
-            onSeasonChange={(s: number) => navigateToSeason(s)}
-            onEpisodeClick={(ep: number) => navigateToEpisode(ep)}
-          />
+          <div class="bg-base-1 border border-white/10 rounded-xl overflow-hidden">
+            <EpisodeSidebar
+              seasons={seasonsList}
+              selectedSeason={season}
+              episodes={seasonEpisodes}
+              currentEpisode={{ season, episode }}
+              onSeasonChange={(s: number) => navigateToSeason(s)}
+              onEpisodeClick={(ep: number) => navigateToEpisode(ep)}
+            />
+          </div>
         {:else}
-          <div class="surface-elevated rounded-2xl p-3">
-            <div class="mb-3 flex items-center justify-between px-1">
-              <h2 class="text-sm font-black uppercase tracking-wide text-ink">Up Next</h2>
-              <a href={`/${mediaType}/${id}`} class="text-xs font-semibold text-ink-muted hover:text-ink transition-colors">Details</a>
-            </div>
+          <div>
+            <h2 class="text-base font-medium text-ink mb-3">Up next</h2>
             <div class="flex flex-col gap-2">
               {#each upnextItems as item}
-                <a href={`/movie/${item.id}`} class="group flex gap-3 rounded-xl p-2 transition-all duration-200 ease-exo-out hover:bg-white/[0.04]">
-                  <div class="relative aspect-video w-36 shrink-0 overflow-hidden rounded-lg bg-surface-1">
+                <a href={`/movie/${item.id}`} class="flex items-start gap-3 p-1 rounded-lg hover:bg-base-2">
+                  <div class="relative aspect-video w-40 shrink-0 overflow-hidden rounded-lg bg-base-2">
                     {#if item.backdrop_path || item.poster_path}
-                      <img src={tmdbImg(item.backdrop_path || item.poster_path, item.backdrop_path ? 'w300' : 'w185')} alt={item.title || item.name} class="h-full w-full object-cover transition-transform duration-300 ease-exo-out group-hover:scale-105" loading="lazy" />
+                      <img src={tmdbImg(item.backdrop_path || item.poster_path, item.backdrop_path ? 'w300' : 'w185')} alt={item.title || item.name} class="h-full w-full object-cover" loading="lazy" />
                     {/if}
-                    <div class="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-ink">
-                      {item.vote_average ? Math.round(item.vote_average * 10) + '%' : '--'}
-                    </div>
                   </div>
-                  <div class="min-w-0 flex-1 pt-0.5">
-                    <h3 class="line-clamp-2 text-sm font-bold leading-snug text-ink-secondary group-hover:text-ink transition-colors">
+                  <div class="min-w-0 flex-1 py-1">
+                    <h3 class="line-clamp-2 text-sm font-medium leading-snug text-ink">
                       {item.title || item.name}
                     </h3>
-                    <p class="mt-1 truncate text-xs font-medium text-ink-subtle">
-                      {(item.release_date || item.first_air_date || '').split('-')[0] || 'Watchfy'}
+                    <p class="mt-1 text-xs text-ink-muted">
+                      {(item.release_date || item.first_air_date || '').split('-')[0] || ''}
+                      {#if item.vote_average} · {Math.round(item.vote_average * 10)}% match{/if}
                     </p>
-                    <p class="mt-1 text-xs text-ink-muted">Recommended after this</p>
                   </div>
                 </a>
               {/each}
             </div>
             {#if upnextItems.length === 0}
-              <div class="px-1 pt-2">
-                <EmptyState
-                  compact
-                  icon="film"
-                  title="No recommendations yet"
-                  message="TMDB hasn't suggested similar titles for this one yet."
-                />
-              </div>
+              <p class="text-sm text-ink-muted py-4 text-center">No recommendations yet.</p>
             {/if}
           </div>
         {/if}

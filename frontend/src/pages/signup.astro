@@ -1,0 +1,143 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Create Account | Watchfy">
+  <main class="min-h-screen bg-base flex flex-col">
+    <div class="flex-1 flex flex-col items-center justify-center px-4 py-12">
+      <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="flex justify-center mb-8">
+          <div class="inline-flex items-center gap-2">
+            <span class="inline-block">
+              <svg viewBox="0 0 90 60" class="h-7 w-10">
+                <polygon points="0,0 90,30 0,60" fill="#ff0000" />
+                <polygon points="20,12 70,30 20,48" fill="#fff" />
+              </svg>
+            </span>
+            <span class="text-2xl font-bold text-white">Watchfy</span>
+          </div>
+        </div>
+
+        <div class="bg-base-1 border border-white/10 rounded-xl p-8">
+          <h1 class="text-2xl font-bold text-ink mb-1">Create your account</h1>
+          <p class="text-sm text-ink-muted mb-6">to continue to Watchfy</p>
+
+          <form id="signup-form" class="space-y-4">
+            <div>
+              <label for="username" class="block text-xs text-ink-secondary mb-1.5">Username</label>
+              <input
+                id="username"
+                type="text"
+                required
+                minlength="3"
+                autocomplete="username"
+                class="w-full h-11 bg-base-2 border border-white/10 text-ink rounded-md px-3 text-base focus:outline-none focus:border-yt-blue"
+              />
+            </div>
+            <div>
+              <label for="email" class="block text-xs text-ink-secondary mb-1.5">Email</label>
+              <input
+                id="email"
+                type="email"
+                required
+                autocomplete="email"
+                class="w-full h-11 bg-base-2 border border-white/10 text-ink rounded-md px-3 text-base focus:outline-none focus:border-yt-blue"
+              />
+            </div>
+            <div>
+              <label for="password" class="block text-xs text-ink-secondary mb-1.5">Password</label>
+              <input
+                id="password"
+                type="password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                class="w-full h-11 bg-base-2 border border-white/10 text-ink rounded-md px-3 text-base focus:outline-none focus:border-yt-blue"
+              />
+            </div>
+            <div>
+              <label for="confirm" class="block text-xs text-ink-secondary mb-1.5">Confirm password</label>
+              <input
+                id="confirm"
+                type="password"
+                required
+                minlength="6"
+                autocomplete="new-password"
+                class="w-full h-11 bg-base-2 border border-white/10 text-ink rounded-md px-3 text-base focus:outline-none focus:border-yt-blue"
+              />
+            </div>
+
+            <div id="error-msg" class="hidden text-sm text-yt-red bg-yt-red/10 border border-yt-red/20 rounded-md px-3 py-2"></div>
+
+            <button
+              type="submit"
+              class="w-full h-11 bg-yt-blue text-base font-medium rounded-full hover:bg-yt-blue/90 transition-colors duration-100"
+            >
+              <span id="signup-btn-text">Create account</span>
+            </button>
+          </form>
+        </div>
+
+        <p class="text-sm text-ink-muted text-center mt-6">
+          Already have an account? <a href="/signin" class="text-yt-blue hover:underline">Sign in</a>
+        </p>
+      </div>
+    </div>
+
+    <footer class="py-6 px-4 text-xs text-ink-muted flex flex-wrap items-center justify-center gap-4">
+      <span>&copy; {new Date().getFullYear()} Watchfy</span>
+    </footer>
+  </main>
+</Layout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('signup-form') as HTMLFormElement;
+    const usernameInput = document.getElementById('username') as HTMLInputElement;
+    const emailInput = document.getElementById('email') as HTMLInputElement;
+    const passwordInput = document.getElementById('password') as HTMLInputElement;
+    const confirmInput = document.getElementById('confirm') as HTMLInputElement;
+    const errorMsg = document.getElementById('error-msg') as HTMLDivElement;
+    const btnText = document.getElementById('signup-btn-text') as HTMLSpanElement;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.classList.add('hidden');
+
+      const username = usernameInput.value.trim();
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const confirm = confirmInput.value;
+
+      if (password !== confirm) {
+        errorMsg.textContent = 'Passwords do not match';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+
+      btnText.textContent = 'Creating...';
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Could not create account');
+        }
+        const data = await res.json().catch(() => ({}));
+        if (data.access_token) {
+          localStorage.setItem('watchfy_token', data.access_token);
+        }
+        window.location.href = '/signin';
+      } catch (err: any) {
+        errorMsg.textContent = err.message || 'Sign up failed';
+        errorMsg.classList.remove('hidden');
+      } finally {
+        btnText.textContent = 'Create account';
+      }
+    });
+  });
+</script>

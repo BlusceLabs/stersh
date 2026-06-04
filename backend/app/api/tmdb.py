@@ -189,6 +189,80 @@ async def get_top_rated(
     return await _tmdb_get(f"{media_type}/top_rated", {"language": language, "page": page})
 
 
+@router.get("/{media_type}/discover")
+async def discover(
+    media_type: str,
+    request: Request,
+    page: int = Query(1, ge=1, le=500),
+    language: str = Query("en-US"),
+    with_genres: str | None = Query(None, description="Pipe-separated genre IDs, e.g. '27|53'"),
+    with_original_language: str | None = Query(None),
+    with_origin_country: str | None = Query(None, description="ISO 3166-1 country code, e.g. 'KR' for Korean"),
+    primary_release_year: int | None = Query(None),
+    first_air_date_year: int | None = Query(None),
+    primary_release_date_gte: str | None = Query(None, alias="primary_release_date.gte"),
+    primary_release_date_lte: str | None = Query(None, alias="primary_release_date.lte"),
+    first_air_date_gte: str | None = Query(None, alias="first_air_date.gte"),
+    first_air_date_lte: str | None = Query(None, alias="first_air_date.lte"),
+    sort_by: str = Query("popularity.desc"),
+    vote_count_gte: float | None = Query(None, alias="vote_count.gte"),
+    vote_average_gte: float | None = Query(None, alias="vote_average.gte"),
+    vote_average_lte: float | None = Query(None, alias="vote_average.lte"),
+    with_runtime_gte: int | None = Query(None, alias="with_runtime.gte"),
+    with_runtime_lte: int | None = Query(None, alias="with_runtime.lte"),
+    with_status: int | None = Query(None, description="TV: 0=Returning, 1=Planned, 2=In Production, 3=Ended, 4=Cancelled, 5=Pilot"),
+) -> Any:
+    """
+    TMDB discover endpoint — the proper way to filter by genre, year, runtime, country, etc.
+
+    Example: GET /api/tmdb/tv/discover?with_genres=18&with_origin_country=KR
+
+    Any extra query parameters (e.g. certification_country, with_cast, region) are
+    forwarded upstream as-is so the endpoint stays forward-compatible with the
+    full TMDB discover spec.
+    """
+    if media_type not in ("movie", "tv"):
+        raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
+
+    params: dict[str, Any] = {
+        "language":   language,
+        "page":       page,
+        "sort_by":    sort_by,
+    }
+    if with_genres:                    params["with_genres"] = with_genres
+    if with_original_language:         params["with_original_language"] = with_original_language
+    if with_origin_country:            params["with_origin_country"] = with_origin_country
+    if primary_release_year:           params["primary_release_year"] = primary_release_year
+    if first_air_date_year:            params["first_air_date_year"] = first_air_date_year
+    if primary_release_date_gte:       params["primary_release_date.gte"] = primary_release_date_gte
+    if primary_release_date_lte:       params["primary_release_date.lte"] = primary_release_date_lte
+    if first_air_date_gte:             params["first_air_date.gte"] = first_air_date_gte
+    if first_air_date_lte:             params["first_air_date.lte"] = first_air_date_lte
+    if vote_count_gte is not None:     params["vote_count.gte"] = vote_count_gte
+    if vote_average_gte is not None:   params["vote_average.gte"] = vote_average_gte
+    if vote_average_lte is not None:   params["vote_average.lte"] = vote_average_lte
+    if with_runtime_gte is not None:   params["with_runtime.gte"] = with_runtime_gte
+    if with_runtime_lte is not None:   params["with_runtime.lte"] = with_runtime_lte
+    if with_status is not None:        params["with_status"] = with_status
+
+    # Forward any extra discover params the caller supplied (certification,
+    # with_cast, region, etc.) — let the TMDB API validate them.
+    reserved = {
+        "language", "page", "sort_by", "with_genres", "with_original_language",
+        "with_origin_country",
+        "primary_release_year", "first_air_date_year",
+        "primary_release_date.gte", "primary_release_date.lte",
+        "first_air_date.gte", "first_air_date.lte",
+        "vote_count.gte", "vote_average.gte", "vote_average.lte",
+        "with_runtime.gte", "with_runtime.lte", "with_status",
+    }
+    for k, v in request.query_params.items():
+        if k not in reserved and k != "api_key":
+            params[k] = v
+
+    return await _tmdb_get(f"discover/{media_type}", params)
+
+
 @router.get("/{media_type}/trending/{time_window}")
 async def get_trending(
     media_type: str,

@@ -1,7 +1,6 @@
 <script lang="ts">
   /**
-   * Branded empty/error state with optional call-to-action.
-   * Replaces ad-hoc inline "no data" messages scattered across pages.
+   * YouTube-style empty/error state.
    */
   let {
     title = 'Nothing here yet',
@@ -23,67 +22,60 @@
     compact?: boolean;
   } = $props();
 
-  const tone = $derived(
+  const iconColor = $derived(
     {
-      empty: { ring: 'border-white/10', bg: 'bg-surface-1/40', text: 'text-ink-muted' },
-      error: { ring: 'border-brand-red/20', bg: 'bg-brand-red/[0.04]', text: 'text-brand-red' },
-      info: { ring: 'border-brand-cyan/20', bg: 'bg-brand-cyan/[0.04]', text: 'text-brand-cyan' },
-      loading: { ring: 'border-white/10', bg: 'bg-surface-1/40', text: 'text-ink-muted' },
+      empty: 'text-ink-muted',
+      error: 'text-yt-red',
+      info: 'text-ink-muted',
+      loading: 'text-ink-muted',
     }[variant]
   );
-
-  const padding = $derived(compact ? 'p-4 sm:p-5' : 'p-8 sm:p-10');
-  const iconSize = $derived(compact ? 'w-10 h-10 mb-3' : 'w-14 h-14 mb-5');
-  const iconInner = $derived(compact ? 'w-5 h-5' : 'w-6 h-6');
 </script>
 
 <div
-  class="rounded-2xl {padding} text-center {tone.ring} {compact ? 'bg-transparent border' : 'surface-elevated'}"
+  class="text-center {compact ? 'py-6' : 'py-16'}"
   role={variant === 'error' ? 'alert' : 'status'}
   aria-live={variant === 'error' ? 'assertive' : 'polite'}
 >
-  <div
-    class="{iconSize} mx-auto rounded-2xl {tone.bg} border {tone.ring} flex items-center justify-center {tone.text}"
-    aria-hidden="true"
-  >
+  <div class="{compact ? 'w-12 h-12 mb-3' : 'w-16 h-16 mb-4'} mx-auto rounded-full bg-base-2 flex items-center justify-center {iconColor}">
     {#if icon === 'film'}
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class={iconInner}>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5M12 14.625v-1.5" />
+      <svg viewBox="0 0 24 24" class="{compact ? 'w-5 h-5' : 'w-7 h-7'}" fill="currentColor" aria-hidden="true">
+        <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4h-4z" />
       </svg>
     {:else if icon === 'search'}
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class={iconInner}>
-        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" />
+      <svg viewBox="0 0 24 24" class="{compact ? 'w-5 h-5' : 'w-7 h-7'}" fill="currentColor" aria-hidden="true">
+        <path d="M10 4a6 6 0 1 0 3.815 10.65L18 18.835 19.415 17.42l-4.185-4.185A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
       </svg>
     {:else if icon === 'list'}
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class={iconInner}>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M8.242 5.992h6m-6 4.998h6m-6 4.999h6M4.243 5.992h.007m-.007 4.998h.007m-.007 4.999h.007" />
+      <svg viewBox="0 0 24 24" class="{compact ? 'w-5 h-5' : 'w-7 h-7'}" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
       </svg>
     {:else if icon === 'episode'}
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class={iconInner}>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h16.5v3.75H3.75V4.5Zm0 5.25h16.5v3.75H3.75V9.75Zm0 5.25h16.5v3.75H3.75V15Z" />
+      <svg viewBox="0 0 24 24" class="{compact ? 'w-5 h-5' : 'w-7 h-7'}" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M3 12h18M3 18h18" />
       </svg>
     {:else if icon === 'alert'}
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class={iconInner}>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+      <svg viewBox="0 0 24 24" class="{compact ? 'w-5 h-5' : 'w-7 h-7'}" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
       </svg>
     {:else}
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class={iconInner}>
-        <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.218-2.779-1.643V5.653Z" clip-rule="evenodd" />
+      <svg viewBox="0 0 24 24" class="{compact ? 'w-5 h-5' : 'w-7 h-7'}" fill="currentColor" aria-hidden="true">
+        <path d="M8 5v14l11-7z" />
       </svg>
     {/if}
   </div>
 
-  <h3 class="text-base sm:text-lg font-bold text-ink mb-1.5 tracking-tight">{title}</h3>
+  <h3 class="text-{compact ? 'base' : 'lg'} font-bold text-ink mb-1">{title}</h3>
   {#if message}
-    <p class="text-sm text-ink-muted max-w-md mx-auto leading-relaxed">{message}</p>
+    <p class="text-sm text-ink-muted max-w-md mx-auto">{message}</p>
   {/if}
 
   {#if ctaLabel}
-    <div class="mt-6">
+    <div class="mt-4">
       {#if ctaHref}
         <a
           href={ctaHref}
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gradient-cta text-white text-sm font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all duration-200 shadow-glow-red"
+          class="inline-flex items-center gap-2 h-9 px-5 border border-yt-blue text-yt-blue rounded-full text-sm font-medium hover:bg-yt-blue/10"
         >
           {ctaLabel}
         </a>
@@ -91,7 +83,7 @@
         <button
           type="button"
           onclick={oncTaClick}
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-gradient-cta text-white text-sm font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all duration-200 shadow-glow-red"
+          class="inline-flex items-center gap-2 h-9 px-5 border border-yt-blue text-yt-blue rounded-full text-sm font-medium hover:bg-yt-blue/10"
         >
           {ctaLabel}
         </button>

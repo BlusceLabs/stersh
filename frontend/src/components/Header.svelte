@@ -3,38 +3,33 @@
   import BrandLogo from './BrandLogo.svelte';
 
   let currentPath = $state('/');
-  let scrolled = $state(false);
-  let searchOpen = $state(false);
   let searchQuery = $state('');
   let searchResults: any[] = $state([]);
   let searchLoading = $state(false);
   let searchAbort: AbortController | null = null;
-
-  const navItems = [
-    { href: '/home', label: 'Home' },
-    { href: '/movies', label: 'Movies' },
-    { href: '/tv', label: 'TV Shows' },
-  ];
-
-  function checkActiveStatus(href: string, current: string): boolean {
-    if (href === '/') return current === '/';
-    return current.startsWith(href);
-  }
+  let searchInputEl: HTMLInputElement | undefined = $state();
+  let mobileSearchOpen = $state(false);
+  let userMenuOpen = $state(false);
+  let isAuthenticated = $state(false);
+  let userName = $state('');
+  let userAvatar = $state<string | null>(null);
 
   let debounceTimer: ReturnType<typeof setTimeout>;
+
+  function dispatchToggleSidebar() {
+    window.dispatchEvent(new CustomEvent('watchfy:toggle-sidebar'));
+  }
 
   async function handleSearch() {
     const q = searchQuery.trim();
     if (!q) { searchResults = []; return; }
-
     if (searchAbort) searchAbort.abort();
     searchAbort = new AbortController();
-
     searchLoading = true;
     try {
       const res = await fetch(`/api/tmdb/search/multi?query=${encodeURIComponent(q)}&page=1`, { signal: searchAbort.signal });
       const data = await res.json();
-      searchResults = (data?.results || []).filter((r: any) => r.backdrop_path || r.poster_path).slice(0, 6);
+      searchResults = (data?.results || []).filter((r: any) => r.backdrop_path || r.poster_path).slice(0, 8);
     } catch { searchResults = []; }
     searchLoading = false;
   }
@@ -44,16 +39,26 @@
     debounceTimer = setTimeout(handleSearch, 280);
   }
 
-  function openSearch() {
-    searchOpen = true;
-    setTimeout(() => document.getElementById('header-search-input')?.focus(), 80);
+  function onSearchSubmit(e: Event) {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    window.location.href = `/search?q=${encodeURIComponent(q)}`;
   }
 
-  function closeSearch() {
-    searchOpen = false;
+  function openMobileSearch() {
+    mobileSearchOpen = true;
+    setTimeout(() => searchInputEl?.focus(), 50);
+  }
+
+  function closeMobileSearch() {
+    mobileSearchOpen = false;
+  }
+
+  function clearSearch() {
     searchQuery = '';
     searchResults = [];
-    searchLoading = false;
+    searchInputEl?.focus();
   }
 
   function getResultHref(r: any) {
@@ -65,202 +70,392 @@
     return r.title || r.name || 'Untitled';
   }
 
+  function getResultMeta(r: any) {
+    const parts: string[] = [];
+    if (r.media_type === 'tv') parts.push('TV');
+    const year = (r.release_date || r.first_air_date || '').slice(0, 4);
+    if (year) parts.push(year);
+    return parts.join(' · ');
+  }
+
+  function onDocClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-user-menu]') && !target.closest('[data-user-button]')) {
+      userMenuOpen = false;
+    }
+  }
+
+  function signOut() {
+    localStorage.removeItem('watchfy_token');
+    localStorage.removeItem('watchfy_user');
+    isAuthenticated = false;
+    userMenuOpen = false;
+    window.location.href = '/';
+  }
+
+  function loadAuth() {
+    try {
+      const token = localStorage.getItem('watchfy_token');
+      isAuthenticated = !!token;
+      const userRaw = localStorage.getItem('watchfy_user');
+      if (userRaw) {
+        const user = JSON.parse(userRaw);
+        userName = user.username || user.name || 'You';
+        userAvatar = user.avatar || user.profile_path
+          ? `https://image.tmdb.org/t/p/w185${user.profile_path}`
+          : null;
+      }
+    } catch { isAuthenticated = false; }
+  }
+
   onMount(() => {
     currentPath = window.location.pathname;
-
     const sync = () => { currentPath = window.location.pathname; };
-    const onScroll = () => { scrolled = window.scrollY > 8; };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileSearchOpen) closeMobileSearch();
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (window.innerWidth < 1024) openMobileSearch();
+        else searchInputEl?.focus();
+      }
+      if (e.key === '/' && document.activeElement === document.body) {
+        e.preventDefault();
+        searchInputEl?.focus();
+      }
+    };
 
     window.addEventListener('popstate', sync);
     document.addEventListener('astro:page-load', sync);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && searchOpen) closeSearch();
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
-    };
     document.addEventListener('keydown', onKey);
+    document.addEventListener('click', onDocClick);
+    loadAuth();
+    document.addEventListener('astro:page-load', loadAuth);
 
     return () => {
       window.removeEventListener('popstate', sync);
       document.removeEventListener('astro:page-load', sync);
-      window.removeEventListener('scroll', onScroll);
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('click', onDocClick);
     };
   });
 </script>
 
-{#if searchOpen}
-  <div
-    class="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm transition-opacity duration-300"
-    onclick={closeSearch}
-    onkeydown={(e) => e.key === 'Escape' && closeSearch()}
-    role="presentation"
-  ></div>
-{/if}
-
 <header
-  class="fixed top-0 left-0 right-0 z-nav transition-all duration-500 ease-exo-out
-    {scrolled ? 'glass-strong shadow-2' : 'bg-gradient-to-b from-black/60 to-transparent'}
-    hidden lg:block"
-  aria-label="Site header"
+  class="fixed top-0 left-0 right-0 z-nav h-14 bg-base border-b border-white/10"
+  aria-label="Top navigation"
 >
-  <div class="max-w-content mx-auto h-16 px-6 xl:px-10 flex items-center justify-between gap-8">
+  <div class="flex items-center h-full pl-4 pr-4 lg:pr-6 gap-4">
 
-    <a
-      href="/"
-      class="flex items-center gap-2 transition-all duration-500 ease-exo-out hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none rounded-md group"
-      aria-label="Watchfy home"
-    >
-      <BrandLogo size={scrolled ? 'sm' : 'md'} tone="gradient" />
-    </a>
-
-    <nav aria-label="Primary navigation" class="flex-1">
-      <ul class="flex items-center justify-center gap-1">
-        {#each navItems as item}
-          {@const active = checkActiveStatus(item.href, currentPath)}
-          <li>
-            <a
-              href={item.href}
-              aria-current={active ? 'page' : undefined}
-              class="relative inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ease-exo-out
-                {active
-                  ? 'text-ink bg-white/[0.08]'
-                  : 'text-ink-muted hover:text-ink hover:bg-white/[0.03]'}"
-            >
-              {item.label}
-              {#if active}
-                <span
-                  class="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-brand-gradient-cta"
-                  aria-hidden="true"
-                ></span>
-              {/if}
-            </a>
-          </li>
-        {/each}
-      </ul>
-    </nav>
-
-    <div class="flex items-center gap-2">
+    <!-- Left cluster -->
+    <div class="flex items-center gap-1 flex-shrink-0">
       <button
         type="button"
-        onclick={openSearch}
-        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-ink-muted hover:text-ink hover:bg-white/[0.06] transition-all duration-200 ease-exo-out text-sm"
-        aria-label="Search (Ctrl+K)"
+        onclick={dispatchToggleSidebar}
+        class="yt-icon-btn"
+        aria-label="Toggle sidebar"
+        title="Toggle sidebar"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" />
+        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor" aria-hidden="true">
+          <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
         </svg>
-        <span class="text-ink-subtle text-xs hidden xl:inline">Search</span>
-        <kbd class="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-[10px] text-ink-subtle font-mono">⌘K</kbd>
       </button>
-
-      <a
-        href="/search"
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-gradient-cta text-white text-sm font-bold shadow-glow-red hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 ease-exo-out"
-      >
-        Sign In
+      <a href="/home" class="flex items-center pl-2 pr-3 py-1 rounded-lg hover:bg-base-3 transition-colors duration-100" aria-label="Watchfy home">
+        <BrandLogo size="md" />
       </a>
     </div>
-  </div>
-</header>
 
-{#if searchOpen}
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="fixed top-0 left-0 right-0 z-[100] pt-[12vh] px-4" role="dialog" aria-label="Search overlay" tabindex={-1} onclick={() => closeSearch()}>
-    <div
-      class="mx-auto max-w-2xl glass-strong rounded-2xl shadow-4 overflow-hidden transform transition-all duration-300 ease-exo-out"
-      style="animation: watchfy-rise 300ms var(--ease-exo-out) both;"
-    >
-      <div class="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06]">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-ink-subtle flex-shrink-0">
-          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" />
-        </svg>
-        <input
-          id="header-search-input"
-          type="search"
-          placeholder="Search movies, TV shows..."
-          bind:value={searchQuery}
-          oninput={onSearchInput}
-          class="w-full bg-transparent border-none outline-none text-ink text-base placeholder:text-ink-subtle"
-          autocomplete="off"
-        />
-        {#if searchQuery}
-          <button
-            type="button"
-            onclick={() => { searchQuery = ''; searchResults = []; }}
-            class="text-ink-subtle hover:text-ink-muted transition-colors"
-            aria-label="Clear search"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+    <!-- Center cluster: search (desktop) -->
+    <div class="hidden lg:flex flex-1 justify-center">
+      <form
+        onsubmit={onSearchSubmit}
+        class="flex items-center w-full max-w-[640px]"
+        role="search"
+        autocomplete="off"
+      >
+        <div class="flex flex-1 h-10 border border-white/10 rounded-l-full rounded-r-none bg-base-1 focus-within:border-yt-blue transition-colors duration-100 overflow-hidden">
+          <div class="flex items-center pl-4 pr-1 text-ink-secondary">
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+              <path d="M10 4a6 6 0 1 0 3.815 10.65L18 18.835 19.415 17.42l-4.185-4.185A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
             </svg>
-          </button>
-        {/if}
-        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-        <button type="button" tabindex={-1} class="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-[10px] text-ink-subtle font-mono cursor-pointer" onclick={closeSearch}>ESC</button>
-      </div>
-
-      {#if searchLoading}
-        <div class="px-5 py-6 flex items-center justify-center gap-3 text-ink-subtle text-sm">
-          <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.25" />
-            <path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          </svg>
-          Searching...
+          </div>
+          <input
+            bind:this={searchInputEl}
+            bind:value={searchQuery}
+            oninput={onSearchInput}
+            type="search"
+            placeholder="Search movies, TV shows..."
+            class="flex-1 bg-transparent border-0 outline-none text-ink text-base placeholder:text-ink-muted px-3"
+            aria-label="Search"
+          />
+          {#if searchQuery}
+            <button
+              type="button"
+              onclick={clearSearch}
+              class="yt-icon-btn mr-1"
+              aria-label="Clear search"
+            >
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4z" />
+              </svg>
+            </button>
+          {/if}
         </div>
-      {:else if searchResults.length > 0}
-        <ul class="max-h-[50vh] overflow-y-auto py-2">
+        <button
+          type="submit"
+          class="h-10 w-16 flex items-center justify-center bg-base-3 border border-l-0 border-white/10 rounded-r-full hover:bg-base-4 transition-colors duration-100"
+          aria-label="Search"
+          title="Search"
+        >
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+            <path d="M10 4a6 6 0 1 0 3.815 10.65L18 18.835 19.415 17.42l-4.185-4.185A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="yt-icon-btn ml-2"
+          aria-label="Search with voice"
+          title="Search with voice"
+        >
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor" aria-hidden="true">
+            <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z" />
+            <path d="M17 11a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z" />
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <!-- Right cluster -->
+    <div class="flex items-center gap-1 flex-shrink-0 ml-auto lg:ml-0">
+      <button
+        type="button"
+        onclick={openMobileSearch}
+        class="yt-icon-btn lg:hidden"
+        aria-label="Search"
+      >
+        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor" aria-hidden="true">
+          <path d="M10 4a6 6 0 1 0 3.815 10.65L18 18.835 19.415 17.42l-4.185-4.185A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
+        </svg>
+      </button>
+
+      {#if isAuthenticated}
+        <a
+          href="/mylist"
+          class="yt-icon-btn"
+          aria-label="My list"
+          title="My list"
+        >
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </a>
+      {:else}
+        <a
+          href="/signin"
+          class="hidden sm:flex items-center gap-2 h-9 px-4 border border-yt-blue text-yt-blue rounded-full text-sm font-medium hover:bg-yt-blue/10 transition-colors duration-100"
+        >
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+            <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zM21 3h-8v2h8v14h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+          </svg>
+          Sign in
+        </a>
+      {/if}
+
+      <div class="relative">
+        <button
+          data-user-button
+          type="button"
+          onclick={() => userMenuOpen = !userMenuOpen}
+          class="block w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-white transition-shadow"
+          aria-label="Account menu"
+          aria-expanded={userMenuOpen}
+        >
+          {#if isAuthenticated && userAvatar}
+            <img src={userAvatar} alt={userName} class="w-full h-full object-cover" />
+          {:else}
+            <span class="w-full h-full flex items-center justify-center bg-yt-blue text-base text-base font-medium">
+              <svg viewBox="0 0 24 24" class="w-8 h-8 rounded-full bg-yt-red p-1.5" fill="white" aria-hidden="true">
+                <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-8 1.7-8 5v1h16v-1c0-3.3-4.7-5-8-5z" />
+              </svg>
+            </span>
+          {/if}
+        </button>
+        {#if userMenuOpen}
+          <div
+            data-user-menu
+            class="absolute right-0 top-full mt-2 w-72 bg-base-1 border border-white/10 rounded-xl shadow-2xl py-3 z-50"
+          >
+            <div class="px-4 pb-3 border-b border-white/10">
+              {#if isAuthenticated}
+                <p class="text-base text-ink">{userName}</p>
+                <p class="text-sm text-ink-muted">@{userName.toLowerCase().replace(/\s+/g, '')}</p>
+              {:else}
+                <p class="text-base text-ink">You</p>
+                <p class="text-sm text-ink-muted">Sign in to access your library</p>
+                <div class="mt-3 flex flex-col gap-2">
+                  <a href="/signin" class="flex items-center justify-center h-9 px-4 border border-yt-blue text-yt-blue rounded-full text-sm font-medium hover:bg-yt-blue/10">
+                    Sign in
+                  </a>
+                  <a href="/signup" class="flex items-center justify-center h-9 px-4 bg-base-3 text-ink rounded-full text-sm font-medium hover:bg-base-4">
+                    Create account
+                  </a>
+                </div>
+              {/if}
+            </div>
+            <div class="py-1">
+              {#if isAuthenticated}
+                <a href="/profile" class="flex items-center gap-3 px-4 py-2 hover:bg-base-3">
+                  <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-8 1.7-8 5v1h16v-1c0-3.3-4.7-5-8-5z" />
+                  </svg>
+                  <span>Your profile</span>
+                </a>
+                <a href="/mylist" class="flex items-center gap-3 px-4 py-2 hover:bg-base-3">
+                  <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                    <path d="M5 3h14a1 1 0 0 1 1 1v16l-8-4-8 4V4a1 1 0 0 1 1-1z" />
+                  </svg>
+                  <span>My list</span>
+                </a>
+                <a href="/history" class="flex items-center gap-3 px-4 py-2 hover:bg-base-3">
+                  <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                    <path d="M12 8v4l3 3 .7-.7-2.7-2.7V8H12zm0-6a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2z" />
+                  </svg>
+                  <span>History</span>
+                </a>
+              {:else}
+                <a href="/signin" class="flex items-center gap-3 px-4 py-2 hover:bg-base-3">
+                  <span>Help</span>
+                </a>
+                <a href="/signin" class="flex items-center gap-3 px-4 py-2 hover:bg-base-3">
+                  <span>Send feedback</span>
+                </a>
+              {/if}
+            </div>
+            {#if isAuthenticated}
+              <div class="border-t border-white/10 py-1">
+                <button
+                  type="button"
+                  onclick={signOut}
+                  class="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-base-3"
+                >
+                  <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                    <path d="M17 8l-1.4 1.4L17.2 11H10v2h7.2l-1.6 1.6L17 16l4-4-4-4zM5 3h8v2H7v14h6v2H5V3z" />
+                  </svg>
+                  <span>Sign out</span>
+                </button>
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <!-- Search suggestions (desktop) -->
+  {#if searchResults.length > 0 && searchQuery && !mobileSearchOpen}
+    <div class="hidden lg:block absolute left-0 right-0 top-14 pointer-events-none">
+      <div class="max-w-[640px] mx-auto pointer-events-auto bg-base-1 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+        <ul>
           {#each searchResults as r}
             <li>
               <a
                 href={getResultHref(r)}
-                onclick={closeSearch}
-                class="flex items-center gap-3.5 px-5 py-3 hover:bg-white/[0.05] transition-colors duration-150 group"
+                class="flex items-center gap-4 px-4 py-2 hover:bg-base-3"
               >
-                {#if r.poster_path}
-                  <img
-                    src={`https://image.tmdb.org/t/p/w92${r.poster_path}`}
-                    alt=""
-                    class="w-10 h-[60px] rounded-lg object-cover flex-shrink-0 shadow-2 border border-white/[0.06]"
-                    loading="lazy"
-                  />
-                {:else}
-                  <div class="w-10 h-[60px] rounded-lg bg-surface-2 flex-shrink-0 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-ink-subtle">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-                    </svg>
-                  </div>
-                {/if}
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-ink group-hover:text-white truncate">{getResultTitle(r)}</p>
-                  <div class="flex items-center gap-2 mt-0.5">
-                    <span class="text-[10px] uppercase tracking-wider font-bold text-ink-subtle group-hover:text-brand-red/80 transition-colors">{r.media_type === 'tv' ? 'TV Series' : 'Movie'}</span>
-                    {#if r.release_date || r.first_air_date}
-                      <span class="text-[10px] text-ink-subtle">{(r.release_date || r.first_air_date || '').slice(0, 4)}</span>
-                    {/if}
-                    {#if r.vote_average > 0}
-                      <span class="text-[10px] text-accent-warm font-bold">★ {(r.vote_average).toFixed(1)}</span>
-                    {/if}
-                  </div>
+                <div class="w-16 h-9 bg-base-3 rounded overflow-hidden flex-shrink-0">
+                  {#if r.backdrop_path}
+                    <img src={`https://image.tmdb.org/t/p/w185${r.backdrop_path}`} alt="" class="w-full h-full object-cover" loading="lazy" />
+                  {:else if r.poster_path}
+                    <img src={`https://image.tmdb.org/t/p/w92${r.poster_path}`} alt="" class="w-full h-full object-cover" loading="lazy" />
+                  {/if}
                 </div>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-ink-subtle group-hover:text-ink-muted transition-colors flex-shrink-0">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-ink truncate">{getResultTitle(r)}</p>
+                  <p class="text-xs text-ink-muted truncate">{getResultMeta(r)}</p>
+                </div>
+                <svg viewBox="0 0 24 24" class="w-4 h-4 text-ink-muted flex-shrink-0" fill="currentColor" aria-hidden="true">
+                  <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" />
                 </svg>
               </a>
             </li>
           {/each}
         </ul>
-        <div class="px-5 py-2.5 border-t border-white/[0.04] text-center">
-          <a href={`/search?q=${encodeURIComponent(searchQuery)}`} onclick={closeSearch} class="text-xs font-bold tracking-wider uppercase text-ink-subtle hover:text-brand-red transition-colors">
-            View all results →
-          </a>
+        <a
+          href={`/search?q=${encodeURIComponent(searchQuery)}`}
+          class="flex items-center gap-3 px-4 py-3 border-t border-white/10 hover:bg-base-3"
+        >
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+            <path d="M10 4a6 6 0 1 0 3.815 10.65L18 18.835 19.415 17.42l-4.185-4.185A6 6 0 0 0 10 4zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
+          </svg>
+          <span class="text-sm">Search for "{searchQuery}"</span>
+        </a>
+      </div>
+    </div>
+  {/if}
+</header>
+
+<!-- Mobile full-screen search overlay -->
+{#if mobileSearchOpen}
+  <div class="fixed inset-0 z-[100] bg-base lg:hidden" role="dialog" aria-label="Search">
+    <div class="flex items-center h-14 px-4 gap-2 border-b border-white/10">
+      <button
+        type="button"
+        onclick={closeMobileSearch}
+        class="yt-icon-btn"
+        aria-label="Close search"
+      >
+        <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4z" />
+        </svg>
+      </button>
+      <form onsubmit={onSearchSubmit} class="flex-1">
+        <input
+          bind:this={searchInputEl}
+          bind:value={searchQuery}
+          oninput={onSearchInput}
+          type="search"
+          placeholder="Search movies, TV shows..."
+          class="w-full h-10 bg-base-1 border border-white/10 rounded-full px-4 text-ink placeholder:text-ink-muted focus:border-yt-blue focus:outline-none"
+          aria-label="Search"
+        />
+      </form>
+    </div>
+    <div class="overflow-y-auto h-[calc(100vh-3.5rem)]">
+      {#if searchLoading}
+        <div class="px-4 py-8 flex items-center justify-center gap-3 text-ink-muted">
+          <div class="w-5 h-5 border-2 border-white/20 border-t-yt-red rounded-full animate-spin"></div>
+          <span>Searching...</span>
         </div>
-      {:else if searchQuery && !searchLoading}
-        <div class="px-5 py-8 text-center text-ink-subtle text-sm">
-          No results for "<span class="text-ink">{searchQuery}</span>"
+      {:else if searchResults.length > 0}
+        <ul>
+          {#each searchResults as r}
+            <li>
+              <a
+                href={getResultHref(r)}
+                onclick={closeMobileSearch}
+                class="flex items-center gap-4 px-4 py-3 hover:bg-base-3"
+              >
+                <div class="w-20 h-12 bg-base-3 rounded overflow-hidden flex-shrink-0">
+                  {#if r.backdrop_path}
+                    <img src={`https://image.tmdb.org/t/p/w185${r.backdrop_path}`} alt="" class="w-full h-full object-cover" loading="lazy" />
+                  {:else if r.poster_path}
+                    <img src={`https://image.tmdb.org/t/p/w92${r.poster_path}`} alt="" class="w-full h-full object-cover" loading="lazy" />
+                  {/if}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-base text-ink truncate">{getResultTitle(r)}</p>
+                  <p class="text-sm text-ink-muted truncate">{getResultMeta(r)}</p>
+                </div>
+              </a>
+            </li>
+          {/each}
+        </ul>
+      {:else if searchQuery}
+        <div class="px-4 py-12 text-center text-ink-muted">
+          No results for "{searchQuery}"
         </div>
+      {:else}
+        <div class="px-4 py-6 text-sm text-ink-muted">Start typing to search</div>
       {/if}
     </div>
   </div>
