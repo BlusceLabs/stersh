@@ -138,8 +138,8 @@ if [[ "$SKIP_DEPS" -eq 0 ]]; then
 
         if [[ ! -f "$VENV_DIR/bin/uvicorn" ]] || ! "$VENV_DIR/bin/python" -c "import scrapling" 2>/dev/null; then
             log "Installing Python dependencies…"
-            pip install --quiet --upgrade pip
-            pip install --quiet -r backend/requirements.txt 2>&1 | tail -3 || true
+            pip install --upgrade pip
+            pip install -r backend/requirements.txt || true
             ok "Python dependencies installed"
         fi
 
