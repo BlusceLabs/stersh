@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import svelte from '@astrojs/svelte';
-import tailwind from '@astrojs/tailwind';
 import node from '@astrojs/node';
+import tailwindcss from '@tailwindcss/vite';
 import { loadEnv } from 'vite';
 
 const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '');
@@ -13,9 +13,6 @@ export default defineConfig({
 
   integrations: [
     svelte(),
-    tailwind({
-      applyBaseStyles: true,
-    })
   ],
 
   prefetch: {
@@ -29,6 +26,7 @@ export default defineConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     server: {
       proxy: {
         '/api': {

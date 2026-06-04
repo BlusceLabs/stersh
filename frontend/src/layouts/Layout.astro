@@ -1,20 +1,6 @@
 ---
 import Navbar from '../components/Navbar.svelte';
-import '../styles/tokens.css';
 import '../styles/global.css';
-
-interface Props {
-  title: string;
-  description?: string;
-}
-
-const {
-  title,
-  description = "Discover, stream, and track your favorite movies and TV shows on Watchfy."
-} = Astro.props;
-
-// Prevent duplicate branding if the passed title already includes the brand name
-const formattedTitle = title.includes('Watchfy') ? title : `${title} | Watchfy`;
 ---
 
 <!DOCTYPE html>

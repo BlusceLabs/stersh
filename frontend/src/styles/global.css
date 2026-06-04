@@ -1,8 +1,200 @@
 /* =====================================================================
- * Watchfy Global Styles
- * Shared design system utilities and accessibility primitives.
- * Import in Layout.astro before any other stylesheet.
+ * Watchfy Design System — Tailwind v4
+ * All design tokens, theme configuration, and global utilities.
  * ===================================================================== */
+
+@import "tailwindcss";
+
+/* ── Theme Configuration ─────────────────────────────────────────────── */
+
+@theme {
+  /* Surface colors */
+  --color-surface-0: #09090b;
+  --color-surface-1: #18181b;
+  --color-surface-2: #27272a;
+  --color-surface-3: #3f3f46;
+
+  /* Brand colors */
+  --color-brand-red: #ef4444;
+  --color-brand-red-deep: #dc2626;
+  --color-brand-pink: #ec4899;
+  --color-brand-purple: #a855f7;
+  --color-brand-purple-deep: #9333ea;
+  --color-brand-cyan: #22d3ee;
+  --color-brand-cyan-deep: #06b6d4;
+
+  /* Ink/text colors */
+  --color-ink: #fafafa;
+  --color-ink-secondary: #d4d4d8;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-subtle: #71717a;
+  --color-ink-faint: #52525b;
+
+  /* Accent colors */
+  --color-accent-warm: #fbbf24;
+  --color-accent-success: #10b981;
+  --color-accent-danger: #ef4444;
+  --color-accent-info: #38bdf8;
+
+  /* Font families */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Border radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+
+  /* Timing functions */
+  --ease-exo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exo-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Durations */
+  --duration-180: 180ms;
+  --duration-300: 300ms;
+  --duration-500: 500ms;
+  --duration-1000: 1000ms;
+
+  /* Shadows */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-4: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
+  --shadow-glow-red: 0 8px 32px -8px rgba(239, 68, 68, 0.4);
+  --shadow-glow-purple: 0 8px 32px -8px rgba(168, 85, 247, 0.35);
+  --shadow-glow-brand: 0 8px 32px -8px rgba(236, 72, 153, 0.35);
+
+  /* Max width */
+  --max-w-content: 1440px;
+
+  /* Z-index */
+  --z-nav: 50;
+  --z-modal: 80;
+  --z-toast: 90;
+  --z-tooltip: 100;
+
+  /* Animations */
+  --animate-fade-in: fade-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-up: fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-scale-in: scale-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pulse-glow: pulse-glow 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ── Keyframes ────────────────────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.92); }
+}
+
+@keyframes kenburns {
+  0% { transform: scale(1.05) translate(0, 0); }
+  25% { transform: scale(1.12) translate(-2%, -1%); }
+  50% { transform: scale(1.15) translate(1%, 0.5%); }
+  75% { transform: scale(1.12) translate(-1%, 1%); }
+  100% { transform: scale(1.05) translate(0, 0); }
+}
+
+@keyframes watchfy-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes watchfy-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes watchfy-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.92); }
+}
+
+@keyframes watchfy-orb {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  33% { transform: translate(30px, -20px) scale(1.2); opacity: 0.8; }
+  66% { transform: translate(-20px, 15px) scale(0.9); opacity: 0.5; }
+}
+
+@keyframes watchfy-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.3); }
+}
+
+/* ── Custom Utilities ─────────────────────────────────────────────────── */
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility premium-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* ── Base Styles ──────────────────────────────────────────────────────── */
+
+:root {
+  /* Brand gradients */
+  --brand-gradient: linear-gradient(135deg, #ef4444 0%, #ec4899 50%, #a855f7 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(236, 72, 153, 0.9) 50%, rgba(168, 85, 247, 0.9) 100%);
+  --brand-gradient-cta: linear-gradient(135deg, #ef4444 0%, #ec4899 100%);
+
+  /* Surface glass */
+  --surface-glass: rgba(9, 9, 11, 0.78);
+  --surface-glass-strong: rgba(9, 9, 11, 0.92);
+
+  /* Focus ring */
+  --focus-ring-color: rgba(239, 68, 68, 0.5);
+  --focus-ring-offset: 2px;
+  --focus-ring-width: 2px;
+
+  /* Layout */
+  --nav-mobile-height: 76px;
+  --nav-mobile-bottom: 0.75rem;
+  --header-desktop-height: 64px;
+  --content-max-width: 1440px;
+  --content-padding-x: 1rem;
+  --hero-height-desktop: 80vh;
+  --hero-height-min: 550px;
+  --hero-height-max: 850px;
+}
 
 /* Skip-to-content link for keyboard users */
 .skip-link {
@@ -11,18 +203,18 @@
   left: 1rem;
   z-index: 9999;
   padding: 0.75rem 1.25rem;
-  background: var(--surface-1);
-  color: var(--text-primary);
-  border: 1px solid var(--surface-2);
-  border-radius: var(--radius-md);
+  background: var(--surface-1, #18181b);
+  color: var(--text-primary, #fafafa);
+  border: 1px solid var(--surface-2, #27272a);
+  border-radius: 0.75rem;
   font-weight: 600;
   font-size: 0.875rem;
   text-decoration: none;
-  transition: top var(--duration-base) var(--ease-exo-out);
+  transition: top 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .skip-link:focus {
   top: 1rem;
-  outline: 2px solid var(--brand-red-500);
+  outline: 2px solid #ef4444;
   outline-offset: 2px;
 }
 
@@ -31,9 +223,9 @@
   outline: none;
 }
 *:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--focus-ring-offset);
-  border-radius: var(--radius-sm);
+  outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, rgba(239, 68, 68, 0.5));
+  outline-offset: var(--focus-ring-offset, 2px);
+  border-radius: 0.5rem;
 }
 
 /* Smooth scrolling for in-page anchors */
@@ -41,9 +233,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar variants are configured in tailwind.config.mjs plugins */
-
-/* Glassmorphism helper (used by nav, header, modals) */
+/* Glassmorphism helper */
 .glass {
   background: var(--surface-glass);
   backdrop-filter: blur(20px) saturate(180%);
@@ -79,35 +269,19 @@ html {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .text-cinematic-lg {
-  text-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.8),
-    0 2px 4px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
-/* Elevated card surface (used by modals, popovers, episode cards) */
+/* Elevated card surface */
 .surface-elevated {
-  background: linear-gradient(
-    180deg,
-    rgba(24, 24, 27, 0.85) 0%,
-    rgba(9, 9, 11, 0.95) 100%
-  );
+  background: linear-gradient(180deg, rgba(24, 24, 27, 0.85) 0%, rgba(9, 9, 11, 0.95) 100%);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow:
-    var(--shadow-3),
-    var(--shadow-inset);
+  box-shadow: var(--shadow-3, 0 12px 32px rgba(0, 0, 0, 0.55)), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Skeleton shimmer — single source of truth for the wave effect */
-@keyframes watchfy-shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
+/* Skeleton shimmer */
 .skeleton {
   position: relative;
   overflow: hidden;
@@ -117,44 +291,18 @@ html {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(239, 68, 68, 0.06) 50%,
-    rgba(168, 85, 247, 0.06) 50%,
-    transparent 100%
-  );
-  animation: watchfy-shimmer 2s var(--ease-standard) infinite;
+  background: linear-gradient(90deg, transparent 0%, rgba(239, 68, 68, 0.06) 50%, rgba(168, 85, 247, 0.06) 50%, transparent 100%);
+  animation: watchfy-shimmer 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Stagger fade-in for list children */
-@keyframes watchfy-rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 .rise-in {
-  animation: watchfy-rise var(--duration-slow) var(--ease-exo-out) both;
+  animation: watchfy-rise 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Subtle pulse for live indicators */
-@keyframes watchfy-live {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.55;
-    transform: scale(0.92);
-  }
-}
 .live-dot {
-  animation: watchfy-live 1.6s var(--ease-standard) infinite;
+  animation: watchfy-live 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Animated underline for in-text links */
@@ -171,7 +319,7 @@ html {
   background: currentColor;
   transform: scaleX(0);
   transform-origin: right;
-  transition: transform var(--duration-base) var(--ease-exo-out);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .link-underline:hover::after,
 .link-underline:focus-visible::after {
@@ -179,7 +327,7 @@ html {
   transform-origin: left;
 }
 
-/* Hide scrollbar in horizontal scrollers but keep keyboard scrollable */
+/* Hide scrollbar in horizontal scrollers */
 .scroll-x-clean {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -195,63 +343,22 @@ html {
   color: #fff;
 }
 
-/* Ken Burns animation for hero backdrops */
-@keyframes kenburns {
-  0% {
-    transform: scale(1.05) translate(0, 0);
-  }
-  25% {
-    transform: scale(1.12) translate(-2%, -1%);
-  }
-  50% {
-    transform: scale(1.15) translate(1%, 0.5%);
-  }
-  75% {
-    transform: scale(1.12) translate(-1%, 1%);
-  }
-  100% {
-    transform: scale(1.05) translate(0, 0);
-  }
-}
-
 /* Gradient orb ambient glow */
-@keyframes watchfy-orb {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.6;
-  }
-  33% {
-    transform: translate(30px, -20px) scale(1.2);
-    opacity: 0.8;
-  }
-  66% {
-    transform: translate(-20px, 15px) scale(0.9);
-    opacity: 0.5;
-  }
-}
 .orb-glow {
-  animation: watchfy-orb 8s var(--ease-standard) infinite;
+  animation: watchfy-orb 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Pulse glow for active elements */
-@keyframes watchfy-pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
-  50% {
-    box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.3);
-  }
-}
 .animate-pulse-glow {
-  animation: watchfy-pulse-glow 2s var(--ease-standard) infinite;
+  animation: watchfy-pulse-glow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 /* Debounced focus ring */
 .focus-ring {
-  transition: box-shadow var(--duration-quick) var(--ease-exo-out);
+  transition: box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .focus-ring:focus-visible {
-  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+  box-shadow: 0 0 0 var(--focus-ring-width, 2px) var(--focus-ring-color, rgba(239, 68, 68, 0.5));
 }
 
 /* Gradient border effect */
@@ -274,15 +381,11 @@ html {
 
 /* Glassmorphism card variant */
 .glass-card {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.01) 100%
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-xl);
+  border-radius: 1.25rem;
 }
 
 /* Premium shimmer overlay for cards */
@@ -294,16 +397,9 @@ html {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(239, 68, 68, 0.03) 50%,
-    rgba(168, 85, 247, 0.03) 55%,
-    transparent 70%
-  );
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.04) 45%, rgba(239, 68, 68, 0.03) 50%, rgba(168, 85, 247, 0.03) 55%, transparent 70%);
   transform: translateX(-100%);
-  transition: transform 600ms var(--ease-exo-out);
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
   z-index: 2;
 }
@@ -311,26 +407,19 @@ html {
   transform: translateX(100%);
 }
 
-/* Radial vignette overlay for cinematic backdrop sections */
+/* Radial vignette overlay */
 .bg-radial-vignette {
   background: radial-gradient(ellipse at 30% 40%, transparent 0%, rgba(9, 9, 11, 0.3) 50%, rgba(9, 9, 11, 0.75) 100%);
 }
 
-/* Scrollbar styling for detail pages */
-.premium-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-}
-.premium-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.premium-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.premium-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-}
-.premium-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+/* Honor user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
