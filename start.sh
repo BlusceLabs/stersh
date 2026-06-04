@@ -146,14 +146,14 @@ if [[ "$SKIP_DEPS" -eq 0 ]]; then
         # ── Browser for patchright ────────────────────────────────────────────
         if [[ ! -f "$HOME/.cache/ms-playwright/INSTALLATION_COMPLETE" ]]; then
             log "Installing Chromium browser for patchright…"
-            $PYTHON -m patchright install chromium 2>&1 | tail -5 || warn "Patchright install may need manual run"
+            $PYTHON -m patchright install chromium || warn "Patchright install may need manual run"
             ok "Chromium browser installed"
         else
             # Verify the browser binary actually exists
             chromium_dir=$(ls -d "$HOME/.cache/ms-playwright/chromium-"*/chrome-linux64 2>/dev/null | head -1)
             if [[ -z "$chromium_dir" ]] || [[ ! -x "$chromium_dir/chrome" ]]; then
                 log "Chromium browser binary missing — reinstalling…"
-                $PYTHON -m patchright install chromium 2>&1 | tail -5 || warn "Patchright install may need manual run"
+                $PYTHON -m patchright install chromium || warn "Patchright install may need manual run"
                 ok "Chromium browser reinstalled"
             fi
         fi
