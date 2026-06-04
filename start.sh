@@ -61,7 +61,9 @@ for candidate in python3.12 python3.11 python3; do
 done
 [[ -n "$PYTHON" ]] || { err "Python 3.11+ not found. Install it first."; }
 PYVER=$($PYTHON -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-if [[ $(echo "$PYVER >= 3.11" | bc -l) -ne 1 ]]; then
+PY_MAJOR=${PYVER%%.*}
+PY_MINOR=${PYVER##*.}
+if [[ "$PY_MAJOR" -lt 3 ]] || { [[ "$PY_MAJOR" -eq 3 ]] && [[ "$PY_MINOR" -lt 11 ]]; }; then
     err "Python 3.11+ required (got $PYVER)"
 fi
 
