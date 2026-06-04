@@ -2,6 +2,30 @@
 // src/pages/index.astro — Watchfy landing spotlight
 import '@watchfy/design-tokens/styles';
 import '../styles/global.css';
+
+const BACKEND_URL = import.meta.env.BACKEND_URL || '';
+
+let trendingMovies: any[] = [];
+let initialBackdrop = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925';
+
+try {
+  const data = await fetch(`${BACKEND_URL}/api/tmdb/trending/movie/week`).then(r => r.json());
+  if (data?.results && data.results.length > 0) {
+    trendingMovies = data.results.slice(0, 20);
+    if (trendingMovies[0]?.backdrop_path) {
+      initialBackdrop = `https://image.tmdb.org/t/p/original${trendingMovies[0].backdrop_path}`;
+    }
+  }
+} catch (e) {
+  console.error('Watchfy spotlight compilation failure:', e);
+}
+
+function yearOf(movie: any): string {
+  return (movie?.release_date || movie?.first_air_date || '').split('-')[0] || '';
+}
+function ratingOf(movie: any): string {
+  return movie?.vote_average ? (movie.vote_average / 2).toFixed(1) : '';
+}
 ---
 
 <!DOCTYPE html>
