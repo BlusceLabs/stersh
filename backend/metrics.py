@@ -1,8 +1,11 @@
 """Prometheus metrics for watchfy backend."""
-from fastapi import APIRouter, Depends
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, REGISTRY
+from __future__ import annotations
+
 import time
 from typing import Optional
+
+from fastapi import APIRouter, FastAPI, Request, Response
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, REGISTRY
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
@@ -18,22 +21,19 @@ REDIS_CONNECTIONS = Gauge("redis_connections", "Redis connection status")
 # Middleware to collect metrics
 def collect_metrics_middleware(app: FastAPI):
     @app.middleware("http")
-    async def metrics_middleware(request, call_next):
+    async def metrics_middleware(request: Request, call_next):
         start_time = time.time()
-        
-        # Update active connections gauge
         ACTIVE_CONNECTIONS.inc()
-        
+        response = None
         try:
             response = await call_next(request)
+            return response
         finally:
-            # Update metrics
             duration = time.time() - start_time
+            status_code = response.status_code if response else 500
             REQUEST_DURATION.labels(method=request.method, path=request.url.path).observe(duration)
-            REQUEST_COUNT.labels(method=request.method, path=request.url.path, status=response.status_code).inc()
+            REQUEST_COUNT.labels(method=request.method, path=request.url.path, status=status_code).inc()
             ACTIVE_CONNECTIONS.dec()
-        
-        return response
 
 @router.get("/")
 async def metrics_handler():
