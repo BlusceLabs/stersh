@@ -8,6 +8,8 @@ import time
 from urllib.parse import urlparse
 
 import httpx
+from typing import Any
+from curl_cffi.requests import AsyncSession as CurlSession
 from cachetools import TTLCache
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
@@ -34,10 +36,6 @@ ALLOWED_ONETOONE_HOSTS = frozenset({
     "cdn.111movies.net",
     "hello.mousedoor.com",
     "mousedoor.com",
-    "tylerfisher55.workers.dev",
-    "old.tylerfisher55.workers.dev",
-    "broad.tylerfisher55.workers.dev",
-    "black.tylerfisher55.workers.dev",
 } | set(h.strip() for h in os.environ.get("WHITE_EXTRA_HOSTS", "").split(",") if h.strip()))
 
 _ONETOONE_SUFFIXES: tuple[str, ...] = (
@@ -45,7 +43,7 @@ _ONETOONE_SUFFIXES: tuple[str, ...] = (
     ".speedsterwave.app",
     ".vidking.net",
     ".cloudnestra.com",
-    ".tylerfisher55.workers.dev",
+    ".workers.dev",
 )
 
 _CDN_HEADERS: dict[str, str] = {
@@ -54,6 +52,8 @@ _CDN_HEADERS: dict[str, str] = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/131.0.0.0 Safari/537.36"
     ),
+    "Accept": "video/mp2t, application/vnd.apple.mpegurl, application/x-mpegURL, text/html, application/xhtml+xml, */*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://111movies.net/",
     "Origin": "https://111movies.net",
 }
@@ -68,10 +68,12 @@ _futures: dict[str, asyncio.Future] = {}
 _futures_lock = asyncio.Lock()
 
 _url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=86400)
+_upstream_cache: TTLCache[str, tuple[bytes, str]] = TTLCache(maxsize=500, ttl=300)
 
 _prewarm_semaphore = asyncio.Semaphore(2)
 
 _client: httpx.AsyncClient | None = None
+_cdn_client: CurlSession | None = None
 
 async def shutdown_white_browser() -> None:
     from app.core.extractors.white import shutdown_browser
@@ -79,10 +81,13 @@ async def shutdown_white_browser() -> None:
 
 
 async def shutdown_white_client() -> None:
-    global _client
+    global _client, _cdn_client
     if _client and not _client.is_closed:
         await _client.aclose()
         _client = None
+    if _cdn_client:
+        await _cdn_client.close()
+        _cdn_client = None
     logger.info('"white_client_shutdown"')
 
 
@@ -96,6 +101,20 @@ async def _get_client() -> httpx.AsyncClient:
             limits=httpx.Limits(max_connections=40, max_keepalive_connections=15),
         )
     return _client
+
+
+async def _get_cdn_client() -> CurlSession:
+    """Get a curl_cffi client with browser impersonation for CDN requests."""
+    global _cdn_client
+    if _cdn_client is None or getattr(_cdn_client, '_closed', False):
+        _cdn_client = CurlSession(
+            headers=_CDN_HEADERS,
+            timeout=30,
+            allow_redirects=True,
+            impersonate="chrome131",
+            max_clients=40,
+        )
+    return _cdn_client
 
 
 def _register_onetoone_hosts(sources: list[dict]) -> None:
@@ -138,6 +157,44 @@ def _validate_host(url: str) -> None:
     if hostname.endswith(_ONETOONE_SUFFIXES):
         return
     raise HTTPException(status_code=403, detail=f"Host not allowed: {hostname}")
+
+
+async def _fetch_upstream(url: str) -> Any:
+    """Fetch from upstream with retry logic for transient failures using curl_cffi."""
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            client = await _get_cdn_client()
+            resp = await client.get(url)
+            if resp.ok:
+                return resp
+            if resp.status_code in (404, 410):
+                raise HTTPException(status_code=410, detail="Resource expired")
+            if resp.status_code < 500:
+                raise HTTPException(status_code=resp.status_code, detail=f"Upstream error: {resp.status_code}")
+            last_exc = Exception(f"HTTP {resp.status_code}")
+        except Exception as exc:
+            # Catch all errors (including curl timeouts, connection issues)
+            last_exc = exc
+            logger.warning('"white_upstream_error","url":"%s","attempt":%d,"err":"%s"', url[:80], attempt + 1, exc)
+        if attempt < 2:
+            await asyncio.sleep(0.5 * (attempt + 1))
+    raise HTTPException(status_code=502, detail=f"Upstream unavailable: {last_exc}")
+
+
+async def _prefetch_upstream_content(url: str) -> None:
+    """Pre-fetch an upstream URL and cache its response using curl_cffi client."""
+    if url in _upstream_cache:
+        return
+    try:
+        client = await _get_cdn_client()
+        resp = await client.get(url)
+        if resp.ok:
+            content_type = resp.headers.get("content-type", "video/MP2T")
+            _upstream_cache[url] = (resp.content, content_type)
+            logger.info('\"white_prefetch_done\",\"url\":\"%s\"', url[:80])
+    except Exception:
+        pass
 
 
 def _is_stale(ck: str) -> bool:
@@ -243,66 +300,87 @@ async def onetoone_proxy_hls(url: str = Query(...)) -> Response:
         url = resolved
 
     _validate_host(url)
-    client = await _get_client()
-    resp = await client.get(url)
-    if not resp.is_success:
-        raise HTTPException(status_code=resp.status_code, detail="HLS upstream error")
+
+    cached = _upstream_cache.get(url)
+    if cached is not None:
+        body, content_type = cached
+        return Response(content=body, media_type=content_type, headers={
+            "Cache-Control": "public, max-age=300",
+            "Access-Control-Allow-Origin": "*",
+        })
+
+    logger.info('"white_proxy_fetch","url":"%s"', url)
+    resp = await _fetch_upstream(url)
 
     body = resp.content
+    content_type = resp.headers.get("content-type", "video/MP2T")
+    _upstream_cache[url] = (body, content_type)
+
     text = body.decode("utf-8", errors="replace")
 
-    if text.startswith("#EXTM3U"):
-        from urllib.parse import urlparse as up
-        parsed = up(url)
-        origin = f"{parsed.scheme}://{parsed.netloc}"
-        base_dir = url.rsplit("/", 1)[0] + "/"
+    try:
+        if text.startswith("#EXTM3U"):
+            from urllib.parse import urlparse as up
+            parsed = up(url)
+            origin = f"{parsed.scheme}://{parsed.netloc}"
+            base_dir = url.rsplit("/", 1)[0] + "/"
 
-        def resolve(href: str) -> str:
-            if href.startswith("http"):
-                return href
-            if href.startswith("//"):
-                return f"{parsed.scheme}:{href}"
-            if href.startswith("/"):
-                return f"{origin}{href}"
-            return f"{base_dir}{href}"
+            def resolve(href: str) -> str:
+                if href.startswith("http"):
+                    return href
+                if href.startswith("//"):
+                    return f"{parsed.scheme}:{href}"
+                if href.startswith("/"):
+                    return f"{origin}{href}"
+                return f"{base_dir}{href}"
 
-        lines: list[str] = []
+            prefetch_urls: list[str] = []
+            lines: list[str] = []
 
-        for line in text.split("\n"):
-            stripped = line.strip()
+            for line in text.split("\n"):
+                stripped = line.strip()
 
-            if stripped.startswith("#EXT-X-PLAYLIST-TYPE:"):
-                lines.append(line)
-                continue
+                if stripped.startswith("#EXT-X-PLAYLIST-TYPE:"):
+                    lines.append(line)
+                    continue
 
-            if stripped.startswith("#"):
-                lines.append(line)
-                continue
+                if stripped.startswith("#"):
+                    lines.append(line)
+                    continue
 
-            if stripped:
-                abs_url = resolve(stripped)
-                token = _store_token(abs_url)
-                lines.append(f"/api/white/proxy/hls?url={token}")
-            else:
-                lines.append(line)
+                if stripped:
+                    abs_url = resolve(stripped)
+                    prefetch_urls.append(abs_url)
+                    token = _store_token(abs_url)
+                    lines.append(f"/api/white/proxy/hls?url={token}")
+                else:
+                    lines.append(line)
+
+            for pu in prefetch_urls:
+                task = asyncio.create_task(_prefetch_upstream_content(pu))
+                _background_tasks.add(task)
+                task.add_done_callback(_background_tasks.discard)
+
+            return Response(
+                content="\n".join(lines),
+                media_type="application/vnd.apple.mpegurl",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Access-Control-Allow-Origin": "*",
+                },
+            )
 
         return Response(
-            content="\n".join(lines),
-            media_type="application/vnd.apple.mpegurl",
+            content=body,
+            media_type=content_type,
             headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Cache-Control": "public, max-age=3600",
                 "Access-Control-Allow-Origin": "*",
             },
         )
-
-    return Response(
-        content=body,
-        media_type=resp.headers.get("content-type", "video/MP2T"),
-        headers={
-            "Cache-Control": "public, max-age=3600",
-            "Access-Control-Allow-Origin": "*",
-        },
-    )
+    except Exception as exc:
+        logger.error('"white_proxy_hls_process_error","url":"%s","err":"%s"}', url[:120], exc)
+        raise HTTPException(status_code=500, detail="HLS response processing failed")
 
 
 @router.get("/proxy/seg/{token}")
@@ -312,34 +390,36 @@ async def onetoone_proxy_seg(token: str) -> Response:
         return Response(status_code=410, headers={"X-Segment-Expired": "true", "Retry-After": "0"})
 
     _validate_host(url)
-    client = await _get_client()
-    last_exc: Exception | None = None
 
-    for attempt in range(3):
-        try:
-            resp = await client.get(url)
-            if resp.is_success:
-                return Response(
-                    content=resp.content,
-                    media_type=resp.headers.get("content-type", "video/MP2T"),
-                    headers={
-                        "Cache-Control": "public, max-age=3600",
-                        "Access-Control-Allow-Origin": "*",
-                    },
-                )
-            if resp.status_code in (404, 410):
-                return Response(status_code=410, headers={"X-Segment-Expired": "true"})
-            last_exc = Exception(f"HTTP {resp.status_code}")
-        except httpx.TimeoutException as exc:
-            last_exc = exc
-            logger.warning('"white_seg_timeout":{"attempt":%d}', attempt + 1)
-        except Exception as exc:
-            last_exc = exc
-            logger.warning('"white_seg_error":{"attempt":%d,"err":"%s"}', attempt + 1, exc)
-        if attempt < 2:
-            await asyncio.sleep(0.5 * (attempt + 1))
+    cached = _upstream_cache.get(url)
+    if cached is not None:
+        body, content_type = cached
+        return Response(
+            content=body,
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
 
-    raise HTTPException(status_code=502, detail=f"Segment unavailable: {last_exc}")
+    try:
+        resp = await _fetch_upstream(url)
+    except HTTPException as exc:
+        if exc.status_code == 410:
+            return Response(status_code=410, headers={"X-Segment-Expired": "true"})
+        raise
+
+    content_type = resp.headers.get("content-type", "video/MP2T")
+    _upstream_cache[url] = (resp.content, content_type)
+    return Response(
+        content=resp.content,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
 
 
 @router.get("/download")
