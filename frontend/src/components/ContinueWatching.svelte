@@ -28,6 +28,7 @@
           _progress: item.current_time && item.duration ? item.current_time / item.duration : 0,
           _season: item.season,
           _episode: item.episode,
+          _startTime: item.current_time || 0,
         }));
         loaded = true;
         return;

@@ -5,6 +5,8 @@ import WatchUI from '../../../../components/WatchUI.svelte';
 const { media, id } = Astro.params;
 const rawServer = Astro.url.searchParams.get('server') ?? 'white';
 const safeServer = rawServer === 'black' ? 'black' : 'white';
+const rawTime = Astro.url.searchParams.get('t');
+const startTime = rawTime && Number(rawTime) > 0 ? Number(rawTime) : 0;
 const numericId = Number(id);
 const validId = Number.isFinite(numericId) && numericId > 0 ? String(Math.floor(numericId)) : null;
 const normalizedMedia = media === 'tv' ? 'tv' : 'movie';
@@ -13,7 +15,7 @@ const normalizedMedia = media === 'tv' ? 'tv' : 'movie';
 <Layout title="Watchfy">
   <main class="min-h-screen bg-[#0f0f0f] text-[#f1f1f1] antialiased pb-24">
     {validId ? (
-      <WatchUI client:load media={normalizedMedia} id={validId} server={safeServer} />
+      <WatchUI client:load media={normalizedMedia} id={validId} server={safeServer} startTime={startTime} />
     ) : (
       <div class="flex items-center justify-center min-h-screen text-zinc-400 text-sm">
         Invalid media id.

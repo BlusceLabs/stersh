@@ -9,12 +9,14 @@
     progress = undefined,
     season = undefined,
     episode = undefined,
+    startTime = undefined,
   }: {
     movie: any;
     type?: 'movie' | 'tv' | string;
     progress?: number;
     season?: number;
     episode?: number;
+    startTime?: number;
   } = $props();
 
   let mediaType = $derived(
@@ -23,8 +25,8 @@
   let id = $derived(movie.id);
   let watchHref = $derived(
     season && episode
-      ? `/${mediaType}/${id}?season=${season}&episode=${episode}`
-      : `/${mediaType}/${id}`
+      ? `/${mediaType}/${id}?season=${season}&episode=${episode}${startTime ? `&t=${Math.floor(startTime)}` : ''}`
+      : `/${mediaType}/${id}${startTime ? `?t=${Math.floor(startTime)}` : ''}`
   );
   let title = $derived(movie.title || movie.name || 'Untitled');
   let thumb = $derived(movie.backdrop_path || movie.poster_path || '');

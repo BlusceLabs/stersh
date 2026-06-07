@@ -29,7 +29,8 @@ blob-report/
 .DS_Store
 Thumbs.db
 *.db
-*.rvf
+*.db-shm
+*.db-wal
 
 # Python
 __pycache__/

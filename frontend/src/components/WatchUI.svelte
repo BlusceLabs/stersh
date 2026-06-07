@@ -5,7 +5,7 @@
   import { tmdbApi, api } from '../lib/api';
   import { getToken, authFetch } from '../lib/auth';
 
-  let { media = 'movie', id = '0', server = 'white' } = $props();
+  let { media = 'movie', id = '0', server = 'white', startTime = 0 } = $props();
 
   let season = $state(1);
   let episode = $state(1);
@@ -229,6 +229,11 @@
     const params = new URLSearchParams(window.location.search);
     season = parseInt(params.get('season') || '1');
     episode = parseInt(params.get('episode') || '1');
+
+    // If startTime was provided via URL (e.g. from continue watching), use it
+    if (startTime > 0) {
+      resumeTime = startTime;
+    }
 
     tmdbApi.details(mediaType, Number(id))
       .then((data: any) => {

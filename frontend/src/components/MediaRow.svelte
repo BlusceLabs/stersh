@@ -171,6 +171,7 @@
               progress={item._progress}
               season={item._season}
               episode={item._episode}
+              startTime={item._startTime}
             />
           </div>
         {/each}
