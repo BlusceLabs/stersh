@@ -20,7 +20,7 @@ async def _fetch_tmdb(path: str, params: dict) -> dict | None:
         logger.warning('"tmdb_cache_warm_skipped":{"reason":"no_api_key","path":"%s"}', path)
         return None
     try:
-        from tmdb import _get_client as get_tmdb_client
+        from app.api.tmdb import _get_client as get_tmdb_client
         client = get_tmdb_client()
         resp = await client.get(
             path,

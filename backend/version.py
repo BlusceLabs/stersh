@@ -1,7 +1,11 @@
 """Version and build information."""
-from fastapi import APIRouter
-import subprocess
+from __future__ import annotations
+
 import os
+import subprocess
+from typing import Any, Dict
+
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/version", tags=["version"])
 

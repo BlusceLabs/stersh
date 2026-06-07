@@ -1,6 +1,7 @@
 """Analytics tracking for watchfy backend."""
 from __future__ import annotations
 
+import json
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -16,17 +17,17 @@ async def track_event(
     data: Dict[str, Any] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     """Track an analytics event."""
     event = AnalyticsEvent(
         user_id=current_user.id,
         event_type=event_type,
-        event_data=data or {}
+        event_data=json.dumps(data or {}),
     )
     db.add(event)
     db.commit()
     db.refresh(event)
-    
+
     return {"message": "Event tracked", "event_id": event.id}
 
 @router.get("/events")
@@ -49,9 +50,9 @@ async def get_events(
             {
                 "id": e.id,
                 "event_type": e.event_type,
-                "data": e.event_data,
+                "data": json.loads(e.event_data) if e.event_data else {},
                 "created_at": e.created_at.isoformat(),
-                "user_id": e.user_id
+                "user_id": e.user_id,
             }
             for e in events
         ]

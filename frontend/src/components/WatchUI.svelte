@@ -72,7 +72,9 @@
     fetch(`/api/tmdb/tv/${id}/season/${season}`, { signal: controller.signal })
       .then(r => r.json())
       .then(data => {
-        seasonEpisodes = data.episodes || [];
+        if (!controller.signal.aborted) {
+          seasonEpisodes = data.episodes || [];
+        }
       })
       .catch(() => {});
     return () => controller.abort();
@@ -334,7 +336,11 @@
     if (mediaType !== 'movie' || !showDetails) return;
     const controller = new AbortController();
     tmdbApi.recommendations('movie', id)
-      .then((data: any) => { upnextItems = (data.results || []).slice(0, 6); })
+      .then((data: any) => {
+        if (!controller.signal.aborted) {
+          upnextItems = (data.results || []).slice(0, 6);
+        }
+      })
       .catch(() => {});
     return () => controller.abort();
   });
