@@ -15,7 +15,6 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 COPY --from=builder /app/gateway .
-COPY .env .
 
 EXPOSE 8080
 

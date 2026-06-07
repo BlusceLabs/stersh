@@ -1,7 +1,7 @@
 """Continue Watching router — playback progress tracking for watchfy backend."""
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -38,11 +38,11 @@ class ProgressOut(BaseModel):
     updated_at: Optional[str] = None
 
 
-@router.get("/", response_model=List[ProgressOut])
+@router.get("/", response_model=list[ProgressOut])
 async def get_continue_watching(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-) -> List[Dict[str, Any]]:
+) -> list[ProgressOut]:
     """Get user's continue-watching list, deduplicated by tmdb_id (one entry per show/movie)."""
     rows = (
         db.query(PlaybackHistory)
@@ -51,26 +51,26 @@ async def get_continue_watching(
         .order_by(PlaybackHistory.updated_at.desc())
         .all()
     )
-    seen: Dict[tuple, bool] = {}
-    result = []
+    seen: dict[tuple, bool] = {}
+    result: list[ProgressOut] = []
     for r in rows:
         key = (r.tmdb_id, r.media_type)
         if key in seen:
             continue
         seen[key] = True
         pct = round(r.current_time / r.duration * 100, 2) if r.duration and r.duration > 0 else 0
-        result.append({
-            "tmdb_id": r.tmdb_id,
-            "media_type": r.media_type,
-            "title": r.title or "",
-            "poster_path": r.poster_path or "",
-            "season": r.season,
-            "episode": r.episode,
-            "current_time": r.current_time,
-            "duration": r.duration,
-            "progress_pct": pct,
-            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-        })
+        result.append(ProgressOut(
+            tmdb_id=r.tmdb_id,
+            media_type=r.media_type,
+            title=r.title or "",
+            poster_path=r.poster_path or "",
+            season=r.season,
+            episode=r.episode,
+            current_time=r.current_time,
+            duration=r.duration,
+            progress_pct=pct,
+            updated_at=r.updated_at.isoformat() if r.updated_at else None,
+        ))
         if len(result) >= 20:
             break
     return result
@@ -84,7 +84,7 @@ async def save_progress(
     body: ProgressIn,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Save or update playback progress for the current user."""
     if body.media_type not in ("movie", "tv"):
         raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")
@@ -155,7 +155,7 @@ async def remove_from_continue_watching(
     episode: Optional[int] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Remove an item from continue watching."""
     if media_type not in ("movie", "tv"):
         raise HTTPException(status_code=400, detail="media_type must be 'movie' or 'tv'")

@@ -224,7 +224,15 @@ if "sqlite" in DATABASE_URL.lower():
         DATABASE_URL,
         echo=False,  # Set to True for debugging
         future=True,
+        connect_args={"check_same_thread": False},
     )
+    # Enable WAL mode for better concurrent read performance
+    from sqlalchemy import event as sa_event
+
+    @sa_event.listens_for(engine, "connect")
+    def _set_sqlite_wal(dbapi_connection, connection_record):
+        dbapi_connection.execute("PRAGMA journal_mode=WAL")
+        dbapi_connection.execute("PRAGMA synchronous=NORMAL")
 else:
     # PostgreSQL with connection pooling
     engine = create_engine(

@@ -38,6 +38,7 @@ from app.api.ffmpeg_remux import router as ffmpeg_router
 from app.api.tmdb import include_router as include_tmdb_router
 from app.api.tmdb import close_client as close_tmdb_client
 from app.middleware.security_headers import setup_security_headers
+from rate_limiting import setup_rate_limiting
 
 from database import init_db, get_engine
 from auth import router as auth_router
@@ -139,6 +140,19 @@ async def request_id_middleware(request: Request, call_next) -> Response:
 
 
 setup_security_headers(app)
+setup_rate_limiting(app)
+
+
+@app.middleware("http")
+async def request_size_limit_middleware(request: Request, call_next) -> Response:
+    """Reject request bodies larger than 1 MB (JSON payloads only)."""
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > 1_000_000:
+        return JSONResponse(
+            status_code=413,
+            content={"detail": "Request body too large (max 1 MB)"},
+        )
+    return await call_next(request)
 
 
 @app.middleware("http")
