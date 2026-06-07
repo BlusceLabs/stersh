@@ -11,7 +11,7 @@ from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, UniqueConstraint, Index,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, scoped_session, relationship
+from sqlalchemy.orm import sessionmaker, scoped_session, relationship, Session
 from sqlalchemy.sql import func
 
 # Configuration
@@ -249,7 +249,7 @@ SessionLocal = scoped_session(sessionmaker(bind=engine, autocommit=False, autofl
 
 def get_db():
     """Dependency for SQLAlchemy session with connection pooling."""
-    db = SessionLocal()
+    db: Session = SessionLocal()
     try:
         yield db
     finally:

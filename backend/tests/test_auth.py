@@ -32,7 +32,8 @@ class _FakeUser:
 
 
 fake_db.User = _FakeUser
-fake_db.SessionLocal = MagicMock()
+fake_db.Session = MagicMock()
+fake_db.SessionLocal = MagicMock()  # backward compat for old imports
 
 
 def _fake_get_db():

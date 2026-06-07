@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, ConfigDict
 
-from database import SessionLocal, User, get_db
+from database import Session, User, get_db
 
 # Configuration
 _DEFAULT_JWT_SECRET = "your-secret-key-change-this"
@@ -69,8 +69,7 @@ class TokenRefreshRequest(BaseModel):
 
 # Password hashing utilities
 def hash_password(password: str) -> str:
-    """Hash a password using bcrypt."""
-    # Use secrets to generate a salt
+    """Hash a password using PBKDF2-HMAC-SHA256 with a random salt."""
     salt = hashlib.sha256(os.urandom(60)).hexdigest().encode('ascii')
     pwdhash = hashlib.pbkdf2_hmac(
         'sha256',
@@ -145,7 +144,7 @@ def _user_out(user: User) -> UserOut:
 # Auth dependency
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: SessionLocal = Depends(get_db),
+    db: Session = Depends(get_db),
 ) -> User:
     """Get the current user from token."""
     payload = decode_token(token)
