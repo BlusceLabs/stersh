@@ -80,6 +80,7 @@ health:
 
 test:
 	@cd frontend && npm run build
+	@cd frontend && npm run test:unit
 	@cd backend/gateway && GOCACHE=/tmp/watchfy-go-cache GOPATH=/tmp/watchfy-go go test ./...
 	@cd backend && python3 -m unittest discover -s tests -v
 	@python3 -m compileall -q backend
@@ -87,6 +88,8 @@ test:
 ci-local:
 	@echo "─── svelte-check ───"
 	@cd frontend && npm run check
+	@echo "─── frontend unit tests ───"
+	@cd frontend && npm run test:unit
 	@echo "─── frontend build ───"
 	@cd frontend && npm run build
 	@echo "─── Python compile ───"

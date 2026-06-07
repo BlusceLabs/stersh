@@ -1,0 +1,25 @@
+# Watchfy — local development override
+# Auto-loaded by docker-compose alongside docker-compose.yml.
+# Source is mounted as volumes for hot-reload; all ports exposed locally.
+
+services:
+  frontend:
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/packages:/app/packages
+    environment:
+      - NODE_ENV=development
+      - BACKEND_URL=http://localhost:8000
+
+  extractor:
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=DEBUG
+      - SECURITY_HSTS_ENABLED=false
+
+  gateway:
+    ports:
+      - "8080:8080"
