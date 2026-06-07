@@ -1,8 +1,16 @@
 """Database monitoring endpoint."""
+from __future__ import annotations
+
+import time
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import Dict, Any
-import time
+
+from database import (
+    get_db, Movie, TVShow, User, Favorite, Watchlist,
+    PlaybackHistory, Rating,
+)
 
 router = APIRouter(prefix="/db", tags=["database"])
 

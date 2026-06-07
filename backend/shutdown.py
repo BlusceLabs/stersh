@@ -4,6 +4,9 @@ from fastapi.responses import JSONResponse
 import sys
 import time
 
+from auth import get_current_active_user
+from database import User
+
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.post("/shutdown")

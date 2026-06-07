@@ -1,9 +1,12 @@
 """System information endpoint."""
-from fastapi import APIRouter, Depends
-import platform
+from __future__ import annotations
+
 import os
-import getpass
-import uuid
+import platform
+import time
+from typing import Any, Dict
+
+from fastapi import APIRouter
 
 router = APIRouter(prefix="/system", tags=["system"])
 
@@ -18,9 +21,6 @@ async def system_info() -> Dict[str, Any]:
         "architecture": platform.machine(),
         "processor": platform.processor(),
         "python_version": platform.python_version(),
-        "user": getpass.getuser(),
-        "current_dir": os.getcwd(),
         "pid": os.getpid(),
-        "uptime": time.time() - platform.start_time(),
-        "environment": dict(os.environ)
+        "current_dir": os.getcwd(),
     }

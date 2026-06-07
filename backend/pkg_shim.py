@@ -22,17 +22,8 @@ _MAP: dict[str, str] = {
     "services.streaming.app.hls_parser":              "hls_parser",
     "services.streaming.app.subtitles":               "subtitles",
     "services.streaming.app.ffmpeg_utils":            "ffmpeg_utils",
-    "services.streaming.app.ffmpeg_routes":           "ffmpeg_routes",
-    "services.streaming.app.enhanced_proxy_routes":   "proxy_routes",
-    # Black server (vidking.net)
-    "services.streaming.app.black":                   "black",
-    "services.streaming.app.black_routes":            "black_routes",
-    # White server (111movies.net)
-    "services.streaming.app.white":                   "white",
-    "services.streaming.app.white_routes":            "white_routes",
-    # Pink server (hydrahd.ru)
-    "services.streaming.app.pink":                    "pink",
-    "services.streaming.app.pink_routes":             "pink_routes",
+    # Note: black, black_routes, white, white_routes, proxy_routes, ffmpeg_routes
+    # have been consolidated into app/api/providers/ and app/api/
 }
 
 
