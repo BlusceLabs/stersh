@@ -113,6 +113,20 @@ _CDN_HEADERS: dict[str, str] = {
     "Origin": "https://111movies.net",
 }
 
+_cookies: dict[str, str] = {}
+
+
+def _adapt_cookies_for_domain(cookies: dict[str, str], target_url: str) -> dict[str, str]:
+    adapted = {}
+    for name, value in cookies.items():
+        adapted[name] = value
+    return adapted
+
+
+async def _ensure_browser_session():
+    return _cookies
+
+
 # ── Types ──────────────────────────────────────────────────────────────────────
 
 
