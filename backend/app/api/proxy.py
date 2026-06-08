@@ -27,7 +27,7 @@ from cachetools import TTLCache
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
-from ssrf import ALLOWED_HOSTS as ENHANCED_ALLOWED_HOSTS  # re-exported for back-compat
+from app.core.security import ALLOWED_HOSTS as ENHANCED_ALLOWED_HOSTS  # re-exported for back-compat
 
 __all__ = ["router", "shutdown_enhanced_client", "ENHANCED_ALLOWED_HOSTS"]
 

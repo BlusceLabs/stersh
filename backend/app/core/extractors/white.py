@@ -18,7 +18,7 @@ from curl_cffi.requests import AsyncSession as CurlSession
 # Shared HLS parser — single source of truth for quality tiers and manifest parsing.
 # Eliminates the private duplicates (_parse_ext_x_stream_inf, _height_to_label, etc.)
 # that previously lived in this module.
-from .hls_manifest import HLSVariant, parse_master_manifest as _parse_hls_manifest
+from app.core.hls import HLSVariant, parse_master_manifest as _parse_hls_manifest
 
 logger = logging.getLogger(__name__)
 
