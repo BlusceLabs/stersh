@@ -8,6 +8,7 @@ import time
 from urllib.parse import urlparse
 
 import httpx
+from curl_cffi.requests import AsyncSession as CurlSession
 from cachetools import TTLCache
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
@@ -72,6 +73,7 @@ _prewarm_semaphore = asyncio.Semaphore(2)
 _upstream_semaphore = asyncio.Semaphore(1)
 
 _client: httpx.AsyncClient | None = None
+_cdn_client: CurlSession | None = None
 _cookies: dict[str, str] = {}
 
 
@@ -94,10 +96,13 @@ async def shutdown_white_browser() -> None:
 
 
 async def shutdown_white_client() -> None:
-    global _client
+    global _client, _cdn_client
     if _client and not _client.is_closed:
         await _client.aclose()
         _client = None
+    if _cdn_client:
+        await _cdn_client.close()
+        _cdn_client = None
     logger.info('"white_client_shutdown"')
 
 
@@ -111,6 +116,18 @@ async def _get_client() -> httpx.AsyncClient:
             limits=httpx.Limits(max_connections=40, max_keepalive_connections=15),
         )
     return _client
+
+
+async def _get_cdn_client() -> CurlSession:
+    global _cdn_client
+    if _cdn_client is None:
+        _cdn_client = CurlSession(
+            headers=_CDN_HEADERS,
+            timeout=30,
+            allow_redirects=True,
+            impersonate="chrome131",
+        )
+    return _cdn_client
 
 
 def _register_onetoone_hosts(sources: list[dict]) -> None:
@@ -155,26 +172,23 @@ def _validate_host(url: str) -> None:
     raise HTTPException(status_code=403, detail=f"Host not allowed: {hostname}")
 
 
-async def _fetch_upstream(url: str) -> httpx.Response:
+async def _fetch_upstream(url: str) -> Any:
     """Fetch from upstream with retry logic for transient failures."""
     async with _upstream_semaphore:
-        client = await _get_client()
+        client = await _get_cdn_client()
         last_exc: Exception | None = None
         for attempt in range(3):
             try:
-                resp = await client.get(url, cookies=_cookies if _cookies else None)
-                if resp.is_success:
+                resp = await client.get(url)
+                if resp.ok:
                     return resp
                 status = resp.status_code
                 if status in (404, 410):
                     raise HTTPException(status_code=410, detail="Resource expired")
                 if status < 500:
                     raise HTTPException(status_code=status, detail=f"Upstream error: {status}")
-                logger.warning('"white_upstream_5xx","url":"%s","attempt":%d,"status":%d,"body":"%.200s"', url[:120], attempt + 1, status, resp.text[:200])
+                logger.warning('"white_upstream_5xx","url":"%s","attempt":%d,"status":%d', url[:120], attempt + 1, status)
                 last_exc = Exception(f"HTTP {status}")
-            except httpx.TimeoutException as exc:
-                last_exc = exc
-                logger.warning('"white_upstream_timeout","url":"%s","attempt":%d,"err":"%s"', url[:80], attempt + 1, exc)
             except HTTPException:
                 raise
             except Exception as exc:
@@ -191,9 +205,9 @@ async def _prefetch_upstream_content(url: str) -> None:
         return
     async with _upstream_semaphore:
         try:
-            client = await _get_client()
-            resp = await client.get(url, cookies=_cookies if _cookies else None)
-            if resp.is_success:
+            client = await _get_cdn_client()
+            resp = await client.get(url)
+            if resp.ok:
                 content_type = resp.headers.get("content-type", "video/MP2T")
                 _upstream_cache[url] = (resp.content, content_type)
                 logger.info('"white_prefetch_done","url":"%s"', url[:80])
