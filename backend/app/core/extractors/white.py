@@ -282,8 +282,9 @@ async def extract_hls_from_white(
             # Capture cookies while the browser context is still alive.
             try:
                 cookies = await stealthy.context.cookies() if stealthy.context else []
-                white_api._cookies = {c["name"]: c["value"] for c in cookies or []}
-                logger.info('"white_cookies_captured":{"count":%d}', len(white_api._cookies))
+                parsed = {c["name"]: c["value"] for c in cookies or []}
+                white_api.set_cookies(parsed)
+                logger.info('"white_cookies_captured":{"count":%d}', len(parsed))
             except Exception as exc:
                 logger.warning('"white_cookie_capture_failed":{"err":"%s"}', exc)
 

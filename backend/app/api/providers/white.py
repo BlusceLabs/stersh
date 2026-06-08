@@ -127,6 +127,18 @@ async def _ensure_browser_session():
     return _cookies
 
 
+def set_cookies(cookies: dict[str, str]) -> None:
+    """Update the shared cookie jar and reset the CDN client so it picks them up."""
+    global _cdn_client
+    _cookies.update(cookies)
+    if _cdn_client:
+        try:
+            _cdn_client.close()
+        except Exception:
+            pass
+        _cdn_client = None
+
+
 # ── Types ──────────────────────────────────────────────────────────────────────
 
 
@@ -314,6 +326,7 @@ async def _get_cdn_client() -> CurlSession:
             timeout=30,
             allow_redirects=True,
             impersonate="chrome131",
+            cookies=dict(_cookies) if _cookies else None,
         )
     return _cdn_client
 
