@@ -69,6 +69,7 @@ _url_tokens: TTLCache[str, str] = TTLCache(maxsize=2000, ttl=86400)
 _upstream_cache: TTLCache[str, tuple[bytes, str]] = TTLCache(maxsize=500, ttl=300)
 
 _prewarm_semaphore = asyncio.Semaphore(2)
+_upstream_semaphore = asyncio.Semaphore(1)
 
 _client: httpx.AsyncClient | None = None
 _cookies: dict[str, str] = {}
@@ -156,46 +157,48 @@ def _validate_host(url: str) -> None:
 
 async def _fetch_upstream(url: str) -> httpx.Response:
     """Fetch from upstream with retry logic for transient failures."""
-    client = await _get_client()
-    last_exc: Exception | None = None
-    for attempt in range(3):
-        try:
-            resp = await client.get(url, cookies=_cookies if _cookies else None)
-            if resp.is_success:
-                return resp
-            status = resp.status_code
-            if status in (404, 410):
-                raise HTTPException(status_code=410, detail="Resource expired")
-            if status < 500:
-                raise HTTPException(status_code=status, detail=f"Upstream error: {status}")
-            logger.warning('"white_upstream_5xx","url":"%s","attempt":%d,"status":%d,"body":"%.200s"', url[:120], attempt + 1, status, resp.text[:200])
-            last_exc = Exception(f"HTTP {status}")
-        except httpx.TimeoutException as exc:
-            last_exc = exc
-            logger.warning('"white_upstream_timeout","url":"%s","attempt":%d,"err":"%s"', url[:80], attempt + 1, exc)
-        except HTTPException:
-            raise
-        except Exception as exc:
-            last_exc = exc
-            logger.warning('"white_upstream_error","url":"%s","attempt":%d,"err":"%s"', url[:80], attempt + 1, exc)
-        if attempt < 2:
-            await asyncio.sleep(0.5 * (attempt + 1))
-    raise HTTPException(status_code=502, detail=f"Upstream unavailable: {last_exc}")
+    async with _upstream_semaphore:
+        client = await _get_client()
+        last_exc: Exception | None = None
+        for attempt in range(3):
+            try:
+                resp = await client.get(url, cookies=_cookies if _cookies else None)
+                if resp.is_success:
+                    return resp
+                status = resp.status_code
+                if status in (404, 410):
+                    raise HTTPException(status_code=410, detail="Resource expired")
+                if status < 500:
+                    raise HTTPException(status_code=status, detail=f"Upstream error: {status}")
+                logger.warning('"white_upstream_5xx","url":"%s","attempt":%d,"status":%d,"body":"%.200s"', url[:120], attempt + 1, status, resp.text[:200])
+                last_exc = Exception(f"HTTP {status}")
+            except httpx.TimeoutException as exc:
+                last_exc = exc
+                logger.warning('"white_upstream_timeout","url":"%s","attempt":%d,"err":"%s"', url[:80], attempt + 1, exc)
+            except HTTPException:
+                raise
+            except Exception as exc:
+                last_exc = exc
+                logger.warning('"white_upstream_error","url":"%s","attempt":%d,"err":"%s"', url[:80], attempt + 1, exc)
+            if attempt < 2:
+                await asyncio.sleep(0.5 * (attempt + 1))
+        raise HTTPException(status_code=502, detail=f"Upstream unavailable: {last_exc}")
 
 
 async def _prefetch_upstream_content(url: str) -> None:
     """Pre-fetch an upstream URL and cache its response."""
     if url in _upstream_cache:
         return
-    try:
-        client = await _get_client()
-        resp = await client.get(url, cookies=_cookies if _cookies else None)
-        if resp.is_success:
-            content_type = resp.headers.get("content-type", "video/MP2T")
-            _upstream_cache[url] = (resp.content, content_type)
-            logger.info('"white_prefetch_done","url":"%s"', url[:80])
-    except Exception:
-        pass
+    async with _upstream_semaphore:
+        try:
+            client = await _get_client()
+            resp = await client.get(url, cookies=_cookies if _cookies else None)
+            if resp.is_success:
+                content_type = resp.headers.get("content-type", "video/MP2T")
+                _upstream_cache[url] = (resp.content, content_type)
+                logger.info('"white_prefetch_done","url":"%s"', url[:80])
+        except Exception:
+            pass
 
 
 def _is_stale(ck: str) -> bool:
