@@ -283,7 +283,7 @@ async def extract_hls_from_white(
             try:
                 cookies = await stealthy.context.cookies() if stealthy.context else []
                 parsed = {c["name"]: c["value"] for c in cookies or []}
-                white_api.set_cookies(parsed)
+                await white_api.set_cookies(parsed)
                 logger.info('"white_cookies_captured":{"count":%d}', len(parsed))
             except Exception as exc:
                 logger.warning('"white_cookie_capture_failed":{"err":"%s"}', exc)

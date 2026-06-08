@@ -127,13 +127,19 @@ async def _ensure_browser_session():
     return _cookies
 
 
-def set_cookies(cookies: dict[str, str]) -> None:
+async def set_cookies(cookies: dict[str, str]) -> None:
     """Update the shared cookie jar and reset the CDN client so it picks them up."""
     global _cdn_client
     _cookies.update(cookies)
+    await _reset_cdn_client()
+
+
+async def _reset_cdn_client() -> None:
+    """Close and clear the CDN client — next request gets a fresh session with current cookies."""
+    global _cdn_client
     if _cdn_client:
         try:
-            _cdn_client.close()
+            await _cdn_client.close()
         except Exception:
             pass
         _cdn_client = None
@@ -399,17 +405,18 @@ async def _fetch_cdn(url: str) -> tuple[bytes, str]:
     """Fetch *url* via the CDN client with exponential-backoff retry.
 
     Acquires ``_seg_semaphore`` so real-time segment fetches are capped at
-    ``WHITE_SEG_CONCURRENCY`` concurrent requests.
+    ``WHITE_SEG_CONCURRENCY`` concurrent requests.  On 5xx or connection errors
+    the CDN client is reset so the next retry uses a fresh session.
 
     Returns ``(content_bytes, content_type)``.
     Raises HTTPException on permanent 4xx errors or exhausted retries.
     """
     seg_sem, _, _ = _semaphores()
-    client = await _get_cdn_client()
     last_exc: Exception | None = None
 
     async with seg_sem:
         for attempt in range(3):
+            client = await _get_cdn_client()
             try:
                 resp = await client.get(url)
                 if resp.ok:
@@ -419,15 +426,17 @@ async def _fetch_cdn(url: str) -> tuple[bytes, str]:
                     raise HTTPException(status_code=410, detail="Resource expired")
                 if status < 500:
                     raise HTTPException(status_code=status, detail=f"Upstream error: {status}")
-                logger.warning('"white_cdn_5xx":{"attempt":%d,"status":%d}', attempt + 1, status)
+                logger.warning('"white_cdn_5xx":{"attempt":%d,"status":%d,"url":"%s"}', attempt + 1, status, url[:120])
                 last_exc = Exception(f"HTTP {status}")
+                await _reset_cdn_client()
             except HTTPException:
                 raise
             except Exception as exc:
                 last_exc = exc
-                logger.warning('"white_cdn_error":{"attempt":%d,"err":"%s"}', attempt + 1, exc)
+                logger.warning('"white_cdn_error":{"attempt":%d,"err":"%s","url":"%s"}', attempt + 1, exc, url[:120])
+                await _reset_cdn_client()
             if attempt < 2:
-                await asyncio.sleep(0.5 * (2 ** attempt))  # 0.5 s, 1 s
+                await asyncio.sleep(0.5 * (2 ** attempt))
 
     raise HTTPException(status_code=502, detail=f"CDN unavailable after 3 attempts: {last_exc}")
 
