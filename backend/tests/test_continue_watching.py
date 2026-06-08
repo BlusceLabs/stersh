@@ -14,20 +14,20 @@ from unittest.mock import MagicMock
 # Stub the database module to avoid pulling in real SQLAlchemy wiring
 # (continue_watching.py imports PlaybackHistory, User, get_db at module
 # load time, but we only need the constants and Pydantic models).
-fake_db = types.ModuleType("database")
+fake_db = types.ModuleType("app.database")
 fake_db.PlaybackHistory = MagicMock()
 fake_db.User = MagicMock()
 fake_db.get_db = MagicMock(return_value=iter([MagicMock()]))
-sys.modules["database"] = fake_db  # always overwrite (setdefault races with test_auth)
+sys.modules["app.database"] = fake_db  # always overwrite (setdefault races with test_auth)
 
 # Stub the auth module similarly (continue_watching may import it for
 # auth dependencies in some code paths).
-if "auth" not in sys.modules or not hasattr(sys.modules["auth"], "get_current_active_user"):
-    fake_auth = types.ModuleType("auth")
+if "app.api.auth" not in sys.modules or not hasattr(sys.modules["app.api.auth"], "get_current_active_user"):
+    fake_auth = types.ModuleType("app.api.auth")
     fake_auth.get_current_active_user = MagicMock()
-    sys.modules["auth"] = fake_auth
+    sys.modules["app.api.auth"] = fake_auth
 
-from continue_watching import _ALLOWED_SOURCE_SERVERS  # noqa: E402
+from app.api.continue_watching import _ALLOWED_SOURCE_SERVERS  # noqa: E402
 
 
 class SourceServerAllowlist(unittest.TestCase):

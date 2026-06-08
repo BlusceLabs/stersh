@@ -18,7 +18,7 @@ from unittest.mock import MagicMock
 
 from fastapi import HTTPException
 
-import ssrf
+from app.core import security as ssrf
 
 
 def _run(coro):

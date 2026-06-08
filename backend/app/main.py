@@ -34,19 +34,19 @@ from app.api.providers.white import (
 from app.core.extractors.white import close_pooled_session as close_white_session
 from app.api.proxy import router as proxy_router
 from app.api.proxy import shutdown_enhanced_client
-from app.api.ffmpeg_remux import router as ffmpeg_router
+from app.api.ffmpeg import router as ffmpeg_router
 from app.api.tmdb import include_router as include_tmdb_router
 from app.api.tmdb import close_client as close_tmdb_client
 from app.middleware.security_headers import setup_security_headers
-from rate_limiting import setup_rate_limiting
+from app.core.rate_limiting import setup_rate_limiting
 
-from database import init_db, get_engine
-from auth import router as auth_router
-from user_features import router as user_features_router
-from ads import router as ads_router
-from analytics import router as analytics_router
-from continue_watching import router as continue_watching_router
-from config import router as config_router
+from app.database import init_db, get_engine
+from app.api.auth import router as auth_router
+from app.api.user_features import router as user_features_router
+from app.api.ads import router as ads_router
+from app.api.analytics import router as analytics_router
+from app.api.continue_watching import router as continue_watching_router
+from app.api.config import router as config_router
 
 load_dotenv()
 

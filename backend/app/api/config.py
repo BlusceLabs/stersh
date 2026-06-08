@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any
 import os
 
-from database import get_db
+from app.database import get_db
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 

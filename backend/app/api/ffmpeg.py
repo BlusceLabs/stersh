@@ -1,9 +1,6 @@
-"""FFmpeg remux routes for watchfy — provides remux_proxy callable.
+"""FFmpeg remux routes for watchfy.
 
-Imported by routes.py as:
-    from .services.streaming.app.ffmpeg_routes import remux_proxy
-
-Also mounts its own APIRouter at /api/ffmpeg for direct access.
+Mounts its own APIRouter at /api/ffmpeg for direct access.
 """
 from __future__ import annotations
 
@@ -15,7 +12,7 @@ import shutil
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from ssrf import redirect_event_hook, validate_outbound_url
+from app.core.security import redirect_event_hook, validate_outbound_url
 
 logger = logging.getLogger(__name__)
 

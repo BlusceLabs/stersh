@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from database import get_db, AnalyticsEvent, User
-from auth import get_current_active_user
+from app.database import get_db, AnalyticsEvent, User
+from app.api.auth import get_current_active_user
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 

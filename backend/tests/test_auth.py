@@ -12,14 +12,14 @@ from unittest.mock import MagicMock
 
 from fastapi import HTTPException
 
-# auth.py imports from `database` at module load time, which requires
+# auth.py imports from `app.database` at module load time, which requires
 # SQLAlchemy + a real or mocked SessionLocal. We mock the User model
 # and SessionLocal via sys.modules BEFORE importing auth.
 import sys
 import types
 
 # Stub the database module to avoid pulling in real SQLAlchemy wiring.
-fake_db = types.ModuleType("database")
+fake_db = types.ModuleType("app.database")
 
 
 class _FakeUser:
@@ -41,9 +41,9 @@ def _fake_get_db():
 
 
 fake_db.get_db = _fake_get_db
-sys.modules["database"] = fake_db
+sys.modules["app.database"] = fake_db
 
-import auth  # noqa: E402
+from app.api import auth  # noqa: E402
 
 
 class UpdateUserFieldAllowlist(unittest.TestCase):

@@ -1,7 +1,6 @@
 """Rate limiting middleware for watchfy backend."""
 from fastapi import Request, FastAPI
 from fastapi.responses import JSONResponse
-from redis_utils import get_cache_stats
 
 
 def setup_rate_limiting(app: FastAPI):

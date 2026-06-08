@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, ConfigDict
 
-from database import Session, User, get_db
+from app.database import Session, User, get_db
 
 # Configuration
 _DEFAULT_JWT_SECRET = "your-secret-key-change-this"

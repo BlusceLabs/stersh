@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from database import get_db, Ad, User, UserAdInteraction
-from auth import get_current_active_user
+from app.database import get_db, Ad, User, UserAdInteraction
+from app.api.auth import get_current_active_user
 
 router = APIRouter(prefix="/ads", tags=["ads"])
 

@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from database import get_db, PlaybackHistory, User
-from auth import get_current_active_user
+from app.database import get_db, PlaybackHistory, User
+from app.api.auth import get_current_active_user
 
 router = APIRouter(prefix="/continue-watching", tags=["continue-watching"])
 

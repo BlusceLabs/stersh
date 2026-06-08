@@ -1,1 +1,7 @@
 frontend/
+*.db
+*.db-shm
+*.db-wal
+gateway/server
+__pycache__/
+*.pyc
