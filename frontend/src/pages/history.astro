@@ -159,8 +159,8 @@ import FilterChips from '../components/FilterChips.svelte';
 
     items.forEach((item: any) => {
       const href = item.media_type === 'tv' && item.season && item.episode
-        ? `/watch/${item.media_type}/${item.tmdb_id}?season=${item.season}&episode=${item.episode}`
-        : `/watch/${item.media_type}/${item.tmdb_id}`;
+        ? `/watch/${item.media_type}/${item.tmdb_id}?season=${item.season}&episode=${item.episode}&server=white`
+        : `/watch/${item.media_type}/${item.tmdb_id}?server=white`;
 
       const title = item.title || item.name || 'Untitled';
       const year = (item.release_date || item.first_air_date || '').split('-')[0];

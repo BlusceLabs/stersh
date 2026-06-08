@@ -115,8 +115,8 @@
   }
 
   function watchUrl(episode?: number): string {
-    if (mediaType === 'tv') return `/watch/tv/${id}?season=${selectedSeason}&episode=${episode || 1}`;
-    return `/watch/movie/${id}`;
+    if (mediaType === 'tv') return `/watch/tv/${id}?season=${selectedSeason}&episode=${episode || 1}&server=white`;
+    return `/watch/movie/${id}?server=white`;
   }
 
   async function loadUserRating() {
