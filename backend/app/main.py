@@ -61,6 +61,15 @@ logging.basicConfig(
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
+
+class _CloudflareNoiseFilter(logging.Filter):
+    """Suppress scrapling's noisy 'No Cloudflare challenge found' messages."""
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "No Cloudflare challenge found" not in record.getMessage()
+
+
+logging.getLogger("scrapling").addFilter(_CloudflareNoiseFilter())
+
 logger = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────────

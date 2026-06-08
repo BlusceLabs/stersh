@@ -100,7 +100,7 @@ async def _tmdb_get(path: str, extra: dict[str, Any] | None = None) -> Any:
         logger.warning('"tmdb_upstream_error","path":"%s","status":%d', clean, status)
         raise HTTPException(status_code=status, detail=detail) from exc
     except httpx.RequestError as exc:
-        logger.error('"tmdb_request_error","path":"%s","error":"%s"', clean, exc)
+        logger.error('"tmdb_request_error","path":"%s","error":"%s","cause":"%s"', clean, exc, exc.__cause__)
         raise HTTPException(status_code=502, detail="TMDB service unreachable") from exc
 
     payload = resp.json()

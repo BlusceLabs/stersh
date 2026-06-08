@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 import httpx
+from curl_cffi.requests import AsyncSession as CurlSession
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +230,9 @@ async def extract_hls_from_white(
 
     logger.info('"white_loading":{"url":"%s"}', page_url)
     try:
+        import app.api.providers.white as white_api
+        from scrapling.fetchers import AsyncStealthySession
+        
         async with AsyncStealthySession(
             headless=True,
             solve_cloudflare=True,
@@ -237,13 +241,21 @@ async def extract_hls_from_white(
             hide_canvas=True,
             timeout=120_000,
             disable_resources=True,
-        ) as s:
-            resp = await s.fetch(
+        ) as session:
+            resp = await session.fetch(
                 page_url,
                 page_setup=_setup_page,
                 page_action=_run_action,
                 wait=2500,
             )
+
+            # Capture cookies immediately after fetch while context is still alive
+            try:
+                cookies = await session.context.cookies() if session.context else []
+                white_api._cookies = {c['name']: c['value'] for c in cookies or []}
+                logger.info('"white_cookies_captured":{"count":%d}', len(white_api._cookies))
+            except Exception as exc:
+                logger.warning('"white_cookie_capture_failed":{"err":"%s"}', exc)
 
             if captured_hls is None:
                 try:
@@ -251,10 +263,10 @@ async def extract_hls_from_white(
                 except asyncio.TimeoutError:
                     pass
 
-        result = await _post_process(
-            resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
-        )
-        return result
+            result = await _post_process(
+                resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
+            )
+            return result
 
     except Exception as exc:
         logger.error('"white_extraction_error":{"err":"%s"}', exc)
@@ -329,16 +341,25 @@ async def _parse_master_manifest(
     hls_url: str,
     cdn_headers: dict | None,
 ) -> list[StreamSource]:
-    headers = {**_CDN_HEADERS, **(cdn_headers or {})}
+    import app.api.providers.white as white_api
+    headers = {**white_api._CDN_HEADERS, **(cdn_headers or {})}
     fallback = [StreamSource(url=hls_url, quality="Auto", resolution=0, bandwidth=0)]
 
     try:
-        async with httpx.AsyncClient(
-            headers=headers, timeout=30.0, follow_redirects=True
-        ) as client:
-            resp = await client.get(hls_url)
+        cookies = await white_api._ensure_browser_session()
+        adapted_cookies = white_api._adapt_cookies_for_domain(cookies, hls_url)
+        
+        client = CurlSession(
+            headers=headers,
+            timeout=30,
+            allow_redirects=True,
+            impersonate="chrome131",
+            cookies=adapted_cookies,
+        )
+        resp = await client.get(hls_url)
+        await client.close()
 
-        if not resp.is_success:
+        if not resp.ok:
             logger.warning('"white_manifest_fetch_failed":{"status":%d}', resp.status_code)
             return fallback
 

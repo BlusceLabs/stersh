@@ -19,6 +19,7 @@
     _progress?: number;
     _season?: number;
     _episode?: number;
+    _startTime?: number;
   }
 
   let {

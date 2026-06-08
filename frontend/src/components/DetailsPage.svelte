@@ -421,6 +421,7 @@
   <div
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
     onclick={(event) => { if (event.currentTarget === event.target) showTrailer = false; }}
+    onkeydown={(e) => e.key === 'Escape' && (showTrailer = false)}
     role="dialog"
     aria-modal="true"
     aria-label="Trailer"

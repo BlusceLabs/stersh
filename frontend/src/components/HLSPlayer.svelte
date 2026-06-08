@@ -971,8 +971,8 @@
 
 <!-- Keyboard Shortcuts Overlay -->
 {#if showShortcuts}
-  <div class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80" onclick={() => showShortcuts = false} role="dialog" aria-label="Keyboard Shortcuts" aria-modal="true">
-    <div class="bg-[#282828] rounded-xl p-6 max-w-md w-full mx-4" onclick={(e) => e.stopPropagation()}>
+  <div class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80" onclick={() => showShortcuts = false} onkeydown={(e) => e.key === 'Escape' && (showShortcuts = false)} role="dialog" aria-label="Keyboard Shortcuts" aria-modal="true" tabindex="-1">
+    <div class="bg-[#282828] rounded-xl p-6 max-w-md w-full mx-4">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-bold text-white">Keyboard shortcuts</h2>
         <button onclick={() => showShortcuts = false} class="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-full text-white" aria-label="Close">
