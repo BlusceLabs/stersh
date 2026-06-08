@@ -1,30 +1,37 @@
+"""Watchfy streaming extraction backend for 111movies.net (codename "white").
+
+Entry points
+------------
+extract_hls_from_white(...)     -> ExtractionResult | None
+extract_sources_legacy(...)     -> tuple[list[dict] | None, str]  (compat shim)
+"""
 from __future__ import annotations
 
 import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Final, Literal
 
-import httpx
 from curl_cffi.requests import AsyncSession as CurlSession
+
+# Shared HLS parser — single source of truth for quality tiers and manifest parsing.
+# Eliminates the private duplicates (_parse_ext_x_stream_inf, _height_to_label, etc.)
+# that previously lived in this module.
+from .hls_manifest import HLSVariant, parse_master_manifest as _parse_hls_manifest
 
 logger = logging.getLogger(__name__)
 
-ONETOONE_BASE = "https://111movies.net"
+ONETOONE_BASE: Final[str] = "https://111movies.net"
 
-_CDN_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/131.0.0.0 Safari/537.36"
-    ),
-    "Referer": "https://111movies.net/",
-    "Origin": "https://111movies.net",
-    "Accept-Language": "en-US,en;q=0.9",
-}
+# String literal union for ExtractionResult.method.
+ExtractionMethod = Literal["network", "dom_probe", "unknown"]
 
-_DOM_PROBE_SCRIPT = """
+# ── DOM probe script ──────────────────────────────────────────────────────────
+# Injected into the live page to pull stream URLs from every known player API
+# (HLS.js, video.js, JW Player, Plyr, Flowplayer, FastStream, …) and by
+# scanning inline <script> blocks for bare .m3u8 URLs.
+_DOM_PROBE_SCRIPT: Final[str] = """
 (() => {
     const res = { urls: [], downloads: [] };
 
@@ -136,6 +143,8 @@ _DOM_PROBE_SCRIPT = """
 """
 
 
+# ── Data classes ───────────────────────────────────────────────────────────────
+
 @dataclass
 class StreamSource:
     url: str
@@ -143,6 +152,17 @@ class StreamSource:
     resolution: int = 0
     bandwidth: int = 0
     source_type: Literal["hls", "mp4", "unknown"] = "hls"
+
+    @classmethod
+    def from_hls_variant(cls, v: HLSVariant) -> StreamSource:
+        """Adapt a :class:`~.hls_manifest.HLSVariant` to a :class:`StreamSource`."""
+        return cls(
+            url=v.url,
+            quality=v.quality_label,
+            resolution=v.resolution_height,
+            bandwidth=v.bandwidth,
+            source_type="hls",
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -158,7 +178,7 @@ class StreamSource:
 class ExtractionResult:
     sources: list[StreamSource] = field(default_factory=list)
     downloads: list[StreamSource] = field(default_factory=list)
-    method: str = "unknown"
+    method: ExtractionMethod = "unknown"
     raw_hls_url: str = ""
 
     def best(self) -> StreamSource | None:
@@ -176,29 +196,37 @@ class ExtractionResult:
         }
 
 
-async def close_pooled_session():
-    pass
+# ── Compatibility stubs ────────────────────────────────────────────────────────
 
+async def close_pooled_session() -> None:
+    """No-op retained for API compatibility; session pooling was removed."""
+
+
+async def shutdown_browser() -> None:
+    """No-op retained for router compatibility; browser lifecycle is now per-request."""
+
+
+# ── Public API ─────────────────────────────────────────────────────────────────
 
 async def extract_hls_from_white(
     tmdb_id: int,
     media_type: str,
     season: int = 1,
     episode: int = 1,
-    session=None,
+    session=None,  # noqa: ARG001 — kept for call-site compatibility
     cdn_headers: dict | None = None,
 ) -> ExtractionResult | None:
-    page_url = _build_page_url(tmdb_id, media_type, season, episode)
-
     from scrapling.fetchers import AsyncStealthySession
+
+    page_url = _build_page_url(tmdb_id, media_type, season, episode)
 
     captured_hls: str | None = None
     captured_mp4s: list[str] = []
     probe_result: dict | None = None
     hls_captured_event = asyncio.Event()
 
-    async def _setup_page(page):
-        async def _on_response(response):
+    async def _setup_page(page) -> None:
+        async def _on_response(response) -> None:
             nonlocal captured_hls
             url = response.url
             low = url.lower()
@@ -213,26 +241,28 @@ async def extract_hls_from_white(
 
         page.on("response", _on_response)
 
-    async def _run_action(page):
-        nonlocal captured_hls, captured_mp4s, probe_result
-        if captured_hls is None:
-            try:
-                probe_result = await page.evaluate(_DOM_PROBE_SCRIPT) or {}
-                for url in probe_result.get("urls", []):
-                    if ".m3u8" in url.lower() and not captured_hls:
-                        captured_hls = url
-                        hls_captured_event.set()
-                        logger.info('"white_hls_dom_found":{"url":"%s"}', url[:120])
-                    elif ".mp4" in url.lower() and url not in captured_mp4s:
-                        captured_mp4s.append(url)
-            except Exception as exc:
-                logger.warning('"white_dom_probe_error":{"err":"%s"}', exc)
+    async def _run_action(page) -> None:
+        nonlocal captured_hls, probe_result
+        # Skip DOM probe if network interception already found the HLS URL.
+        if captured_hls is not None:
+            return
+        try:
+            probe_result = await page.evaluate(_DOM_PROBE_SCRIPT) or {}
+            for url in probe_result.get("urls", []):
+                low = url.lower()
+                if ".m3u8" in low and not captured_hls:
+                    captured_hls = url
+                    hls_captured_event.set()
+                    logger.info('"white_hls_dom_found":{"url":"%s"}', url[:120])
+                elif ".mp4" in low and url not in captured_mp4s:
+                    captured_mp4s.append(url)
+        except Exception as exc:
+            logger.warning('"white_dom_probe_error":{"err":"%s"}', exc)
 
     logger.info('"white_loading":{"url":"%s"}', page_url)
     try:
         import app.api.providers.white as white_api
-        from scrapling.fetchers import AsyncStealthySession
-        
+
         async with AsyncStealthySession(
             headless=True,
             solve_cloudflare=True,
@@ -241,60 +271,63 @@ async def extract_hls_from_white(
             hide_canvas=True,
             timeout=120_000,
             disable_resources=True,
-        ) as session:
-            resp = await session.fetch(
+        ) as stealthy:
+            resp = await stealthy.fetch(
                 page_url,
                 page_setup=_setup_page,
                 page_action=_run_action,
                 wait=2500,
             )
 
-            # Capture cookies immediately after fetch while context is still alive
+            # Capture cookies while the browser context is still alive.
             try:
-                cookies = await session.context.cookies() if session.context else []
-                white_api._cookies = {c['name']: c['value'] for c in cookies or []}
+                cookies = await stealthy.context.cookies() if stealthy.context else []
+                white_api._cookies = {c["name"]: c["value"] for c in cookies or []}
                 logger.info('"white_cookies_captured":{"count":%d}', len(white_api._cookies))
             except Exception as exc:
                 logger.warning('"white_cookie_capture_failed":{"err":"%s"}', exc)
 
+            # Give late-firing network responses a short grace period.
             if captured_hls is None:
                 try:
                     await asyncio.wait_for(hls_captured_event.wait(), timeout=3.0)
                 except asyncio.TimeoutError:
                     pass
 
-            result = await _post_process(
-                resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
-            )
-            return result
+        # Browser is closed; now fetch and parse the manifest.
+        return await _post_process(
+            resp, captured_hls, captured_mp4s, page_url, cdn_headers, probe_result
+        )
 
     except Exception as exc:
         logger.error('"white_extraction_error":{"err":"%s"}', exc)
         return None
 
-# Keep the browser shutdown function for compatibility with router
-async def shutdown_browser():
-    pass
 
+# ── Internal helpers ───────────────────────────────────────────────────────────
 
 async def _post_process(
-    page, captured_hls: str | None, captured_mp4s: list[str],
-    page_url: str, cdn_headers: dict | None,
+    page,
+    captured_hls: str | None,
+    captured_mp4s: list[str],
+    page_url: str,
+    cdn_headers: dict | None,
     probe_result: dict | None = None,
 ) -> ExtractionResult | None:
+    probe: dict = probe_result or {}
+
+    # Fallback: scan DOM probe results if network interception missed the HLS URL.
     if not captured_hls:
         logger.info('"white_phase3_dom_probe"')
-        probe = probe_result or {}
         for url in probe.get("urls", []):
-            if ".m3u8" in url.lower() and not captured_hls:
+            low = url.lower()
+            if ".m3u8" in low and not captured_hls:
                 captured_hls = url
                 logger.info('"white_phase3_hls_found":{"url":"%s"}', url[:120])
-            elif ".mp4" in url.lower() and url not in captured_mp4s:
+            elif ".mp4" in low and url not in captured_mp4s:
                 captured_mp4s.append(url)
-        probe_downloads: list[str] = probe.get("downloads", [])
-    else:
-        probe = {}
-        probe_downloads = []
+
+    probe_downloads: list[str] = probe.get("downloads", [])
 
     if not captured_hls and not captured_mp4s and not probe_downloads:
         logger.warning('"white_extraction_failed":{"url":"%s"}', page_url)
@@ -302,10 +335,11 @@ async def _post_process(
 
     result = ExtractionResult(raw_hls_url=captured_hls or "")
 
-    all_mp4s = list(dict.fromkeys(
+    # Collect MP4 download links; preserve insertion order, deduplicate.
+    mp4_urls = list(dict.fromkeys(
         captured_mp4s + [u for u in probe_downloads if ".mp4" in u.lower()]
     ))
-    for mp4_url in all_mp4s:
+    for mp4_url in mp4_urls:
         q = _guess_quality_from_url(mp4_url)
         result.downloads.append(StreamSource(
             url=mp4_url,
@@ -315,18 +349,17 @@ async def _post_process(
         ))
 
     if captured_hls:
-        hls_sources = await _parse_master_manifest(captured_hls, cdn_headers)
-        result.sources = hls_sources
-        result.method = "network" if captured_hls not in probe.get("urls", []) else "dom_probe"
+        result.sources = await _fetch_and_parse_manifest(captured_hls, cdn_headers)
+        result.method = (
+            "dom_probe" if captured_hls in probe.get("urls", []) else "network"
+        )
 
     _sort_sources(result.sources)
     _sort_sources(result.downloads)
 
     logger.info(
         '"white_extraction_done":{"hls":%d,"mp4":%d,"method":"%s"}',
-        len(result.sources),
-        len(result.downloads),
-        result.method,
+        len(result.sources), len(result.downloads), result.method,
     )
     return result
 
@@ -337,18 +370,23 @@ def _build_page_url(tmdb_id: int, media_type: str, season: int, episode: int) ->
     return f"{ONETOONE_BASE}/tv/{tmdb_id}/{season}/{episode}"
 
 
-async def _parse_master_manifest(
+async def _fetch_and_parse_manifest(
     hls_url: str,
     cdn_headers: dict | None,
 ) -> list[StreamSource]:
-    import app.api.providers.white as white_api
-    headers = {**white_api._CDN_HEADERS, **(cdn_headers or {})}
-    fallback = [StreamSource(url=hls_url, quality="Auto", resolution=0, bandwidth=0)]
+    """Fetch the HLS master manifest and return quality-sorted StreamSources.
 
+    Falls back to a single Auto-quality source on any fetch or parse failure.
+    """
+    import app.api.providers.white as white_api
+
+    headers = {**white_api._CDN_HEADERS, **(cdn_headers or {})}
+    fallback = _fallback_hls(hls_url)
+
+    client: CurlSession | None = None
     try:
         cookies = await white_api._ensure_browser_session()
         adapted_cookies = white_api._adapt_cookies_for_domain(cookies, hls_url)
-        
         client = CurlSession(
             headers=headers,
             timeout=30,
@@ -357,117 +395,46 @@ async def _parse_master_manifest(
             cookies=adapted_cookies,
         )
         resp = await client.get(hls_url)
-        await client.close()
-
-        if not resp.ok:
-            logger.warning('"white_manifest_fetch_failed":{"status":%d}', resp.status_code)
-            return fallback
-
-        text = resp.text
-        if "#EXT-X-STREAM-INF" not in text:
-            return fallback
-
-        base = hls_url.rsplit("/", 1)[0] + "/"
-        variants = _parse_ext_x_stream_inf(text, base, hls_url)
-        if not variants:
-            return fallback
-
-        logger.info('"white_variants_parsed":{"count":%d}', len(variants))
-        return variants
-
     except Exception as exc:
         logger.warning('"white_manifest_error":{"err":"%s"}', exc)
         return fallback
+    finally:
+        if client is not None:
+            await client.close()
 
+    if not resp.ok:
+        logger.warning('"white_manifest_fetch_failed":{"status":%d}', resp.status_code)
+        return fallback
 
-def _parse_ext_x_stream_inf(text: str, base_url: str, master_url: str = "") -> list[StreamSource]:
-    sources: list[StreamSource] = []
-    seen: set[str] = set()
-    lines = text.splitlines()
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
-        if line.startswith("#EXT-X-STREAM-INF:"):
-            attrs = _parse_attrs(line[len("#EXT-X-STREAM-INF:"):])
-            bw = int(attrs.get("BANDWIDTH", "0") or "0")
-            res = attrs.get("RESOLUTION", "")
-            height = 0
-            if "x" in res:
-                try:
-                    height = int(res.split("x", 1)[1])
-                except (ValueError, IndexError):
-                    pass
-            quality = _height_to_label(height) if height else _bandwidth_to_label(bw)
+    text: str = resp.text
+    if "#EXT-X-STREAM-INF" not in text:
+        return fallback
 
-            j = i + 1
-            while j < len(lines) and (not lines[j].strip() or lines[j].strip().startswith("#")):
-                j += 1
+    base = hls_url.rsplit("/", 1)[0] + "/"
+    variants = _parse_hls_manifest(text, base)
+    if not variants:
+        return fallback
 
-            if j < len(lines):
-                uri = lines[j].strip()
-                if uri and uri not in seen:
-                    if uri.startswith("http"):
-                        pass
-                    elif uri.startswith("/"):
-                        from urllib.parse import urlparse
-                        parsed = urlparse(master_url)
-                        uri = f"{parsed.scheme}://{parsed.netloc}{uri}"
-                    else:
-                        uri = base_url + uri
-                    seen.add(uri)
-                    sources.append(StreamSource(
-                        url=uri,
-                        quality=quality,
-                        resolution=height,
-                        bandwidth=bw,
-                        source_type="hls",
-                    ))
-                i = j + 1
-                continue
-        i += 1
+    sources = [StreamSource.from_hls_variant(v) for v in variants]
+    logger.info('"white_variants_parsed":{"count":%d}', len(sources))
     return sources
 
 
-def _parse_attrs(s: str) -> dict[str, str]:
-    out: dict[str, str] = {}
-    for m in re.finditer(r'([A-Z0-9_-]+)=(?:"([^"]*)"|([^,"\s]+))', s):
-        out[m.group(1)] = m.group(2) if m.group(3) is None else m.group(3)
-    return out
+def _fallback_hls(url: str) -> list[StreamSource]:
+    """Single-item Auto-quality list returned when manifest parsing cannot proceed."""
+    return [StreamSource(url=url, quality="Auto", resolution=0, bandwidth=0, source_type="hls")]
 
 
-def _height_to_label(h: int) -> str:
-    if h >= 2160: return "4K"
-    if h >= 1440: return "1440p"
-    if h >= 1080: return "1080p"
-    if h >= 720:  return "720p"
-    if h >= 480:  return "480p"
-    if h >= 360:  return "360p"
-    if h >= 240:  return "240p"
-    return f"{h}p"
-
-
-def _bandwidth_to_label(bw: int) -> str:
-    mbps = bw / 1_000_000
-    if mbps >= 15: return "4K"
-    if mbps >= 8:  return "1080p"
-    if mbps >= 4:  return "720p"
-    if mbps >= 2:  return "480p"
-    if mbps >= 0.8: return "360p"
-    return "Auto"
-
-
-_Q_RE = re.compile(r'(\d{3,4})[pP]|(\d{3,4})x(\d{3,4})')
+# Matches "1080p", "720P", "1920x1080", etc. in a URL path.
+_Q_RE: Final = re.compile(r"(\d{3,4})[pP]|(\d{3,4})x(\d{3,4})")
 
 
 def _guess_quality_from_url(url: str) -> str:
     m = _Q_RE.search(url)
     if not m:
         return "Auto"
-    if m.group(1):
-        return f"{m.group(1)}p"
-    if m.group(3):
-        return f"{m.group(3)}p"
-    return "Auto"
+    height = m.group(1) or m.group(3)  # group(1) = "Np" form; group(3) = "WxH" form
+    return f"{height}p" if height else "Auto"
 
 
 def _quality_label_to_height(label: str) -> int:
@@ -476,8 +443,11 @@ def _quality_label_to_height(label: str) -> int:
 
 
 def _sort_sources(sources: list[StreamSource]) -> None:
+    """Sort in-place: highest known resolution first, then bandwidth; unknowns last."""
     sources.sort(key=lambda s: (s.resolution == 0, -s.resolution, -s.bandwidth))
 
+
+# ── Compatibility shim ─────────────────────────────────────────────────────────
 
 async def extract_sources_legacy(
     tmdb_id: int,
@@ -487,6 +457,7 @@ async def extract_sources_legacy(
     session=None,
     cdn_headers: dict | None = None,
 ) -> tuple[list[dict] | None, str]:
+    """Compatibility shim — prefer :func:`extract_hls_from_white` for new callers."""
     result = await extract_hls_from_white(
         tmdb_id, media_type, season, episode, session, cdn_headers
     )

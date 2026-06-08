@@ -15,7 +15,6 @@ import asyncio
 import hashlib
 import logging
 import os
-import random
 import re
 import time
 from dataclasses import dataclass
@@ -245,10 +244,6 @@ _prewarm_semaphore: asyncio.Semaphore | None = None
 # Shared clients
 _client: httpx.AsyncClient | None = None
 _cdn_client: CurlSession | None = None
-_prefetch_cdn_client: CurlSession | None = None
-
-# Per-host cooldown tracker to stagger prefetch requests across variants
-_host_last_request: dict[str, float] = {}
 
 
 # ── Semaphore factory ──────────────────────────────────────────────────────────
@@ -271,16 +266,13 @@ async def shutdown_white_browser() -> None:
 
 
 async def shutdown_white_client() -> None:
-    global _client, _cdn_client, _prefetch_cdn_client
+    global _client, _cdn_client
     if _client and not _client.is_closed:
         await _client.aclose()
         _client = None
     if _cdn_client:
         await _cdn_client.close()
         _cdn_client = None
-    if _prefetch_cdn_client:
-        await _prefetch_cdn_client.close()
-        _prefetch_cdn_client = None
     logger.info('"white_client_shutdown"')
 
 
@@ -310,30 +302,6 @@ async def _get_cdn_client() -> CurlSession:
             impersonate="chrome131",
         )
     return _cdn_client
-
-
-async def _get_prefetch_cdn_client() -> CurlSession:
-    """Separate CurlSession for background prefetch — avoids poisoning the real-time session."""
-    global _prefetch_cdn_client
-    if _prefetch_cdn_client is None:
-        _prefetch_cdn_client = CurlSession(
-            headers=_CDN_HEADERS,
-            timeout=15,
-            allow_redirects=True,
-            impersonate="chrome131",
-        )
-    return _prefetch_cdn_client
-
-
-async def _reset_cdn_client() -> None:
-    """Close and clear the primary CDN client on 5xx to prevent poisoned connections."""
-    global _cdn_client
-    if _cdn_client:
-        try:
-            await _cdn_client.close()
-        except Exception:
-            pass
-        _cdn_client = None
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -401,17 +369,20 @@ def _rewrite_hls_uri_attr(line: str, base_url: str) -> str:
 # ── CDN fetch + segment prefetch ──────────────────────────────────────────────
 
 async def _fetch_cdn(url: str) -> tuple[bytes, str]:
-    """Fetch *url* via the CDN client with jittered exponential-backoff retry.
+    """Fetch *url* via the CDN client with exponential-backoff retry.
 
-    On 5xx responses the CurlSession is reset to avoid poisoned connections
-    from persisting across retries and affecting other concurrent requests.
+    Acquires ``_seg_semaphore`` so real-time segment fetches are capped at
+    ``WHITE_SEG_CONCURRENCY`` concurrent requests.
+
+    Returns ``(content_bytes, content_type)``.
+    Raises HTTPException on permanent 4xx errors or exhausted retries.
     """
     seg_sem, _, _ = _semaphores()
+    client = await _get_cdn_client()
     last_exc: Exception | None = None
 
     async with seg_sem:
         for attempt in range(3):
-            client = await _get_cdn_client()
             try:
                 resp = await client.get(url)
                 if resp.ok:
@@ -423,56 +394,39 @@ async def _fetch_cdn(url: str) -> tuple[bytes, str]:
                     raise HTTPException(status_code=status, detail=f"Upstream error: {status}")
                 logger.warning('"white_cdn_5xx":{"attempt":%d,"status":%d}', attempt + 1, status)
                 last_exc = Exception(f"HTTP {status}")
-                await _reset_cdn_client()
             except HTTPException:
                 raise
             except Exception as exc:
                 last_exc = exc
                 logger.warning('"white_cdn_error":{"attempt":%d,"err":"%s"}', attempt + 1, exc)
-                await _reset_cdn_client()
             if attempt < 2:
-                await asyncio.sleep(random.uniform(0.2, 0.8 * (2 ** attempt)))
+                await asyncio.sleep(0.5 * (2 ** attempt))  # 0.5 s, 1 s
 
     raise HTTPException(status_code=502, detail=f"CDN unavailable after 3 attempts: {last_exc}")
 
 
 async def _prefetch_segment(url: str) -> None:
-    """Best-effort background prefetch of a single segment into _seg_cache.
-
-    Uses a dedicated CurlSession to avoid poisoning the real-time client.
-    Applies a small host-level stagger to prevent overwhelming the upstream CDN.
-    """
+    """Best-effort background prefetch of a single segment into _seg_cache."""
     if url in _seg_cache:
         return
     _, prefetch_sem, _ = _semaphores()
     async with prefetch_sem:
-        if url in _seg_cache:
+        if url in _seg_cache:  # re-check after acquiring semaphore
             return
         try:
-            host = urlparse(url).hostname or ""
-            now = time.monotonic()
-            last = _host_last_request.get(host, 0)
-            stagger = max(0, 0.3 - (now - last))
-            if stagger > 0:
-                await asyncio.sleep(stagger)
-            _host_last_request[host] = time.monotonic()
-
-            client = await _get_prefetch_cdn_client()
+            client = await _get_cdn_client()
             resp = await client.get(url)
             if resp.ok:
                 _seg_cache[url] = (resp.content, resp.headers.get("content-type", "video/MP2T"))
         except Exception:
-            pass
+            pass  # best-effort; silently swallow all failures
 
 
 async def _prefetch_segments(urls: list[str]) -> None:
-    """Gather background prefetches for the first N segments only."""
-    if not urls:
-        return
-    target_urls = urls[:5]
+    """Gather background prefetches with an overall timeout guard."""
     try:
         await asyncio.wait_for(
-            asyncio.gather(*(_prefetch_segment(u) for u in target_urls), return_exceptions=True),
+            asyncio.gather(*(_prefetch_segment(u) for u in urls), return_exceptions=True),
             timeout=_cfg.prefetch_timeout,
         )
     except asyncio.TimeoutError:
@@ -669,7 +623,6 @@ async def onetoone_proxy_hls(url: str = Query(...)) -> Response:
     lines: list[str] = []
     segment_urls: list[str] = []  # collected for background prefetch
     next_is_variant = False
-    is_master = False  # true when this manifest contains EXT-X-STREAM-INF
 
     for line in text.splitlines():
         stripped = line.strip()
@@ -685,7 +638,6 @@ async def onetoone_proxy_hls(url: str = Query(...)) -> Response:
 
         if stripped.startswith("#EXT-X-STREAM-INF:"):
             next_is_variant = True
-            is_master = True
             lines.append(line)
             continue
 
@@ -704,11 +656,8 @@ async def onetoone_proxy_hls(url: str = Query(...)) -> Response:
             lines.append(f"/api/white/proxy/seg/{token}")
             segment_urls.append(uri)
 
-    # Only prefetch segments for media playlists (not master manifests).
-    # Master manifests only contain variant stream pointers, not actual
-    # segment files. Prefetching at the master level would fire requests
-    # for every variant stream simultaneously, overwhelming the upstream.
-    if segment_urls and not is_master:
+    # Pre-warm segment cache in the background for media playlists
+    if segment_urls:
         _spawn(_prefetch_segments(segment_urls))
 
     return Response(

@@ -11,7 +11,7 @@ import httpx
 from fastapi import APIRouter, FastAPI, HTTPException, Path, Query, Request, Response
 from fastapi.responses import JSONResponse
 
-from app.core.cache import tmdb_cache_get, tmdb_cache_set
+from redis_utils import tmdb_cache_get, tmdb_cache_set
 
 __all__ = ["router", "close_client", "include_router", "validate_config"]
 
