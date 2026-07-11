@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎬 Watchfy
+# 🎬 Stersh
 
 **A multi-source video aggregation platform with a cinematic UI and security-first proxy.**
 
@@ -8,7 +8,7 @@
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-yellow.svg)](https://python.org)
 [![Node 18+](https://img.shields.io/badge/Node-18+-green.svg)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](docker-compose.yml)
-[![CI](https://github.com/BlusceLabs/Watchfy/actions/workflows/ci.yml/badge.svg)](https://github.com/BlusceLabs/Watchfy/actions)
+[![CI](https://github.com/BlusceLabs/Stersh/actions/workflows/ci.yml/badge.svg)](https://github.com/BlusceLabs/Stersh/actions)
 
 </div>
 
@@ -29,7 +29,7 @@
 
 ```bash
 # 1. Clone & install
-git clone https://github.com/BlusceLabs/Watchfy.git && cd Watchfy
+git clone https://github.com/BlusceLabs/Stersh.git && cd Stersh
 ./setup.sh
 
 # 2. Set your TMDB API key
@@ -60,9 +60,9 @@ make docker-down                # stop
 
 | Service   | Image               | Host port | Internal URL          |
 |-----------|---------------------|-----------|-----------------------|
-| frontend  | `watchfy/frontend`  | 4321      | http://frontend:4321  |
-| extractor | `watchfy/extractor` | —         | http://extractor:8000 |
-| gateway   | `watchfy/gateway`   | 8080      | http://gateway:8080   |
+| frontend  | `stersh/frontend`  | 4321      | http://frontend:4321  |
+| extractor | `stersh/extractor` | —         | http://extractor:8000 |
+| gateway   | `stersh/gateway`   | 8080      | http://gateway:8080   |
 
 The frontend is the only port that should be exposed publicly. The extractor and gateway sit on the private network.
 
@@ -212,7 +212,7 @@ Optional parallel Go gateway (`:8080`) exposes the same surface in Fiber. It is 
 
 ```ini
 TMDB_API_KEY=your_tmdb_api_key_here
-WATCHFY_EXTRACTOR_URL=http://localhost:8000
+STERSH_EXTRACTOR_URL=http://localhost:8000
 ALLOWED_ORIGINS=http://localhost:4321    # comma-separated; defaults to "*"
 LOG_LEVEL=INFO
 ```

@@ -8,7 +8,7 @@ import InfiniteFeed from '../components/InfiniteFeed.svelte';
 // Curated initial shelves — kept short on purpose.
 const initialShelves = [
   { title: 'Trending now', endpoint: 'trending/movie/week', viewAllHref: '/trending' },
-  { title: 'Popular on Watchfy', endpoint: 'trending/tv/week', viewAllHref: '/trending' },
+  { title: 'Popular on Stersh', endpoint: 'trending/tv/week', viewAllHref: '/trending' },
   { title: 'New releases', endpoint: 'movie/now_playing', viewAllHref: '/movies' },
   { title: 'Top rated', endpoint: 'movie/top_rated', viewAllHref: '/movies' },
 ];
@@ -50,7 +50,7 @@ const chipHrefMap: Record<string, string> = {
 };
 ---
 
-<Layout title="Home" description="Discover trending movies and TV shows on Watchfy.">
+<Layout title="Home" description="Discover trending movies and TV shows on Stersh.">
   <main class="min-h-screen bg-base">
     <FilterChips
       chips={filterChips}

@@ -95,7 +95,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} // Watchfy cinematic ease-out curve
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} // Stersh cinematic ease-out curve
             className="
               relative
               z-10

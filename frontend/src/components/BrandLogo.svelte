@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
-   * Watchfy brand wordmark. YouTube-style: a red play button triangle
-   * followed by the "Watchfy" wordmark in white.
+   * Stersh brand wordmark. YouTube-style: a red play button triangle
+   * followed by the "Stersh" wordmark in white.
    */
   let {
     size = 'md',
@@ -33,7 +33,7 @@
 
 <span
   class="inline-flex items-center {gapMap[size]} font-sans select-none"
-  aria-label="Watchfy"
+  aria-label="Stersh"
 >
   <span class="relative inline-flex items-center justify-center {iconSizeMap[size]}" aria-hidden="true">
     <svg viewBox="0 0 90 60" class="w-full h-full">
@@ -42,6 +42,6 @@
     </svg>
   </span>
   <span class="font-sans {textSizeMap[size]} font-bold tracking-tight leading-none text-white">
-    Watchfy
+    Stersh
   </span>
 </span>

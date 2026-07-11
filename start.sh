@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# watchfy dev start script
+# stersh dev start script
 # Usage:
 #   ./start.sh                    start both services
 #   ./start.sh --backend          start backend only
@@ -23,7 +23,7 @@ VENV_DIR=".venv"
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-4321}"
-LOG_DIR="/tmp/watchfy-logs"
+LOG_DIR="/tmp/stersh-logs"
 START_BACKEND=1
 START_FRONTEND=1
 SKIP_DEPS=0
@@ -272,7 +272,7 @@ fi
 
 # ── Print summary ─────────────────────────────────────────────────────────────
 echo ""
-echo -e "  ${BOLD}Watchfy dev server${NC}"
+echo -e "  ${BOLD}Stersh dev server${NC}"
 echo -e "  ──────────────────────────────────────────"
 [[ "$START_BACKEND" -eq 1 ]]  && echo -e "  ${GREEN}Backend${NC}  → http://$HOST:$PORT  (pid $BACKEND_PID)"
 [[ "$START_FRONTEND" -eq 1 ]] && echo -e "  ${GREEN}Frontend${NC} → http://$HOST:$FRONTEND_PORT  (pid $FRONTEND_PID)"

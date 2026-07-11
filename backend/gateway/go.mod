@@ -1,4 +1,4 @@
-module watchfy/backend/gateway
+module stersh/backend/gateway
 
 go 1.22
 

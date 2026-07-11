@@ -51,13 +51,13 @@
           if (res.ok) { myListFlag = true; return; }
         }
       } catch {}
-      try { myListFlag = localStorage.getItem(`watchfy:mylist:${mediaType}:${id}`) === 'true'; }
+      try { myListFlag = localStorage.getItem(`stersh:mylist:${mediaType}:${id}`) === 'true'; }
       catch { myListFlag = false; }
     })();
   });
 
   async function toggleMyList() {
-    const key = `watchfy:mylist:${mediaType}:${id}`;
+    const key = `stersh:mylist:${mediaType}:${id}`;
     const token = getToken();
     if (token) {
       try {
@@ -145,21 +145,21 @@
 
   async function shareContent() {
     const shareUrl = window.location.href;
-    const shareTitle = title || 'Check this out on Watchfy';
+    const shareTitle = title || 'Check this out on Stersh';
     if (navigator.share) {
       try {
-        await navigator.share({ title: shareTitle, text: `Watch ${title} on Watchfy`, url: shareUrl });
+        await navigator.share({ title: shareTitle, text: `Watch ${title} on Stersh`, url: shareUrl });
         return;
       } catch {}
     }
     try { await navigator.clipboard.writeText(shareUrl); } catch {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Watch ${title} on Watchfy`)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Watch ${title} on Stersh`)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
     }
   }
 </script>
 
 <svelte:head>
-  <title>{title ? `${title} - Watchfy` : 'Loading...'}</title>
+  <title>{title ? `${title} - Stersh` : 'Loading...'}</title>
 </svelte:head>
 
 {#if loading}

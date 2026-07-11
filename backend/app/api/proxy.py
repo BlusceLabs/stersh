@@ -1,4 +1,4 @@
-"""Enhanced proxy routes for watchfy — multi-CDN adaptive proxy.
+"""Enhanced proxy routes for stersh — multi-CDN adaptive proxy.
 
 Extends the base proxy with:
   - HTTP Range request pass-through (seek support for MP4 progressive download)
@@ -462,7 +462,7 @@ async def enhanced_proxy_seg_head(token: str) -> Response:
 async def proxy_mp4_stream(
     request:  Request,
     url:      str = Query(...),
-    filename: str = Query(default="watchfy-download.mp4"),
+    filename: str = Query(default="stersh-download.mp4"),
 ) -> StreamingResponse:
     """Stream-proxy an MP4 file with byte-range support for in-browser seeking."""
     host   = _validate(url)

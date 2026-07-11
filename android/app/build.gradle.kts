@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.watchfy.app"
+    namespace = "com.stersh.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.watchfy.app"
+        applicationId = "com.stersh.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
@@ -22,7 +22,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../watchfy-release.jks")
+            storeFile = file("../stersh-release.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
             keyAlias = System.getenv("KEY_ALIAS") ?: "key0"
             keyPassword = System.getenv("KEY_PASSWORD") ?: "android"

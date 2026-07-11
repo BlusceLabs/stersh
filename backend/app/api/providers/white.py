@@ -1,4 +1,4 @@
-"""FastAPI router for watchfy's White server (111movies.net).
+"""FastAPI router for stersh's White server (111movies.net).
 
 Mounts at /api/white/*:
   GET /api/white/source            — extract HLS + MP4 via Playwright extractor
@@ -766,7 +766,7 @@ async def onetoone_proxy_seg(token: str) -> Response:
 async def onetoone_download(
     request: Request,
     url: str = Query(...),
-    filename: str = Query(default="watchfy-white.mp4"),
+    filename: str = Query(default="stersh-white.mp4"),
 ) -> StreamingResponse:
     """Range-aware stream-proxy for MP4 downloads from the 111movies CDN.
 

@@ -1,4 +1,4 @@
-"""Watchfy streaming extraction backend for 111movies.net (codename "white").
+"""Stersh streaming extraction backend for 111movies.net (codename "white").
 
 Entry points
 ------------

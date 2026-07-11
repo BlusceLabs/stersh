@@ -1,4 +1,4 @@
-# Watchfy — local development override
+# Stersh — local development override
 # Auto-loaded by docker-compose alongside docker-compose.yml.
 # Source is mounted as volumes for hot-reload; all ports exposed locally.
 

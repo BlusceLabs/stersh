@@ -1,4 +1,4 @@
-"""Subtitle fetching and format conversion for watchfy streaming backend.
+"""Subtitle fetching and format conversion for stersh streaming backend.
 
 Sources tried in order:
   1. OpenSubtitles REST API v1 (requires API key in env)
@@ -109,7 +109,7 @@ async def _fetch_opensubtitles(
         headers={
             "Api-Key": _OPENSUBTITLES_KEY,
             "Content-Type": "application/json",
-            "User-Agent": "watchfy/2.0",
+            "User-Agent": "stersh/2.0",
         },
     ) as client:
         resp = await client.get(f"{_OPENSUBTITLES_API}/subtitles", params=params)

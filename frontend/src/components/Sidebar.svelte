@@ -15,7 +15,7 @@
   }
 
   onMount(() => {
-    const saved = localStorage.getItem('watchfy_sidebar_collapsed');
+    const saved = localStorage.getItem('stersh_sidebar_collapsed');
     if (saved === '1') collapsed = true;
 
     const update = () => {
@@ -29,7 +29,7 @@
     const onAstro = () => update();
     const onToggle = () => {
       collapsed = !collapsed;
-      try { localStorage.setItem('watchfy_sidebar_collapsed', collapsed ? '1' : '0'); } catch {}
+      try { localStorage.setItem('stersh_sidebar_collapsed', collapsed ? '1' : '0'); } catch {}
     };
     const onResize = () => { /* keep current state; Layout switches to mobile bar at lg breakpoint */ };
 
@@ -47,13 +47,13 @@
 
     window.addEventListener('popstate', onPop);
     document.addEventListener('astro:page-load', onAstro);
-    window.addEventListener('watchfy:toggle-sidebar', onToggle as EventListener);
+    window.addEventListener('stersh:toggle-sidebar', onToggle as EventListener);
     window.addEventListener('resize', onResize);
     const unsub = onAuthChange((authed) => { isAuthenticated = authed; });
     return () => {
       window.removeEventListener('popstate', onPop);
       document.removeEventListener('astro:page-load', onAstro);
-      window.removeEventListener('watchfy:toggle-sidebar', onToggle as EventListener);
+      window.removeEventListener('stersh:toggle-sidebar', onToggle as EventListener);
       window.removeEventListener('resize', onResize);
       unsub();
     };
@@ -145,7 +145,7 @@
 
       <div class="my-2 border-t border-white/10"></div>
       <div class="px-3 text-[11px] text-ink-muted leading-snug">
-        © {new Date().getFullYear()} Watchfy · A movie & TV streaming service
+        © {new Date().getFullYear()} Stersh · A movie & TV streaming service
       </div>
     {:else}
       <div class="my-2 border-t border-white/10"></div>

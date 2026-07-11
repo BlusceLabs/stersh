@@ -1,4 +1,4 @@
-# Full Watchfy stack: frontend (Astro SSR) + extractor (FastAPI) + gateway (Go).
+# Full Stersh stack: frontend (Astro SSR) + extractor (FastAPI) + gateway (Go).
 #
 # Usage:
 #   docker compose --env-file .env up --build
@@ -13,8 +13,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: watchfy/frontend:latest
-    container_name: watchfy-frontend
+    image: stersh/frontend:latest
+    container_name: stersh-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-4321}:4321"
@@ -35,24 +35,24 @@ services:
       start_period: 10s
       retries: 3
     networks:
-      - watchfy
+      - stersh
 
   extractor:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: watchfy/extractor:latest
-    container_name: watchfy-extractor
+    image: stersh/extractor:latest
+    container_name: stersh-extractor
     restart: unless-stopped
     # Not exposed to host by default — only reachable from the frontend
-    # and gateway over the watchfy network. Override in .env if you
+    # and gateway over the stersh network. Override in .env if you
     # need external access for development.
     expose:
       - "8000"
     environment:
       - TMDB_API_KEY=${TMDB_API_KEY:?Set TMDB_API_KEY in .env}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:4321,http://localhost:8080}
-      - DATABASE_URL=sqlite:///./data/watchfy.db
+      - DATABASE_URL=sqlite:///./data/stersh.db
       - SECURITY_HSTS_ENABLED=${SECURITY_HSTS_ENABLED:-true}
     volumes:
       - extractor-data:/app/data
@@ -63,21 +63,21 @@ services:
       start_period: 30s
       retries: 3
     networks:
-      - watchfy
+      - stersh
 
   gateway:
     build:
       context: ./backend/gateway
       dockerfile: Dockerfile
-    image: watchfy/gateway:latest
-    container_name: watchfy-gateway
+    image: stersh/gateway:latest
+    container_name: stersh-gateway
     restart: unless-stopped
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
     environment:
       - TMDB_API_KEY=${TMDB_API_KEY:?Set TMDB_API_KEY in .env}
-      - WATCHFY_EXTRACTOR_URL=http://extractor:8000
-      - WATCHFY_GATEWAY_ADDR=:8080
+      - STERSH_EXTRACTOR_URL=http://extractor:8000
+      - STERSH_GATEWAY_ADDR=:8080
     depends_on:
       extractor:
         condition: service_healthy
@@ -88,13 +88,13 @@ services:
       start_period: 10s
       retries: 3
     networks:
-      - watchfy
+      - stersh
 
 networks:
-  watchfy:
+  stersh:
     driver: bridge
-    name: watchfy
+    name: stersh
 
 volumes:
   extractor-data:
-    name: watchfy-extractor-data
+    name: stersh-extractor-data

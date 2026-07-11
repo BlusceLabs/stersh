@@ -55,7 +55,7 @@ type HealthReportResponse struct {
 }
 
 func (s *WatchService) getSourceURL() string {
-	if value := strings.TrimRight(os.Getenv("WATCHFY_EXTRACTOR_URL"), "/"); value != "" {
+	if value := strings.TrimRight(os.Getenv("STERSH_EXTRACTOR_URL"), "/"); value != "" {
 		return value + "/api"
 	}
 	if value := strings.TrimRight(os.Getenv("VIDKING_EXTRACTOR_URL"), "/"); value != "" {

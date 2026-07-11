@@ -1,4 +1,4 @@
-"""Database models and connection pooling for watchfy backend."""
+"""Database models and connection pooling for stersh backend."""
 from __future__ import annotations
 
 import os
@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session, relationship, Session
 from sqlalchemy.sql import func
 
 # Configuration
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///watchfy.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///stersh.db")
 DB_POOL_SIZE = int(os.environ.get("DB_POOL_SIZE", "10"))
 DB_MAX_OVERFLOW = int(os.environ.get("DB_MAX_OVERFLOW", "20"))
 DB_POOL_RECYCLE = int(os.environ.get("DB_POOL_RECYCLE", "3600"))  # 1 hour

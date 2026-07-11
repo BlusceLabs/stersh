@@ -1,4 +1,4 @@
-"""Analytics tracking for watchfy backend."""
+"""Analytics tracking for stersh backend."""
 from __future__ import annotations
 
 import json

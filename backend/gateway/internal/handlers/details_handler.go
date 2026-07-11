@@ -6,7 +6,7 @@ import (
 
     "github.com/gofiber/fiber/v2"
 
-    "watchfy/backend/gateway/internal/services"
+    "stersh/backend/gateway/internal/services"
 )
 
 type DetailsHandler struct {

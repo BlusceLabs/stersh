@@ -1,4 +1,4 @@
-"""watchfy — FastAPI application entry point.
+"""stersh — FastAPI application entry point.
 
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 """
@@ -85,10 +85,10 @@ if not _INDEX.exists():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    logger.info('"watchfy_starting"')
+    logger.info('"stersh_starting"')
     init_db()
     yield
-    logger.info('"watchfy_shutting_down"')
+    logger.info('"stersh_shutting_down"')
     results = await asyncio.gather(
         shutdown_black_browser(),
         shutdown_black_client(),
@@ -103,13 +103,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     for i, result in enumerate(results):
         if isinstance(result, Exception):
             logger.warning('"shutdown_error","task":%d,"error":"%s"', i, result)
-    logger.info('"watchfy_stopped"')
+    logger.info('"stersh_stopped"')
 
 
 # ── App ────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="Watchfy Streaming Service",
+    title="Stersh Streaming Service",
     version="2.1.0",
     lifespan=lifespan,
     docs_url="/api/docs",
@@ -217,7 +217,7 @@ async def ready() -> JSONResponse:
 @app.get("/", include_in_schema=False)
 async def root_health(request: Request) -> JSONResponse:
     return JSONResponse({
-        "service": "Watchfy Streaming Service",
+        "service": "Stersh Streaming Service",
         "version": "2.1.0",
         "status": "ok",
         "uptime_s": round(time.time() - _STARTUP_TIME, 1),

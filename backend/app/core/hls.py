@@ -1,4 +1,4 @@
-"""HLS master manifest parser for watchfy streaming backend.
+"""HLS master manifest parser for stersh streaming backend.
 
 Parses a master .m3u8 playlist into typed dataclasses with quality
 labels, absolute URIs, and track metadata.

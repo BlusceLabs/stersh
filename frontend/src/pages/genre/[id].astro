@@ -5,7 +5,7 @@ import FilterChips from '../../components/FilterChips.svelte';
 const { id } = Astro.params;
 ---
 
-<Layout title="Genre | Watchfy">
+<Layout title="Genre | Stersh">
   <main class="min-h-screen bg-base">
     <div class="px-4 md:px-6 pt-2">
       <div class="flex items-center gap-3 mb-4">
@@ -98,7 +98,7 @@ const { id } = Astro.params;
       if (genre) {
         const titleEl = document.getElementById('genre-title');
         if (titleEl) titleEl.textContent = genre.name;
-        document.title = `${genre.name} | Watchfy`;
+        document.title = `${genre.name} | Stersh`;
       }
     } catch {}
   }

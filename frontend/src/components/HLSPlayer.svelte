@@ -126,7 +126,7 @@
   const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
   // Playback Preferences Persistence
-  const PREFS_KEY = 'watchfy_playback_prefs';
+  const PREFS_KEY = 'stersh_playback_prefs';
 
   type PlaybackPrefs = {
     playbackRate?: number;

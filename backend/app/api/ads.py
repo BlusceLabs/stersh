@@ -1,4 +1,4 @@
-"""Ad management router for watchfy backend."""
+"""Ad management router for stersh backend."""
 from __future__ import annotations
 
 from typing import List, Dict, Any, Optional

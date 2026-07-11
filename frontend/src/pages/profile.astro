@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Your account | Watchfy">
+<Layout title="Your account | Stersh">
   <main class="min-h-screen bg-base">
     <div class="max-w-4xl mx-auto px-4 md:px-6 py-6">
       <h1 class="text-2xl font-bold text-ink mb-6">Your account</h1>
@@ -177,7 +177,7 @@ import Layout from '../layouts/Layout.astro';
   let isMuted = false;
 
   function loadPlaybackPrefs() {
-    const prefsStr = localStorage.getItem('watchfy_playback_prefs');
+    const prefsStr = localStorage.getItem('stersh_playback_prefs');
     const prefs = prefsStr ? JSON.parse(prefsStr) : {};
     const currentSpeed = prefs.playbackRate || 1;
     const speedBtns = document.querySelectorAll<HTMLElement>('.speed-btn');
@@ -249,7 +249,7 @@ import Layout from '../layouts/Layout.astro';
       });
       const volumeSlider = document.getElementById('volume-pref') as HTMLInputElement;
       const volume = volumeSlider ? parseInt(volumeSlider.value) / 100 : 1;
-      localStorage.setItem('watchfy_playback_prefs', JSON.stringify({
+      localStorage.setItem('stersh_playback_prefs', JSON.stringify({
         playbackRate: selectedSpeed,
         volume: volume,
         muted: isMuted,

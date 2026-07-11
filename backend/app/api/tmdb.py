@@ -1,4 +1,4 @@
-"""TMDB API proxy and metadata service for watchfy frontend."""
+"""TMDB API proxy and metadata service for stersh frontend."""
 from __future__ import annotations
 
 import asyncio

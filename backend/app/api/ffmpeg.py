@@ -1,4 +1,4 @@
-"""FFmpeg remux routes for watchfy.
+"""FFmpeg remux routes for stersh.
 
 Mounts its own APIRouter at /api/ffmpeg for direct access.
 """
@@ -103,7 +103,7 @@ async def remux_proxy(url: str, format: str = "mp4") -> StreamingResponse:
             _stream_mp4(url),
             media_type="video/mp4",
             headers={
-                "Content-Disposition": 'attachment; filename="watchfy.mp4"',
+                "Content-Disposition": 'attachment; filename="stersh.mp4"',
                 "Cache-Control": "no-cache",
                 "Access-Control-Allow-Origin": "*",
             },
@@ -112,7 +112,7 @@ async def remux_proxy(url: str, format: str = "mp4") -> StreamingResponse:
         _stream_ts(url),
         media_type="video/mp2t",
         headers={
-            "Content-Disposition": 'attachment; filename="watchfy.ts"',
+            "Content-Disposition": 'attachment; filename="stersh.ts"',
             "Cache-Control": "no-cache",
             "Access-Control-Allow-Origin": "*",
         },

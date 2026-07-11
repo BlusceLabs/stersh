@@ -1,7 +1,7 @@
 {
-  "name": "@watchfy/shared-types",
+  "name": "@stersh/shared-types",
   "version": "0.1.0",
-  "description": "Unified data structures and TypeScript interfaces for Watchfy",
+  "description": "Unified data structures and TypeScript interfaces for Stersh",
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",

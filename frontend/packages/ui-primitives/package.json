@@ -1,7 +1,7 @@
 {
-  "name": "@watchfy/ui-primitives",
+  "name": "@stersh/ui-primitives",
   "version": "0.1.0",
-  "description": "Premium React 19 interactive layout components and primitives for Watchfy",
+  "description": "Premium React 19 interactive layout components and primitives for Stersh",
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",

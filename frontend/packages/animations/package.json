@@ -1,7 +1,7 @@
 {
-  "name": "@watchfy/animations",
+  "name": "@stersh/animations",
   "version": "0.1.0",
-  "description": "Hardware-accelerated rendering animation engine for Watchfy",
+  "description": "Hardware-accelerated rendering animation engine for Stersh",
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",

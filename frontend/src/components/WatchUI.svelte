@@ -40,7 +40,7 @@
       : formatRuntime(showDetails?.runtime)
   );
   let matchLabel = $derived(
-    showDetails?.vote_average ? `${Math.round(showDetails.vote_average * 10)}% match` : 'Watchfy pick'
+    showDetails?.vote_average ? `${Math.round(showDetails.vote_average * 10)}% match` : 'Stersh pick'
   );
   let seasonsList = $derived(
     (showDetails?.seasons || []).filter((s: any) => s.season_number > 0 && s.episode_count > 0)
@@ -117,7 +117,7 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
     window.history.replaceState({}, '', url.toString());
-    document.title = `${title} - Watchfy`;
+    document.title = `${title} - Stersh`;
   }
 
   function getNextEpisode() {
@@ -140,7 +140,7 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
     window.history.replaceState({}, '', url.toString());
-    document.title = `${title} - Watchfy`;
+    document.title = `${title} - Stersh`;
   }
 
   function navigateToEpisode(ep: number) {
@@ -151,7 +151,7 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(ep));
     window.history.replaceState({}, '', url.toString());
-    document.title = `${title} - Watchfy`;
+    document.title = `${title} - Stersh`;
   }
 
   function navigateToSeason(s: number) {
@@ -163,7 +163,7 @@
     url.searchParams.set('season', String(season));
     url.searchParams.set('episode', String(episode));
     window.history.replaceState({}, '', url.toString());
-    document.title = `${title} - Watchfy`;
+    document.title = `${title} - Stersh`;
   }
 
   function switchServer(nextServer: string) {
@@ -238,7 +238,7 @@
     tmdbApi.details(mediaType, Number(id))
       .then((data: any) => {
         showDetails = data;
-        document.title = `${data.name || data.title || 'Stream'} - Watchfy`;
+        document.title = `${data.name || data.title || 'Stream'} - Stersh`;
       })
       .catch(() => {});
 
@@ -286,7 +286,7 @@
       // Fallback: scan localStorage for the latest saved episode of this show
       try {
         const hasExplicitEpisode = params.has('season') || params.has('episode');
-        const prefix = `watchfy:${mediaType}:${id}:`;
+        const prefix = `stersh:${mediaType}:${id}:`;
         let bestKey = '';
         let bestS = 0, bestE = 0, bestTimestamp = 0;
         for (let i = 0; i < localStorage.length; i++) {
@@ -373,7 +373,7 @@
               onNext={hasNextEpisode ? goToNextEpisode : undefined}
               onProgress={(data) => {
                 _lastKnownTime = data.currentTime;
-                const watchKey = `watchfy:${mediaType}:${id}:${season}:${episode}`;
+                const watchKey = `stersh:${mediaType}:${id}:${season}:${episode}`;
                 try {
                   localStorage.setItem(watchKey, JSON.stringify({
                     currentTime: data.currentTime,

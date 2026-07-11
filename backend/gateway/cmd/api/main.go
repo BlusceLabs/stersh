@@ -6,9 +6,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 
-	"watchfy/backend/gateway/internal/handlers"
-	"watchfy/backend/gateway/internal/routes"
-	"watchfy/backend/gateway/internal/services"
+	"stersh/backend/gateway/internal/handlers"
+	"stersh/backend/gateway/internal/routes"
+	"stersh/backend/gateway/internal/services"
 )
 
 func main() {

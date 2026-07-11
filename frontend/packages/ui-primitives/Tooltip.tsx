@@ -48,7 +48,7 @@ export function Tooltip({ children, content, placement = "top" }: TooltipProps) 
           showTooltip()
         }}
         onTouchEnd={hideTooltip}
-        aria-describedby="watchfy-tooltip-overlay"
+        aria-describedby="stersh-tooltip-overlay"
       >
         {children}
       </div>
@@ -60,14 +60,14 @@ export function Tooltip({ children, content, placement = "top" }: TooltipProps) 
             ref={refs.setFloating}
             style={floatingStyles}
             className="z-[9999] pointer-events-none"
-            id="watchfy-tooltip-overlay"
+            id="stersh-tooltip-overlay"
             role="tooltip"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.94 }}
-              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }} // Watchfy ease-exo-out
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }} // Stersh ease-exo-out
               className="
                 relative
                 rounded-xl

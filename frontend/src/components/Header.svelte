@@ -18,7 +18,7 @@
   let debounceTimer: ReturnType<typeof setTimeout>;
 
   function dispatchToggleSidebar() {
-    window.dispatchEvent(new CustomEvent('watchfy:toggle-sidebar'));
+    window.dispatchEvent(new CustomEvent('stersh:toggle-sidebar'));
   }
 
   async function handleSearch() {
@@ -158,7 +158,7 @@
           <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
         </svg>
       </button>
-      <a href="/home" class="flex items-center pl-2 pr-3 py-1 rounded-lg hover:bg-base-3 transition-colors duration-100" aria-label="Watchfy home">
+      <a href="/home" class="flex items-center pl-2 pr-3 py-1 rounded-lg hover:bg-base-3 transition-colors duration-100" aria-label="Stersh home">
         <BrandLogo size="md" />
       </a>
     </div>

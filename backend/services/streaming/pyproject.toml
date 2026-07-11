@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "watchfy-extractor"
+name = "stersh-extractor"
 version = "0.1.0"
 description = "Watch!fy video extractor service"
 authors = ["Watch!fy Team"]

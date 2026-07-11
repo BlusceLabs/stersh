@@ -1,4 +1,4 @@
-# Watchfy frontend — production multi-stage build.
+# Stersh frontend — production multi-stage build.
 # Build the Astro SSR bundle, then ship only the production deps
 # + dist/ in a slim runtime image.
 

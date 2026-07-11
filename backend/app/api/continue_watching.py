@@ -1,4 +1,4 @@
-"""Continue Watching router — playback progress tracking for watchfy backend."""
+"""Continue Watching router — playback progress tracking for stersh backend."""
 from __future__ import annotations
 
 from typing import Any, Optional

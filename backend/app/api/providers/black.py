@@ -1,4 +1,4 @@
-"""FastAPI router for watchfy's Black server (vidking.net).
+"""FastAPI router for stersh's Black server (vidking.net).
 
 Mounts at /api/black/*:
   GET /api/black/source           — extract HLS + MP4 via Playwright extractor
@@ -689,7 +689,7 @@ async def black_proxy_seg(token: str) -> Response:
 async def black_download(
     request: Request,
     url: str = Query(...),
-    filename: str = Query(default="watchfy-black.mp4"),
+    filename: str = Query(default="stersh-black.mp4"),
 ) -> StreamingResponse:
     """Range-aware stream-proxy for MP4 downloads from vidking CDN.
 

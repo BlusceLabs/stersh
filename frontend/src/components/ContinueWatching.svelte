@@ -42,7 +42,7 @@
     const result: any[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith('watchfy:')) continue;
+      if (!key || !key.startsWith('stersh:')) continue;
       try {
         const raw = localStorage.getItem(key) || '';
         const data: any = JSON.parse(raw);

@@ -1,5 +1,5 @@
 #!/bin/bash
-# smoke_test.sh — full end-to-end smoke test for the Watchfy stack.
+# smoke_test.sh — full end-to-end smoke test for the Stersh stack.
 #
 # Verifies that the running stack responds correctly to real HTTP
 # requests, that all services are healthy, and that the security
@@ -78,7 +78,7 @@ check_header() {
   fi
 }
 
-echo "${BOLD}Watchfy smoke test${RESET}"
+echo "${BOLD}Stersh smoke test${RESET}"
 echo "  Frontend:  $FRONTEND_URL"
 echo "  Extractor: $EXTRACTOR_URL"
 echo "  Gateway:   $GATEWAY_URL"

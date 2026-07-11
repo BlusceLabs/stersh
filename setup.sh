@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# watchfy setup script
+# stersh setup script
 # Usage:
 #   chmod +x setup.sh && ./setup.sh          # full install
 #   ./setup.sh --dev                         # install + start dev server
@@ -20,11 +20,11 @@ err()  { echo -e "${RED}✗ $*${NC}" >&2; exit 1; }
 
 # ── Docker mode ───────────────────────────────────────────────────────────────
 if [[ "$MODE" == "--docker" ]]; then
-    log "Building and starting watchfy Docker stack…"
+    log "Building and starting stersh Docker stack…"
     command -v docker compose &>/dev/null || err "docker compose not found"
     docker compose build --no-cache
     docker compose up -d
-    ok "watchfy running at http://localhost"
+    ok "stersh running at http://localhost"
     docker compose logs -f backend
     exit 0
 fi
@@ -104,7 +104,7 @@ if [[ -d "nginx" ]] && [[ ! -d "nginx/ssl" ]]; then
 fi
 
 echo ""
-ok "watchfy setup complete!"
+ok "stersh setup complete!"
 echo ""
 echo "  Start dev server:     cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000"
 echo "  Start Docker stack:   ./setup.sh --docker"

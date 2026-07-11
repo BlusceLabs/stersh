@@ -18,17 +18,17 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/joho/godotenv"
 
-	"watchfy/backend/gateway/internal/handlers"
-	"watchfy/backend/gateway/internal/routes"
-	"watchfy/backend/gateway/internal/services"
+	"stersh/backend/gateway/internal/handlers"
+	"stersh/backend/gateway/internal/routes"
+	"stersh/backend/gateway/internal/services"
 )
 
 func main() {
 
 	_ = godotenv.Load("../.env", ".env")
 
-	extractorURL := env("WATCHFY_EXTRACTOR_URL", env("VIDKING_EXTRACTOR_URL", "http://localhost:8000"))
-	listenAddr := env("WATCHFY_GATEWAY_ADDR", ":8080")
+	extractorURL := env("STERSH_EXTRACTOR_URL", env("VIDKING_EXTRACTOR_URL", "http://localhost:8000"))
+	listenAddr := env("STERSH_GATEWAY_ADDR", ":8080")
 
 	app := fiber.New(
 		fiber.Config{
@@ -114,7 +114,7 @@ func main() {
 	app.Get("/api/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":        "ok",
-			"service":       "watchfy-gateway",
+			"service":       "stersh-gateway",
 			"extractor_url": extractorURL,
 		})
 	})

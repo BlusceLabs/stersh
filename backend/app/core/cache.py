@@ -1,4 +1,4 @@
-"""In-memory cache utilities for watchfy backend.
+"""In-memory cache utilities for stersh backend.
 
 Uses cachetools.TTLCache for bounded cache with automatic eviction.
 This replaces the previous unbounded dictionary implementation.

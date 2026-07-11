@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright configuration for Watchfy end-to-end tests.
+ * Playwright configuration for Stersh end-to-end tests.
  *
  * Tests are co-located under `e2e/`. By default they expect the dev
  * server to be running on http://localhost:4321 (use `npm run dev`

@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Watchfy"
+rootProject.name = "Stersh"
 include(":app")

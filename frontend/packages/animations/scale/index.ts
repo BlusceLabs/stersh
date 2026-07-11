@@ -1,6 +1,6 @@
 /**
  * Premium hardware-accelerated focal scaling entrance effect.
- * Syncs perfectly with the Watchfy ease-exo-out motion design profiles.
+ * Syncs perfectly with the Stersh ease-exo-out motion design profiles.
  */
 export function scaleIn(element: HTMLElement, delay: number = 0): (() => void) | void {
   if (!element) return;

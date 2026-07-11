@@ -1,7 +1,7 @@
 {
-  "name": "@watchfy/design-tokens",
+  "name": "@stersh/design-tokens",
   "version": "0.1.0",
-  "description": "Unified atomic design tokens and typography constants for Watchfy",
+  "description": "Unified atomic design tokens and typography constants for Stersh",
   "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",

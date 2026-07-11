@@ -6,11 +6,11 @@
 -keep class retrofit2.** { *; }
 
 # Keep Gson serialized classes
--keepclassmembers class com.watchfy.app.data.remote.dto.** { *; }
--keepclassmembers class com.watchfy.app.domain.model.** { *; }
+-keepclassmembers class com.stersh.app.data.remote.dto.** { *; }
+-keepclassmembers class com.stersh.app.domain.model.** { *; }
 
 # Keep Room entities
--keepclassmembers class com.watchfy.app.data.local.entity.** { *; }
+-keepclassmembers class com.stersh.app.data.local.entity.** { *; }
 
 # Keep Hilt
 -keepclassmembers class * {

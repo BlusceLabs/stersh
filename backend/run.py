@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Watchfy backend server with HTTP/2 support."""
+"""Run the Stersh backend server with HTTP/2 support."""
 import os
 import sys
 import uvicorn

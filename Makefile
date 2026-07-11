@@ -81,7 +81,7 @@ health:
 test:
 	@cd frontend && npm run build
 	@cd frontend && npm run test:unit
-	@cd backend/gateway && GOCACHE=/tmp/watchfy-go-cache GOPATH=/tmp/watchfy-go go test ./...
+	@cd backend/gateway && GOCACHE=/tmp/stersh-go-cache GOPATH=/tmp/stersh-go go test ./...
 	@cd backend && python3 -m unittest discover -s tests -v
 	@python3 -m compileall -q backend
 

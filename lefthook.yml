@@ -1,4 +1,4 @@
-# lefthook configuration for Watchfy.
+# lefthook configuration for Stersh.
 # Install with:  go install github.com/evilmartians/lefthook@latest && lefthook install
 # Skip on demand:  git commit --no-verify / git push --no-verify
 # Run full local CI:  make ci-local

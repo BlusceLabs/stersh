@@ -1,6 +1,6 @@
-const TOKEN_KEY = 'watchfy_token';
-const REFRESH_KEY = 'watchfy_refresh';
-const USER_KEY = 'watchfy_user';
+const TOKEN_KEY = 'stersh_token';
+const REFRESH_KEY = 'stersh_refresh';
+const USER_KEY = 'stersh_user';
 
 export interface User {
   id: number;
@@ -50,7 +50,7 @@ function clearSession() {
 }
 
 function dispatchAuthChange() {
-  window.dispatchEvent(new CustomEvent('watchfy:auth-change', {
+  window.dispatchEvent(new CustomEvent('stersh:auth-change', {
     detail: { authenticated: isAuthenticated(), user: getUser() },
   }));
 }
@@ -199,7 +199,7 @@ export function onAuthChange(callback: (authenticated: boolean, user: User | nul
     const { authenticated, user } = (e as CustomEvent).detail;
     callback(authenticated, user);
   };
-  window.addEventListener('watchfy:auth-change', handler);
+  window.addEventListener('stersh:auth-change', handler);
   callback(isAuthenticated(), getUser());
-  return () => window.removeEventListener('watchfy:auth-change', handler);
+  return () => window.removeEventListener('stersh:auth-change', handler);
 }

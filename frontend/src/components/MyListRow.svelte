@@ -9,7 +9,7 @@
     const entries: { type: string; id: string }[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith('watchfy:mylist:')) continue;
+      if (!key || !key.startsWith('stersh:mylist:')) continue;
       const parts = key.split(':');
       if (parts.length === 4) {
         entries.push({ type: parts[2], id: parts[3] });

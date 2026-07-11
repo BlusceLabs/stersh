@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"watchfy/backend/gateway/internal/handlers"
+	"stersh/backend/gateway/internal/handlers"
 )
 
 type Dependencies struct {

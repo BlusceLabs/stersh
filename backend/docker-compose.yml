@@ -9,8 +9,8 @@ services:
       - "8080:8080"
     environment:
       - TMDB_API_KEY=${TMDB_API_KEY}
-      - WATCHFY_EXTRACTOR_URL=http://extractor:8000
-      - WATCHFY_GATEWAY_ADDR=:8080
+      - STERSH_EXTRACTOR_URL=http://extractor:8000
+      - STERSH_GATEWAY_ADDR=:8080
     depends_on:
       - extractor
 

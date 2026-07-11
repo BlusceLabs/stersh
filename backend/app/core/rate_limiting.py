@@ -1,4 +1,4 @@
-"""Rate limiting middleware for watchfy backend."""
+"""Rate limiting middleware for stersh backend."""
 from fastapi import Request, FastAPI
 from fastapi.responses import JSONResponse
 
